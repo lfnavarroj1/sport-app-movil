@@ -1,9 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copia de seguridad automática (Android 11 y anteriores). La sesión cifrada no se respalda:
+    su clave vive en Android Keystore y no viaja con la copia (HU003 CA6).
 -->
 <full-backup-content>
     <!--
