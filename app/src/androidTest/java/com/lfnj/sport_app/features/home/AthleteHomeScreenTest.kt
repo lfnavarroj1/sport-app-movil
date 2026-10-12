@@ -16,6 +16,7 @@ import com.lfnj.sport_app.core.session.SessionUser
 import com.lfnj.sport_app.core.session.SubscriptionStatus
 import com.lfnj.sport_app.navigation.NavigationRegistry
 import com.lfnj.sport_app.ui.theme.SportappTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -73,5 +74,45 @@ class AthleteHomeScreenTest {
 
         composeRule.onNodeWithText("No hay conexión para consultar tu plan.", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText("Reintentar").assertIsDisplayed()
+    }
+
+    // ------------------------------------------------------------------ HU004
+
+    @Test
+    fun hu004CerrarSesionSinOperacionEnElBffApareceComoProximamente() {
+        show(HomeUiState(user = user, loadingAccess = false, access = free, menu = NavigationRegistry.athleteMenu(free)))
+
+        composeRule.onNodeWithTag("open_menu").performClick()
+        composeRule.onNodeWithTag("athlete_menu").performScrollToNode(hasTestTag("menu_logout"))
+        composeRule.onNodeWithTag("menu_logout").assertIsDisplayed().assertIsNotEnabled()
+    }
+
+    @Test
+    fun hu004CerrarSesionDisponibleInvocaLaAccion() {
+        var logouts = 0
+        val menu = NavigationRegistry.athleteMenu(free, logoutAvailable = true)
+        composeRule.setContent {
+            SportappTheme {
+                AthleteHomeScreen(
+                    state = HomeUiState(user = user, loadingAccess = false, access = free, menu = menu),
+                    onRetry = {},
+                    onLogout = { logouts++ },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("open_menu").performClick()
+        composeRule.onNodeWithTag("athlete_menu").performScrollToNode(hasTestTag("menu_logout"))
+        composeRule.onNodeWithTag("menu_logout").performClick()
+
+        composeRule.runOnIdle { assertEquals(1, logouts) }
+    }
+
+    @Test
+    fun hu004CierreEnCursoMuestraProgreso() {
+        show(HomeUiState(user = user, loadingAccess = false, access = free, loggingOut = true))
+
+        composeRule.onNodeWithTag("logout_progress").assertIsDisplayed()
+        composeRule.onNodeWithText("Cerrando sesión…").assertIsDisplayed()
     }
 }

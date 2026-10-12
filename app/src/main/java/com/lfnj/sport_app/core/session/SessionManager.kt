@@ -2,6 +2,7 @@ package com.lfnj.sport_app.core.session
 
 import com.lfnj.sport_app.core.network.ApiResult
 import com.lfnj.sport_app.core.network.apiCall
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,8 +47,16 @@ sealed interface AccessOutcome {
     data class Unavailable(val correlationId: String?) : AccessOutcome
 }
 
+/** Resultado del cierre de sesión (HU004). La sesión local siempre queda eliminada. */
+sealed interface LogoutOutcome {
+    /** Revocación confirmada o idempotente (CA5, CA7). */
+    data object LoggedOut : LogoutOutcome
+    /** Cierre local realizado, pero la revocación remota no pudo confirmarse (CA6). */
+    data object LoggedOutRemoteUnconfirmed : LogoutOutcome
+}
+
 /**
- * Sesión del usuario en el dispositivo (HU003).
+ * Sesión del usuario en el dispositivo (HU003 y HU004).
  *
  * - El access token vive solo en memoria; el refresh token se guarda únicamente mediante
  *   [SecureTokenStore] (Android Keystore, CA6).
@@ -60,6 +69,7 @@ class SessionManager(
     private val store: SecureTokenStore,
     private val json: Json,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val revoker: SessionRevoker? = null,
 ) {
     private val mutex = Mutex()
     private var session: AuthSession? = null
@@ -67,6 +77,9 @@ class SessionManager(
 
     /** Usuario autenticado, o `null` sin sesión. Lo usan las guardas de navegación. */
     val currentUser: StateFlow<SessionUser?> = _currentUser.asStateFlow()
+
+    /** `false` mientras el contrato de `bff-mobile` no exponga la operación de cierre (HU004). */
+    val canLogout: Boolean get() = revoker != null
 
     suspend fun login(email: String, password: String): LoginOutcome {
         val api = api ?: return LoginOutcome.NotConfigured
@@ -140,6 +153,29 @@ class SessionManager(
      * válido o una sesión vencida; la revocación en el servidor corresponde a HU004.
      */
     suspend fun clearLocalSession() = mutex.withLock { clearLocked() }
+
+    /**
+     * Cierra la sesión (HU004). Primero elimina la sesión local —memoria y almacenamiento
+     * seguro— para que nunca pueda restaurarse, aunque el proceso termine durante la llamada;
+     * luego solicita la revocación con el refresh token retenido solo en esta llamada. Sin
+     * confirmación remota no se guarda el token para reintentos (CA6).
+     */
+    suspend fun logout(): LogoutOutcome = mutex.withLock {
+        val refreshToken = session?.refreshToken ?: store.read()
+        clearLocked()
+        val result = when {
+            refreshToken == null -> RevocationResult.ALREADY_CLOSED
+            revoker == null -> RevocationResult.NOT_CONFIRMED
+            else -> try {
+                revoker.revoke(refreshToken)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                RevocationResult.NOT_CONFIRMED
+            }
+        }
+        if (result == RevocationResult.NOT_CONFIRMED) LogoutOutcome.LoggedOutRemoteUnconfirmed else LogoutOutcome.LoggedOut
+    }
 
     // ---------------------------------------------------------------- internos
 
