@@ -296,6 +296,125 @@ class SessionManagerTest {
         assertEquals(1, refreshes.get())
     }
 
+    // ------------------------------------------------------------------ cierre de sesión (HU004)
+
+    private class FakeRevoker(private vararg val results: RevocationResult) : SessionRevoker {
+        val revoked = mutableListOf<String>()
+        var onRevoke: () -> Unit = {}
+        override suspend fun revoke(refreshToken: String): RevocationResult {
+            onRevoke()
+            revoked += refreshToken
+            return results.getOrElse(revoked.size - 1) { results.last() }
+        }
+    }
+
+    private fun managerWith(revoker: SessionRevoker?) = SessionManager(
+        api = BffMobileClient.retrofit(server.url("/").toString()).create(SessionApi::class.java),
+        store = store,
+        json = BffMobileClient.json,
+        clock = { now },
+        revoker = revoker,
+    )
+
+    private suspend fun SessionManager.loginAthlete() {
+        server.enqueue(ok(sessionBody()))
+        login("ana@example.com", "Secreta-123")
+    }
+
+    @Test
+    fun `HU004 CA1 y CA5 la revocacion confirmada elimina toda la sesion local`() = runTest {
+        val revoker = FakeRevoker(RevocationResult.CONFIRMED)
+        val manager = managerWith(revoker).apply { loginAthlete() }
+
+        assertEquals(LogoutOutcome.LoggedOut, manager.logout())
+
+        assertEquals(listOf(REFRESH_TOKEN), revoker.revoked)
+        assertNull(store.value)
+        assertNull(manager.currentUser.value)
+        assertEquals(RestoreOutcome.NoSession, manager.restore())
+        assertTrue(manager.loadAccess() is AccessOutcome.SessionExpired)
+    }
+
+    @Test
+    fun `HU004 la sesion local se elimina antes de pedir la revocacion`() = runTest {
+        val revoker = FakeRevoker(RevocationResult.CONFIRMED)
+        val manager = managerWith(revoker).apply { loginAthlete() }
+        var stateDuringRevoke: Pair<String?, SessionUser?>? = null
+        revoker.onRevoke = { stateDuringRevoke = store.value to manager.currentUser.value }
+
+        manager.logout()
+
+        assertEquals(null to null, stateDuringRevoke)
+    }
+
+    @Test
+    fun `HU004 CA2 y CA7 una sesion ya cerrada en el servidor es un cierre exitoso`() = runTest {
+        val manager = managerWith(FakeRevoker(RevocationResult.ALREADY_CLOSED)).apply { loginAthlete() }
+
+        assertEquals(LogoutOutcome.LoggedOut, manager.logout())
+        assertNull(store.value)
+    }
+
+    @Test
+    fun `HU004 CA7 repetir el cierre no vuelve a enviar la credencial ni restaura la sesion`() = runTest {
+        val revoker = FakeRevoker(RevocationResult.CONFIRMED)
+        val manager = managerWith(revoker).apply { loginAthlete() }
+        manager.logout()
+
+        assertEquals(LogoutOutcome.LoggedOut, manager.logout())
+
+        assertEquals(1, revoker.revoked.size)
+        assertNull(manager.currentUser.value)
+    }
+
+    @Test
+    fun `HU004 CA6 sin confirmacion remota cierra localmente y no conserva el token`() = runTest {
+        val manager = managerWith(FakeRevoker(RevocationResult.NOT_CONFIRMED)).apply { loginAthlete() }
+        val writesBefore = store.writes
+
+        assertEquals(LogoutOutcome.LoggedOutRemoteUnconfirmed, manager.logout())
+
+        assertNull(store.value)
+        assertEquals(writesBefore, store.writes)
+        assertNull(manager.currentUser.value)
+        assertEquals(RestoreOutcome.NoSession, manager.restore())
+    }
+
+    @Test
+    fun `HU004 CA6 una falla inesperada del revocador equivale a no confirmado`() = runTest {
+        val manager = managerWith { throw java.io.IOException("sin red") }.apply { loginAthlete() }
+
+        assertEquals(LogoutOutcome.LoggedOutRemoteUnconfirmed, manager.logout())
+        assertNull(store.value)
+    }
+
+    @Test
+    fun `HU004 revoca el token guardado aunque la sesion no se haya restaurado en memoria`() = runTest {
+        store.value = REFRESH_TOKEN
+        val revoker = FakeRevoker(RevocationResult.CONFIRMED)
+
+        assertEquals(LogoutOutcome.LoggedOut, managerWith(revoker).logout())
+
+        assertEquals(listOf(REFRESH_TOKEN), revoker.revoked)
+        assertNull(store.value)
+    }
+
+    @Test
+    fun `HU004 sin sesion ni token no llama al BFF`() = runTest {
+        val revoker = FakeRevoker(RevocationResult.CONFIRMED)
+
+        assertEquals(LogoutOutcome.LoggedOut, managerWith(revoker).logout())
+        assertTrue(revoker.revoked.isEmpty())
+    }
+
+    @Test
+    fun `HU004 sin operacion de cierre en el contrato no se ofrece el cierre`() = runTest {
+        val manager = managerWith(null)
+
+        assertEquals(false, manager.canLogout)
+        assertEquals(true, managerWith(FakeRevoker(RevocationResult.CONFIRMED)).canLogout)
+    }
+
     // ------------------------------------------------------------------ seguridad
 
     @Test

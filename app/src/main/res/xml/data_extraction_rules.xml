@@ -10,5 +10,4 @@
     <device-transfer>
         <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
     </device-transfer>
-    -->
 </data-extraction-rules>

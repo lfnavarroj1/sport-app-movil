@@ -183,14 +183,16 @@ class LoginViewModelTest {
     }
 
     @Test
-    fun `la sesion vencida se informa hasta el siguiente intento`() = runTest(mainDispatcherRule.dispatcher) {
-        val vm = LoginViewModel({ _, _ -> LoginOutcome.InvalidCredentials }, sessionExpired = true)
-        assertTrue(vm.uiState.value.sessionExpired)
+    fun `el aviso de llegada se muestra hasta el siguiente intento`() = runTest(mainDispatcherRule.dispatcher) {
+        LoginNotice.entries.forEach { notice ->
+            val vm = LoginViewModel({ _, _ -> LoginOutcome.InvalidCredentials }, notice)
+            assertEquals(notice, vm.uiState.value.notice)
 
-        vm.fill()
-        vm.submit()
+            vm.fill()
+            vm.submit()
 
-        assertFalse(vm.uiState.value.sessionExpired)
+            assertNull(vm.uiState.value.notice)
+        }
     }
 
     @Test
