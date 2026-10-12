@@ -92,8 +92,16 @@ class LoginScreenTest {
 
     @Test
     fun sesionVencida() {
-        show(LoginUiState(sessionExpired = true))
+        show(LoginUiState(notice = LoginNotice.SESSION_EXPIRED))
+
+        composeRule.onNodeWithText("Tu sesión expiró. Inicia sesión de nuevo.").assertIsDisplayed()
+    }
+
+    @Test
+    fun hu004Ca6CierreRemotoNoConfirmado() {
+        show(LoginUiState(notice = LoginNotice.LOGOUT_REMOTE_UNCONFIRMED))
 
         composeRule.onNodeWithTag("login_notice").assertIsDisplayed()
+        composeRule.onNodeWithText("no pudimos confirmar el cierre con el servidor", substring = true).assertIsDisplayed()
     }
 }

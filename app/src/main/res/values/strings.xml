@@ -34,6 +34,7 @@
     <string name="login_submitting">Ingresando…</string>
     <string name="login_service_status">Estado del servicio</string>
     <string name="login_session_expired">Tu sesión expiró. Inicia sesión de nuevo.</string>
+    <string name="login_logout_remote_unconfirmed">Cerraste sesión en este dispositivo, pero no pudimos confirmar el cierre con el servidor por falta de conexión.</string>
     <string name="login_email_required">Ingresa tu correo electrónico.</string>
     <string name="login_email_too_long">El correo no puede superar 254 caracteres.</string>
     <string name="login_password_required">Ingresa tu contraseña.</string>
@@ -64,6 +65,7 @@
     <string name="home_greeting_anonymous">Hola</string>
     <string name="home_athlete_purpose">Desde aquí accederás a tus entrenamientos, tu calendario y las funciones de tu plan.</string>
     <string name="home_plan_title">Tu plan</string>
+    <string name="home_logging_out">Cerrando sesión…</string>
     <string name="home_plan_loading">Consultando tu plan…</string>
     <string name="home_plan_active">Plan %1$s activo.</string>
     <string name="home_plan_provisioning">Estamos activando tu plan. Las opciones del plan aparecerán cuando esté confirmado.</string>
@@ -84,6 +86,8 @@
     <string name="menu_group_integrations">Integraciones</string>
     <string name="menu_group_calendar">Calendario</string>
     <string name="menu_group_devices">Dispositivos</string>
+    <string name="menu_group_account">Cuenta</string>
+    <string name="menu_logout">Cerrar sesión</string>
     <string name="menu_athlete_routes">Rutas sugeridas</string>
     <string name="menu_athlete_events">Eventos sugeridos</string>
     <string name="menu_athlete_training_suggestions">Entrenamientos sugeridos</string>
