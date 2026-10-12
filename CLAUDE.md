@@ -61,6 +61,7 @@ necesitas otro documento, explica qué decisión concreta requiere.
 | Almacenamiento seguro | Android Keystore (AES-256-GCM, clave no exportable); solo texto cifrado en SharedPreferences privadas excluidas del backup; access token solo en memoria |
 | Tema | Paleta Material 3 de la web «Energía deportiva» (ADR-012) |
 | Contrato consumido | `bff-mobile` 0.3.0 (`BFF_MOBILE_CONTRACT_VERSION` en `app/build.gradle.kts`) |
+| Actores admitidos | Solo `athlete` (HU003 CA11, ADR-025): único inicio `athlete_home`; organizador y profesional usan la web |
 
 Estructura y comandos completos en `README.md`.
 
