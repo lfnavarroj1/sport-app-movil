@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copia de seguridad automática (Android 11 y anteriores). La sesión cifrada no se respalda:
+    su clave vive en Android Keystore y no viaja con la copia (HU003 CA6).
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
+</full-backup-content>
