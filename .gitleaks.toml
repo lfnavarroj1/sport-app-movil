@@ -1,0 +1,14 @@
+title = "SportApp móvil"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Directorios generados o de terceros; no contienen código del repositorio"
+paths = [
+    '''(^|/)build/''',
+    '''(^|/)\.gradle/''',
+    '''(^|/)\.kotlin/''',
+    '''(^|/)\.git/''',
+    '''gradle/wrapper/gradle-wrapper\.jar$''',
+]

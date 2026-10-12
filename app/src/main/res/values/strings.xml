@@ -1,3 +1,18 @@
-<resources>
-    <string name="app_name">sport-app</string>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="es">
+    <string name="app_name">SportApp</string>
+
+    <!-- Acciones comunes -->
+    <string name="action_retry">Reintentar</string>
+
+    <!-- Pantalla técnica de estado (andamiaje) -->
+    <string name="status_title">Estado de SportApp</string>
+    <string name="status_app_version">Versión de la aplicación: %1$s</string>
+    <string name="status_environment">Ambiente: %1$s</string>
+    <string name="status_contract_version">Contrato BFF móvil: %1$s</string>
+    <string name="status_checking">Verificando el servicio…</string>
+    <string name="status_bff_ready">El servicio está disponible.</string>
+    <string name="status_bff_unavailable">El servicio no está disponible en este momento. Intenta de nuevo más tarde.</string>
+    <string name="status_bff_no_connection">No hay conexión con el servicio. Revisa tu conexión a internet e intenta de nuevo.</string>
+    <string name="status_bff_not_configured">Esta versión de la aplicación no tiene configurado el servicio.</string>
+    <string name="status_bff_unexpected">El servicio respondió de forma inesperada. Intenta de nuevo.</string>
 </resources>

@@ -1,0 +1,76 @@
+# Candidato de release móvil a partir de un tag vX.Y.Z de main.
+# - candidate: verificaciones completas, APK y AAB sin firmar, checksums y metadatos.
+# - sign: job separado en el ambiente protegido `mobile-signing`; solo se ejecuta cuando la variable
+#   del repositorio MOBILE_SIGNING_ENABLED es 'true' (identidad, almacén de claves y responsables
+#   pendientes de aprobar). Ningún PR accede a este job ni al material de firma.
+# - Publicación en tienda o distribución interna: pendiente de decisión; no se configura aquí.
+# Las acciones se fijan a SHA completo; actualizarlas solo mediante PR revisado.
+name: release-mobile
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: '25'
+  JAVA_DISTRIBUTION: temurin
+
+jobs:
+  candidate:
+    name: candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: El tag debe apuntar a un commit de main
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-read-only: true
+      - name: Verificaciones y artefactos sin firmar
+        run: ./gradlew ciCheck :app:assembleRelease :app:bundleRelease --console=plain
+      - name: Checksums y metadatos
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/*.apk dist/
+          cp app/build/outputs/bundle/release/*.aab dist/
+          {
+            echo "version=${GITHUB_REF_NAME}"
+            echo "commit=${GITHUB_SHA}"
+            echo "contract=bff-mobile $(jq -r .info.version app/src/test/resources/contracts/bff-mobile.openapi.json)"
+          } > dist/artifact.txt
+          (cd dist && sha256sum *.apk *.aab > SHA256SUMS)
+          cat dist/artifact.txt dist/SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sportapp-release-unsigned-${{ github.ref_name }}
+          path: dist/
+          retention-days: 90
+          if-no-files-found: error
+
+  sign:
+    name: sign
+    needs: [candidate]
+    if: vars.MOBILE_SIGNING_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: mobile-signing
+    steps:
+      - name: Firma pendiente de aprobación
+        run: |
+          echo "La identidad de firma, el almacén de claves y la distribución no están aprobados." >&2
+          echo "Configure este job cuando se decidan; no se agrega material de firma al repositorio." >&2
+          exit 1
