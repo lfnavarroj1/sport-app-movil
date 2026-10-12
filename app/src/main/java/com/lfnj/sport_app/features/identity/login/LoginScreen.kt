@@ -74,12 +74,8 @@ fun LoginScreen(
                 Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.login_title), style = MaterialTheme.typography.headlineSmall)
                     Text(stringResource(R.string.login_subtitle), style = MaterialTheme.typography.bodyMedium)
-                    when (state.notice) {
-                        LoginNotice.SESSION_EXPIRED ->
-                            Notice(stringResource(R.string.login_session_expired), tag = "login_notice")
-                        LoginNotice.LOGOUT_REMOTE_UNCONFIRMED ->
-                            Notice(stringResource(R.string.login_logout_remote_unconfirmed), tag = "login_notice")
-                        null -> Unit
+                    if (state.sessionExpired) {
+                        Notice(stringResource(R.string.login_session_expired), tag = "login_notice")
                     }
                     OutlinedTextField(
                         value = state.email,

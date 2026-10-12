@@ -3,7 +3,6 @@ package com.lfnj.sport_app.features.identity.start
 import com.lfnj.sport_app.core.session.ActorType
 import com.lfnj.sport_app.core.session.RestoreOutcome
 import com.lfnj.sport_app.core.session.SessionUser
-import com.lfnj.sport_app.features.identity.login.LoginNotice
 import com.lfnj.sport_app.navigation.Destinations
 import com.lfnj.sport_app.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,7 +32,7 @@ class SessionStartViewModelTest {
         val cases = mapOf(
             RestoreOutcome.NoSession to StartNavigation(Destinations.LOGIN),
             RestoreOutcome.NotConfigured to StartNavigation(Destinations.LOGIN),
-            RestoreOutcome.Expired to StartNavigation(Destinations.LOGIN, LoginNotice.SESSION_EXPIRED),
+            RestoreOutcome.Expired to StartNavigation(Destinations.LOGIN, sessionExpired = true),
             RestoreOutcome.UnsupportedActor to StartNavigation(Destinations.UNAUTHORIZED),
         )
         cases.forEach { (outcome, expected) ->

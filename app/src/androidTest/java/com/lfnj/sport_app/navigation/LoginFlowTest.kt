@@ -6,17 +6,11 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lfnj.sport_app.core.config.AppConfig
-import com.lfnj.sport_app.core.session.RevocationResult
 import com.lfnj.sport_app.core.session.SecureTokenStore
-import com.lfnj.sport_app.core.session.SessionRevoker
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
-import androidx.compose.ui.test.performScrollToNode
 import com.lfnj.sport_app.di.AppContainer
 import com.lfnj.sport_app.ui.theme.SportappTheme
 import okhttp3.mockwebserver.MockResponse
@@ -53,17 +47,10 @@ class LoginFlowTest {
     @After
     fun tearDown() = server.shutdown()
 
-    private lateinit var navController: NavHostController
-
-    private fun launch(revoker: SessionRevoker? = null) {
+    private fun launch() {
         val config = AppConfig(server.url("/").toString(), "test", "0.3.0", "0.1.0")
-        val container = object : AppContainer(config, store) {
-            override val sessionRevoker: SessionRevoker? = revoker
-        }
-        composeRule.setContent {
-            navController = rememberNavController()
-            SportappTheme { AppNavHost(container, navController = navController) }
-        }
+        val container = AppContainer(config, store)
+        composeRule.setContent { SportappTheme { AppNavHost(container) } }
     }
 
     private fun session(actor: String?) = MockResponse().setBody(
@@ -163,46 +150,5 @@ class LoginFlowTest {
         composeRule.waitUntilExactlyOneExists(hasText("Plan FREE activo."), 5_000)
         assertEquals("/v1/sessions/refresh", server.takeRequest().path)
         assertEquals("refresh-token-sintetico-000000000001", store.value)
-    }
-
-    // ------------------------------------------------------------------ HU004
-
-    private fun loginAthleteAndOpenLogout(revoker: SessionRevoker) {
-        launch(revoker)
-        server.enqueue(session("athlete"))
-        server.enqueue(freeCapabilities)
-        loginWith("ana@example.com")
-        composeRule.waitUntilExactlyOneExists(hasText("Plan FREE activo."), 5_000)
-        composeRule.onNodeWithTag("open_menu").performClick()
-        composeRule.onNodeWithTag("athlete_menu").performScrollToNode(hasTestTag("menu_logout"))
-        composeRule.onNodeWithTag("menu_logout").performClick()
-    }
-
-    @Test
-    fun hu004Ca5CierreConfirmadoLimpiaLaSesionYLaPila() {
-        val revoked = mutableListOf<String>()
-        loginAthleteAndOpenLogout { token -> revoked += token; RevocationResult.CONFIRMED }
-
-        composeRule.waitUntilExactlyOneExists(hasTestTag("login_email"), 5_000)
-        composeRule.onNodeWithTag("login_notice").assertDoesNotExist()
-        composeRule.onNodeWithTag("athlete_home").assertDoesNotExist()
-        composeRule.runOnIdle {
-            assertEquals(listOf("refresh-token-sintetico-000000000001"), revoked)
-            assertNull(store.value)
-            assertNull("Atrás no debe regresar a pantallas protegidas", navController.previousBackStackEntry)
-            assertEquals(Destinations.LOGIN, navController.currentDestination?.route?.substringBefore('?'))
-        }
-    }
-
-    @Test
-    fun hu004Ca6CierreSinConfirmacionAvisaYNoConservaElToken() {
-        loginAthleteAndOpenLogout { RevocationResult.NOT_CONFIRMED }
-
-        composeRule.waitUntilExactlyOneExists(hasTestTag("login_notice"), 5_000)
-        composeRule.onNodeWithText("no pudimos confirmar el cierre con el servidor", substring = true).assertIsDisplayed()
-        composeRule.runOnIdle {
-            assertNull(store.value)
-            assertNull(navController.previousBackStackEntry)
-        }
     }
 }

@@ -37,21 +37,20 @@ data class LoginUiState(
     val passwordError: FieldError? = null,
     val submitting: Boolean = false,
     val error: LoginError? = null,
-    /** Aviso con el que se llegó al acceso; se retira en el siguiente intento. */
-    val notice: LoginNotice? = null,
+    val sessionExpired: Boolean = false,
     /** Destino al que navegar una sola vez; la pantalla llama a [LoginViewModel.onNavigated]. */
     val navigateTo: String? = null,
 ) {
     override fun toString(): String =
         "LoginUiState(emailError=$emailError, passwordError=$passwordError, submitting=$submitting, " +
-            "error=$error, notice=$notice, navigateTo=$navigateTo)"
+            "error=$error, sessionExpired=$sessionExpired, navigateTo=$navigateTo)"
 }
 
 class LoginViewModel(
     private val gateway: LoginGateway,
-    notice: LoginNotice? = null,
+    sessionExpired: Boolean = false,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(LoginUiState(notice = notice))
+    private val _uiState = MutableStateFlow(LoginUiState(sessionExpired = sessionExpired))
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     fun onEmailChange(value: String) = _uiState.update { it.copy(email = value, emailError = null, error = null) }
@@ -81,7 +80,7 @@ class LoginViewModel(
             _uiState.update { it.copy(emailError = emailError, passwordError = passwordError, error = null) }
             return
         }
-        _uiState.update { it.copy(submitting = true, error = null, notice = null) }
+        _uiState.update { it.copy(submitting = true, error = null, sessionExpired = false) }
         viewModelScope.launch {
             val outcome = gateway.login(email, current.password)
             _uiState.update { state -> state.after(outcome) }

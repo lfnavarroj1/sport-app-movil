@@ -3,7 +3,6 @@ package com.lfnj.sport_app.features.identity.start
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lfnj.sport_app.core.session.RestoreOutcome
-import com.lfnj.sport_app.features.identity.login.LoginNotice
 import com.lfnj.sport_app.navigation.Destinations
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** Destino resuelto al abrir la aplicación. */
-data class StartNavigation(val route: String, val notice: LoginNotice? = null)
+data class StartNavigation(val route: String, val sessionExpired: Boolean = false)
 
 data class SessionStartUiState(
     val restoring: Boolean = true,
@@ -46,7 +45,7 @@ class SessionStartViewModel(
                     RestoreOutcome.NoSession, RestoreOutcome.NotConfigured ->
                         it.copy(restoring = false, navigateTo = StartNavigation(Destinations.LOGIN))
                     RestoreOutcome.Expired ->
-                        it.copy(restoring = false, navigateTo = StartNavigation(Destinations.LOGIN, LoginNotice.SESSION_EXPIRED))
+                        it.copy(restoring = false, navigateTo = StartNavigation(Destinations.LOGIN, sessionExpired = true))
                     RestoreOutcome.UnsupportedActor ->
                         it.copy(restoring = false, navigateTo = StartNavigation(Destinations.UNAUTHORIZED))
                     RestoreOutcome.NoConnection, is RestoreOutcome.Unavailable ->

@@ -22,7 +22,7 @@ class NavigationRegistryTest {
         val menu = NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES))
 
         assertEquals(
-            listOf("HU003", "HU026", "HU027", "HU028", "HU029", "HU030", "HU031", "HU032", "HU033", "HU034", "HU035", "HU004"),
+            listOf("HU003", "HU026", "HU027", "HU028", "HU029", "HU030", "HU031", "HU032", "HU033", "HU034", "HU035"),
             huOf(menu),
         )
     }
@@ -55,12 +55,12 @@ class NavigationRegistryTest {
     fun `PROVISIONING no concede opciones del plan`() {
         val menu = NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES, SubscriptionStatus.PROVISIONING))
 
-        assertEquals(listOf("home", "logout"), menu.map { it.id })
+        assertEquals(listOf("home"), menu.map { it.id })
     }
 
     @Test
-    fun `sin capacidades cargadas solo quedan las opciones base`() {
-        assertEquals(listOf("home", "logout"), NavigationRegistry.athleteMenu(null).map { it.id })
+    fun `sin capacidades cargadas solo queda el inicio`() {
+        assertEquals(listOf("home"), NavigationRegistry.athleteMenu(null).map { it.id })
     }
 
     @Test
@@ -69,12 +69,12 @@ class NavigationRegistryTest {
             ActorType.ORGANIZER, SubscriptionStatus.ACTIVE, null, setOf("training.routes.recommend"), FREE_CAPABILITIES.toSet(),
         )
 
-        assertEquals(listOf("home", "logout"), NavigationRegistry.athleteMenu(organizer).map { it.id })
+        assertEquals(listOf("home"), NavigationRegistry.athleteMenu(organizer).map { it.id })
     }
 
     @Test
     fun `capacidades desconocidas se ignoran`() {
-        assertEquals(listOf("home", "logout"), NavigationRegistry.athleteMenu(athlete(listOf("admin.everything"))).map { it.id })
+        assertEquals(listOf("home"), NavigationRegistry.athleteMenu(athlete(listOf("admin.everything"))).map { it.id })
     }
 
     @Test
@@ -87,29 +87,10 @@ class NavigationRegistryTest {
     @Test
     fun `el registro solo contiene HU aprobadas para movil y codigos unicos`() {
         val entries = NavigationRegistry.athlete
-        val mobileHu = setOf("HU003", "HU004") + (26..40).map { "HU0$it" }
+        val mobileHu = setOf("HU003") + (26..40).map { "HU0$it" }
 
         assertTrue(entries.all { it.hu in mobileHu })
         assertEquals(entries.size, entries.map { it.id }.toSet().size)
-    }
-
-    @Test
-    fun `HU004 cerrar sesion esta deshabilitada mientras no exista la operacion en el BFF`() {
-        val logout = NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES)).single { it.id == "logout" }
-
-        assertEquals(false, logout.enabled)
-        assertEquals("HU004", logout.hu)
-    }
-
-    @Test
-    fun `HU004 cerrar sesion se habilita como accion cuando el BFF la ofrece`() {
-        val menu = NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES), logoutAvailable = true)
-        val logout = menu.single { it.id == "logout" }
-
-        assertEquals(MenuAction.LOGOUT, logout.action)
-        assertEquals(null, logout.route)
-        assertEquals(logout, menu.last())
-        assertEquals(MenuGroup.ACCOUNT, NavigationRegistry.grouped(menu).last().first)
     }
 
     @Test

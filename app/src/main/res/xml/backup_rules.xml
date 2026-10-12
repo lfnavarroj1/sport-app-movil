@@ -4,5 +4,8 @@
     su clave vive en Android Keystore y no viaja con la copia (HU003 CA6).
 -->
 <full-backup-content>
-    <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
+    <!--
+   <include domain="sharedpref" path="."/>
+   <exclude domain="sharedpref" path="device.xml"/>
+-->
 </full-backup-content>
