@@ -31,11 +31,9 @@ class OpenApiContract private constructor(private val document: JsonObject) {
     fun schemaRequired(schema: String): Set<String> =
         schema(schema)["required"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet() ?: emptySet()
 
-    fun propertySchema(schema: String, property: String): JsonObject =
-        schema(schema).getValue("properties").jsonObject.getValue(property).jsonObject
-
     fun enumValues(schema: String, property: String): Set<String> =
-        propertySchema(schema, property)["enum"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet() ?: emptySet()
+        schema(schema).getValue("properties").jsonObject.getValue(property).jsonObject["enum"]
+            ?.jsonArray?.map { it.jsonPrimitive.content }?.toSet() ?: emptySet()
 
     fun responseCodes(method: String, path: String): Set<String> =
         operation(method, path).getValue("responses").jsonObject.keys
