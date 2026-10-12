@@ -70,6 +70,7 @@ físico con la composición local: `adb reverse tcp:18081 tcp:18081` y
 | Unidad y contrato | `./gradlew :app:testDebugUnitTest` |
 | Cobertura de unidad (JaCoCo) | `./gradlew :app:createDebugUnitTestCoverageReport` |
 | Instrumentadas (Espresso/Compose) | `./gradlew :app:connectedDebugAndroidTest` (emulador o dispositivo conectado; `ANDROID_SERIAL` elige uno) |
+| E2E HU003 contra la composición local (emulador → `http://10.0.2.2:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu003IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2eOrganizerEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2eServiceProviderEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña>` — las cuentas sintéticas se crean antes con `POST http://localhost:18080/v1/users` (`bff-web`, HU001), porque el móvil no tiene registro. Sin `e2ePassword` el paquete `e2e` se excluye. |
 | APK de depuración | `./gradlew :app:assembleDebug` |
 | Candidato de release sin firmar | `./gradlew :app:assembleRelease :app:bundleRelease` |
 
