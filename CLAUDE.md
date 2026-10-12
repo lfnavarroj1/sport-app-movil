@@ -48,6 +48,8 @@ necesitas otro documento, explica qué decisión concreta requiere.
 
 - Ramas GitFlow: `feature/HUxxx-descripcion`, `fix/HUxxx-…`, `chore/…` desde `develop`; PR a `develop`.
 - Commits `<tipo>(<alcance>): descripción` con `[HUxxx]` en los funcionales; PR que empiece con `[HUxxx]`.
+- Sin atribución al asistente: los commits y PR **no** llevan `Co-Authored-By: Claude …` ni líneas «Generated with Claude Code» (decisión del responsable, 2026-10-12).
+- El agente solo crea ramas y commits locales; el responsable publica (`push`) y abre los PR.
 - Tareas técnicas `T-HUxxx-MOB`. Un agente puede proponer **En revisión**, nunca **Aceptada**.
 - Al entregar, incluye el bloque «Actualización de HU» de las instrucciones comunes §6 y la
   correspondencia criterio → prueba.
