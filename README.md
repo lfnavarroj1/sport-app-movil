@@ -76,18 +76,14 @@ físico con la composición local: `adb reverse tcp:18081 tcp:18081` y
 
 ### Ruta con tildes en Windows
 
-Con el proyecto bajo una ruta con caracteres no ASCII (`Mestría`, `Ingeniería`), el proceso de
-pruebas de Gradle no encuentra las clases (`ClassNotFoundException`). Ejecute Gradle desde una
-unidad virtual con ruta ASCII:
+El proyecto vive bajo una ruta con caracteres no ASCII (`Mestría`, `Ingeniería`). Gradle pasa el
+classpath de las pruebas al proceso de prueba en un archivo de argumentos que el lanzador de Java
+lee, en Windows, con la página de códigos del sistema. Por eso `gradle.properties` fija el daemon en
+`-Dfile.encoding=COMPAT` (codificación nativa: Windows-1252 en Windows, UTF-8 en Linux/macOS y CI).
+Con UTF-8 la ruta llega corrupta y las pruebas fallan con `ClassNotFoundException` ("Test process
+encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subst`.
 
-```powershell
-subst S: "D:\04 - Mestría en Ingeniería de Software\08 - Ciclo 8\Proyecto final II\aplicacion_proyecto_final"
-cd S:\movil
-.\gradlew.bat ciCheck
-```
-
-`android.overridePathCheck=true` en `gradle.properties` solo omite la advertencia de AGP; no corrige
-las pruebas. En CI (Linux) no aplica.
+`android.overridePathCheck=true` solo omite la advertencia de AGP sobre rutas no ASCII.
 
 ## Pruebas
 

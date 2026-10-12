@@ -50,6 +50,9 @@ necesitas otro documento, explica qué decisión concreta requiere.
 - Commits `<tipo>(<alcance>): descripción` con `[HUxxx]` en los funcionales; PR que empiece con `[HUxxx]`.
 - Sin atribución al asistente: los commits y PR **no** llevan `Co-Authored-By: Claude …` ni líneas «Generated with Claude Code» (decisión del responsable, 2026-10-12).
 - El agente solo crea ramas y commits locales; el responsable publica (`push`) y abre los PR.
+- No se fusiona un PR con `ci-mobile` en rojo. Si una rama se reescribió localmente, se publica con
+  `push --force-with-lease` antes de abrir su PR; si aparecen conflictos con `develop` entre dos versiones
+  de los mismos commits, se detiene la fusión y se compara contra el último tope verificado.
 - Tareas técnicas `T-HUxxx-MOB`. Un agente puede proponer **En revisión**, nunca **Aceptada**.
 - Al entregar, incluye el bloque «Actualización de HU» de las instrucciones comunes §6 y la
   correspondencia criterio → prueba.
@@ -69,8 +72,9 @@ Estructura y comandos completos en `README.md`.
 
 ## 5. Entorno local (Windows)
 
-- La ruta contiene tildes y rompe las pruebas de Gradle (`ClassNotFoundException`). Ejecuta Gradle
-  desde una unidad ASCII: `subst S: "<ruta>\aplicacion_proyecto_final"` y trabaja en `S:\movil`.
+- La ruta contiene tildes: `gradle.properties` fija el daemon en `-Dfile.encoding=COMPAT` para que las
+  pruebas JVM encuentren sus clases desde la ruta original (también en Android Studio). No lo cambies
+  a UTF-8; si reaparece `ClassNotFoundException` en las pruebas, revisa ese valor.
 - `JAVA_HOME` = JBR de Android Studio (`C:\Program Files\Android\Android Studio2\jbr`).
 - Puerta local: `./gradlew ciCheck`; instrumentadas: `./gradlew :app:connectedDebugAndroidTest`.
   Usa el AVD `sportapp_api33` y fija `ANDROID_SERIAL=emulator-5554` para no instalar en un teléfono personal conectado.
