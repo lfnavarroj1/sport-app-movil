@@ -32,14 +32,20 @@ app/src/main/java/com/lfnj/sport_app/
 ├── core/
 │   ├── config/            AppConfig por variante (URL del BFF, ambiente, versión de contrato)
 │   ├── network/           cliente Retrofit/OkHttp, ApiResult, errores del contrato, correlación
-│   └── session/           interfaces de sesión y almacenamiento seguro
+│   ├── security/          Android Keystore (AES-256-GCM) y almacenamiento cifrado del refresh token
+│   └── session/           API y modelos de sesión, SessionManager (HU003)
 ├── navigation/            NavHost y destinos
 ├── features/<feature>/    pantalla (Compose) → ViewModel → repositorio → API del BFF
+│   ├── identity/          arranque/recuperación, acceso y acceso no autorizado (HU003)
+│   ├── home/              inicio del deportista con menú por capacidades (HU003)
+│   └── status/            pantalla técnica de estado del BFF
 └── ui/theme/              tema Material 3 de marca (ADR-012)
 ```
 
 - La UI no accede a red ni a almacenamiento; el ViewModel coordina el estado de pantalla; los
   repositorios encapsulan las llamadas al BFF.
+- La aplicación es **exclusiva para deportistas** (HU003 CA11, ADR-025): solo existe `athlete_home`
+  y un `organizer` o `service_provider` no abre sesión.
 - `core/network` no registra solicitudes, respuestas ni encabezados (pueden contener credenciales).
   Cada solicitud lleva un `X-Correlation-ID` UUID que el BFF propaga.
 
