@@ -30,6 +30,11 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // El E2E contra la composición local solo corre cuando se le pasan las cuentas sintéticas
+        // (ver `e2e/Hu003IntegratedE2eTest`); en la ejecución normal y en CI se excluye su paquete.
+        if (project.findProperty("android.testInstrumentationRunnerArguments.e2ePassword") == null) {
+            testInstrumentationRunnerArguments["notPackage"] = "com.lfnj.sport_app.e2e"
+        }
 
         // Versión exacta del contrato consumido (backend `contracts/openapi/bff-mobile.openapi.json`).
         buildConfigField("String", "BFF_MOBILE_CONTRACT_VERSION", "\"0.3.0\"")
