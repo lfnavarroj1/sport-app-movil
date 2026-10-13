@@ -152,4 +152,64 @@
     <string name="training_remote_check_unavailable">No pudimos verificar si tienes un entrenamiento en curso en otro dispositivo.</string>
     <string name="training_error_storage">No pudimos guardar el registro en este dispositivo. Intenta de nuevo.</string>
     <string name="training_error_already_open">Ya tienes un entrenamiento en curso.</string>
+
+    <!-- HU035: calendario deportivo -->
+    <string name="calendar_title">Calendario deportivo</string>
+    <string name="calendar_loading">Cargando tu calendario…</string>
+    <string name="calendar_refreshing">Actualizando…</string>
+    <string name="calendar_previous_month">Mes anterior</string>
+    <string name="calendar_next_month">Mes siguiente</string>
+    <string name="calendar_current_month">Ir al mes actual</string>
+    <string name="calendar_mode_month">Mes</string>
+    <string name="calendar_mode_list">Lista</string>
+    <string name="calendar_synced_at">Sincronizado: %1$s</string>
+    <string name="calendar_stale">Desactualizado: la última sincronización tiene más de 24 horas.</string>
+    <string name="calendar_offline_with_cache">Sin conexión. Mostramos el calendario sincronizado por última vez.</string>
+    <string name="calendar_unavailable_with_cache">No pudimos actualizar el calendario. Mostramos el sincronizado por última vez.</string>
+    <string name="calendar_never_synced">Aún no has sincronizado tu calendario. Conéctate a internet para consultarlo.</string>
+    <string name="calendar_offline_other_period">Sin conexión. Este mes no está disponible sin red.</string>
+    <string name="calendar_show_synced_period">Ver el periodo sincronizado (%1$s)</string>
+    <string name="calendar_error_unavailable">No pudimos cargar tu calendario. Intenta de nuevo en unos minutos.</string>
+    <string name="calendar_error_capability_required">Tu plan actual no incluye el calendario deportivo.</string>
+    <string name="calendar_error_permission_required">Tu cuenta no puede consultar el calendario deportivo.</string>
+    <string name="calendar_error_invalid_period">No pudimos consultar este periodo. Intenta con otro mes.</string>
+    <string name="calendar_error_invalid_response">Recibimos una respuesta inesperada. Intenta de nuevo.</string>
+    <string name="calendar_error_storage">No pudimos guardar el calendario en este dispositivo. Intenta de nuevo.</string>
+    <string name="calendar_empty">No tienes eventos ni sesiones planificadas este mes.</string>
+    <string name="calendar_incomplete">Información incompleta: no pudimos consultar %1$s. Puede haber actividades que no se muestran.</string>
+    <string name="calendar_truncated">Hay más %1$s de los que se muestran en este periodo. Acota el periodo para verlos todos.</string>
+    <string name="calendar_source_events">los eventos</string>
+    <string name="calendar_source_training">las sesiones planificadas</string>
+    <string name="calendar_source_other">una de las fuentes</string>
+    <string name="calendar_truncated_events">eventos</string>
+    <string name="calendar_truncated_training">sesiones planificadas</string>
+    <string name="calendar_truncated_other">actividades</string>
+    <string name="calendar_day_no_items">Sin actividades este día.</string>
+    <string name="calendar_select_day">Selecciona un día para ver sus actividades.</string>
+    <string name="calendar_badge_event">Evento</string>
+    <string name="calendar_badge_session">Sesión planificada</string>
+    <string name="calendar_badge_other">Otra actividad</string>
+    <string name="calendar_event_time">%1$s – %2$s</string>
+    <string name="calendar_event_location">%1$s, %2$s (%3$s)</string>
+    <string name="calendar_event_time_zone">Zona horaria del evento: %1$s</string>
+    <string name="calendar_session_date_only">Sin hora definida</string>
+    <string name="calendar_session_duration">%1$d min</string>
+    <string name="calendar_session_rpe">Esfuerzo percibido (RPE): %1$d</string>
+    <string name="calendar_day_description">%1$s: %2$s</string>
+    <plurals name="calendar_day_events">
+        <item quantity="one">%d evento</item>
+        <item quantity="many">%d eventos</item>
+        <item quantity="other">%d eventos</item>
+    </plurals>
+    <plurals name="calendar_day_sessions">
+        <item quantity="one">%d sesión planificada</item>
+        <item quantity="many">%d sesiones planificadas</item>
+        <item quantity="other">%d sesiones planificadas</item>
+    </plurals>
+    <plurals name="calendar_day_others">
+        <item quantity="one">%d otra actividad</item>
+        <item quantity="many">%d otras actividades</item>
+        <item quantity="other">%d otras actividades</item>
+    </plurals>
+    <string name="calendar_day_empty_description">sin actividades</string>
 </resources>

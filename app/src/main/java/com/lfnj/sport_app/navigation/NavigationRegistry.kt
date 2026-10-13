@@ -5,6 +5,7 @@ import com.lfnj.sport_app.R
 import com.lfnj.sport_app.core.session.AccessSnapshot
 import com.lfnj.sport_app.core.session.ActorType
 import com.lfnj.sport_app.core.session.SubscriptionStatus
+import com.lfnj.sport_app.features.calendar.model.CALENDAR_CAPABILITY
 import com.lfnj.sport_app.features.training.session.model.TRAINING_SESSION_CAPABILITY
 
 enum class MenuGroup(@param:StringRes val label: Int?) {
@@ -62,7 +63,7 @@ object NavigationRegistry {
         capability(TRAINING_SESSION_CAPABILITY, R.string.menu_athlete_session, MenuGroup.TRAINING, 170, "HU032", Destinations.TRAINING_SESSION),
         capability("training.dashboard.view", R.string.menu_athlete_dashboard, MenuGroup.TRAINING, 180, "HU033"),
         capability("training.metrics.ftp_vo2max", R.string.menu_athlete_metrics, MenuGroup.TRAINING, 190, "HU034"),
-        capability("calendar.sport.view", R.string.menu_athlete_calendar, MenuGroup.CALENDAR, 200, "HU035"),
+        capability(CALENDAR_CAPABILITY, R.string.menu_athlete_calendar, MenuGroup.CALENDAR, 200, "HU035", Destinations.CALENDAR),
         capability("training.realtime.monitor", R.string.menu_athlete_realtime, MenuGroup.TRAINING, 210, "HU036"),
         capability("devices.measurement.connect", R.string.menu_athlete_devices, MenuGroup.DEVICES, 220, "HU037"),
         capability("nutrition.session.reminders", R.string.menu_athlete_reminders, MenuGroup.NUTRITION, 230, "HU038"),

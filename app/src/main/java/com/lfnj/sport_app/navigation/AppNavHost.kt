@@ -17,6 +17,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.lfnj.sport_app.core.session.ActorType
 import com.lfnj.sport_app.di.AppContainer
+import com.lfnj.sport_app.features.calendar.CalendarScreen
+import com.lfnj.sport_app.features.calendar.CalendarViewModel
+import com.lfnj.sport_app.features.calendar.model.CalendarAccess
+import com.lfnj.sport_app.features.calendar.model.CalendarOwner
 import com.lfnj.sport_app.features.home.AthleteHomeScreen
 import com.lfnj.sport_app.features.home.HomeViewModel
 import com.lfnj.sport_app.features.identity.login.LoginNotice
@@ -168,6 +172,50 @@ fun AppNavHost(
                         onStart = viewModel::start,
                         onFinish = viewModel::finish,
                         onDismiss = viewModel::dismiss,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.CALENDAR) {
+            // HU035: misma guarda que athlete_home y, además, la capacidad calendar.sport.view vigente.
+            val user = remember { sessionManager.currentUser.value }
+            val allowed = remember { CalendarAccess.canView(sessionManager.access.value) }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                !allowed -> LaunchedEffect(Unit) {
+                    navController.navigate(Destinations.ATHLETE_HOME) {
+                        popUpTo(Destinations.CALENDAR) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                else -> {
+                    val viewModel: CalendarViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer { CalendarViewModel(CalendarOwner.keyOf(user.userId), container.calendarRepository) }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    CalendarScreen(
+                        state = state,
+                        onPreviousMonth = viewModel::previousMonth,
+                        onNextMonth = viewModel::nextMonth,
+                        onCurrentMonth = viewModel::currentMonth,
+                        onModeChange = viewModel::setMode,
+                        onSelectDay = viewModel::selectDay,
+                        onRetry = viewModel::retry,
+                        onShowSyncedPeriod = viewModel::showSyncedPeriod,
                         onBack = { navController.popBackStack() },
                     )
                 }

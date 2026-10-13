@@ -14,13 +14,14 @@ class SportApp : Application(), Configuration.Provider {
     lateinit var container: AppContainer
         private set
 
-    /** Ámbito del proceso para coordinar la sincronización de HU032 con la sesión. */
+    /** Ámbito del proceso para coordinar con la sesión la sincronización de HU032 y la caché de HU035. */
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(AppConfig.fromBuildConfig(), EncryptedTokenStore(this), this)
         container.trainingSyncCoordinator.start(applicationScope)
+        container.calendarCacheJanitor.start(applicationScope)
     }
 
     /** WorkManager crea los trabajos de HU032 con las dependencias del contenedor manual. */

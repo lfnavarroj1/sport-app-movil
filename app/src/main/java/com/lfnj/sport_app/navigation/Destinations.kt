@@ -13,4 +13,7 @@ object Destinations {
 
     /** HU032: registrar una sesión de entrenamiento (`/entrenamientos/sesion`). */
     const val TRAINING_SESSION = "entrenamientos/sesion"
+
+    /** HU035: calendario deportivo del deportista (`/calendario`). */
+    const val CALENDAR = "calendario"
 }

@@ -30,7 +30,7 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032 y HU035
 ├── MainActivity.kt        única Activity; aloja la navegación Compose
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -41,6 +41,9 @@ app/src/main/java/com/lfnj/sport_app/
 ├── navigation/            NavHost y destinos
 ├── features/<feature>/    pantalla (Compose) → ViewModel → repositorio → API del BFF
 │   ├── identity/          arranque/recuperación, acceso y acceso no autorizado (HU003)
+│   ├── calendar/          calendario deportivo (HU035): pantalla de mes o lista, ViewModel,
+│   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada
+│   │   └── model/         periodo por zona, elementos, fuentes y agrupación por día
 │   ├── home/              inicio del deportista con menú por capacidades (HU003)
 │   ├── training/session/  registrar entrenamiento offline first (HU032): pantalla, ViewModel,
 │   │   ├── data/          API, repositorio y Room (payload cifrado con Keystore)
@@ -72,6 +75,22 @@ app/src/main/java/com/lfnj/sport_app/
   vencen a los 30 días. Al cerrar sesión se cancela; solo el mismo deportista la reanuda.
 - El cronómetro usa el reloj monotónico mientras vive el proceso y se reconstruye desde
   `started_at` tras reiniciar; la duración oficial la calcula el backend.
+
+### Calendario deportivo (HU035, ADR-031)
+
+- La pantalla `calendario` (capacidad `calendar.sport.view`; sin ella la opción no aparece y la
+  guarda devuelve al inicio) muestra el mes visible por mes o en lista. El periodo es el mes completo
+  en la zona del dispositivo (`from`/`to` con desfase, siempre ≤ 92 días) y fechas y horas se
+  presentan en esa zona sin alterar el instante ni la `time_zone` declarada del evento.
+- Solo lectura: no hay cola de comandos ni WorkManager. La pantalla observa la caché del último
+  periodo confirmado (una fila por deportista en `sportapp_calendar.db`, payload AES-GCM con la
+  clave `sportapp.calendar.v1`, excluida del respaldo) y cada `200` del BFF la reemplaza.
+- Sin red muestra ese periodo con `last_synced_at` y lo marca desactualizado a las 24 h; sin
+  caché informa que aún no se ha sincronizado. Una fuente de `sources[]` distinta de `OK` (o
+  ausente) se informa como incompleta y nunca como ausencia de actividades; `truncated` sugiere
+  acotar el periodo.
+- Al terminar la sesión (cierre, vencimiento o cambio de deportista) se elimina la caché del
+  deportista; al autenticarse uno se eliminan las de cualquier otro.
 
 ## Configuración por variante
 
@@ -122,6 +141,10 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   real, Room, el esquema exportado, el reinicio del proceso y WorkManager se prueban en el
   dispositivo (`features/training/session/`). Mientras `bff-mobile` 0.5.0 no esté publicado,
   `TrainingSessionAdrContractTest` fija operaciones y cuerpos con los ejemplos de ADR-029.
+- HU035: la caché en memoria y el cifrado de prueba cubren la lógica en la JVM; Room, Keystore, el
+  esquema exportado, la limpieza al cerrar sesión y el respaldo se prueban en el dispositivo
+  (`features/calendar/`). Mientras `bff-mobile` no publique `GET /v1/me/calendar`,
+  `CalendarAdrContractTest` fija la operación y el ejemplo de ADR-031.
 
 ## CI y artefactos (GitHub Actions)
 

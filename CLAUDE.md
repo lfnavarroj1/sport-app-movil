@@ -68,6 +68,7 @@ necesitas otro documento, explica qué decisión concreta requiere.
 | Contrato consumido | `bff-mobile` 0.3.0 (`BFF_MOBILE_CONTRACT_VERSION` en `app/build.gradle.kts`) |
 | Actores admitidos | Solo `athlete` (HU003 CA11, ADR-025): único inicio `athlete_home`; organizador y profesional usan la web |
 | Offline first (HU032, ADR-026/029) | Room 2.8.5 + KSP 2.3.12 (la línea `2.2.10-2.0.x` no admite el Kotlin integrado de AGP 9) y WorkManager 2.12.0; payload cifrado con su propia clave de Keystore; cola por deportista sin tokens; no hay cola HTTP genérica |
+| Caché de lectura (HU035, ADR-031) | Room 2.8.5 en `sportapp_calendar.db`, separada de HU032, con su propia clave de Keystore; una fila por deportista con el último periodo confirmado; sin WorkManager; se elimina al terminar la sesión |
 
 Estructura y comandos completos en `README.md`.
 

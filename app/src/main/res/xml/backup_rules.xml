@@ -2,7 +2,8 @@
 <!--
     Copia de seguridad automática (Android 11 y anteriores). La sesión cifrada no se respalda:
     su clave vive en Android Keystore y no viaja con la copia (HU003 CA6). Tampoco los registros
-    de entrenamiento y su cola de sincronización (HU032, ADR-029 offline §5).
+    de entrenamiento y su cola de sincronización (HU032, ADR-029 offline §5) ni la caché
+    del calendario deportivo (HU035, ADR-031 offline §3).
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
@@ -10,4 +11,8 @@
     <exclude domain="database" path="sportapp_training.db-shm" />
     <exclude domain="database" path="sportapp_training.db-wal" />
     <exclude domain="database" path="sportapp_training.db-journal" />
+    <exclude domain="database" path="sportapp_calendar.db" />
+    <exclude domain="database" path="sportapp_calendar.db-shm" />
+    <exclude domain="database" path="sportapp_calendar.db-wal" />
+    <exclude domain="database" path="sportapp_calendar.db-journal" />
 </full-backup-content>
