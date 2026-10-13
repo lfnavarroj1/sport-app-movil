@@ -78,10 +78,10 @@ class NavigationRegistryTest {
     }
 
     @Test
-    fun `solo el inicio es navegable mientras las demas HU no esten implementadas`() {
+    fun `solo son navegables el inicio y las HU implementadas`() {
         val menu = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES))
 
-        assertEquals(listOf(Destinations.ATHLETE_HOME), menu.mapNotNull { it.route })
+        assertEquals(listOf(Destinations.ATHLETE_HOME, Destinations.TRAINING_SESSION), menu.mapNotNull { it.route })
     }
 
     @Test
@@ -118,5 +118,27 @@ class NavigationRegistryTest {
 
         assertEquals(MenuGroup.MAIN, grouped.first().first)
         assertEquals(MenuGroup.TRAINING, grouped[1].first)
+    }
+
+    // ------------------------------------------------------------- HU032
+
+    @Test
+    fun `HU032 Registrar entrenamiento queda habilitado con la capacidad`() {
+        val entry = NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES)).single { it.hu == "HU032" }
+
+        assertEquals(Destinations.TRAINING_SESSION, entry.route)
+        assertTrue(entry.enabled)
+    }
+
+    @Test
+    fun `HU032 sin capacidad no aparece salvo que haya una sesion abierta por finalizar`() {
+        val withoutCapability = athlete(FREE_CAPABILITIES - "training.session.record")
+
+        assertTrue(NavigationRegistry.athleteMenu(withoutCapability).none { it.hu == "HU032" })
+        assertTrue(NavigationRegistry.athleteMenu(withoutCapability, openTrainingSession = true).any { it.hu == "HU032" })
+        assertEquals(
+            listOf("home", "training.session.record", "logout"),
+            NavigationRegistry.athleteMenu(null, openTrainingSession = true).map { it.id },
+        )
     }
 }

@@ -18,15 +18,19 @@ central (`documentacion/arquitectura`), no desde este repositorio.
 | Navegación / estado | Navigation Compose 2.10.2, Lifecycle ViewModel 2.11.0 |
 | Red | Retrofit 3.0.0, OkHttp 4.12.0, kotlinx.serialization 1.9.0 |
 | Inyección de dependencias | Manual (`di/AppContainer`) |
+| Persistencia local y sincronización (HU032, ADR-029) | Room 2.8.5 (procesador con KSP 2.3.12), WorkManager 2.12.0 |
 
 Las dependencias se declaran en `gradle/libs.versions.toml`. Agregar o actualizar una librería
-requiere autorización (instrucciones del agente móvil, §2 y §10).
+requiere autorización (instrucciones del agente móvil, §2 y §10). Room, WorkManager y KSP los
+autoriza `T-HU032-MOB`; KSP 2.3.x ya no sigue la versión de Kotlin y la línea `2.2.10-2.0.x` no
+admite el Kotlin integrado de AGP 9 (`kotlin.sourceSets` prohibido). El plugin `androidx.room`
+exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ## Estructura
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032
 ├── MainActivity.kt        única Activity; aloja la navegación Compose
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -38,6 +42,10 @@ app/src/main/java/com/lfnj/sport_app/
 ├── features/<feature>/    pantalla (Compose) → ViewModel → repositorio → API del BFF
 │   ├── identity/          arranque/recuperación, acceso y acceso no autorizado (HU003)
 │   ├── home/              inicio del deportista con menú por capacidades (HU003)
+│   ├── training/session/  registrar entrenamiento offline first (HU032): pantalla, ViewModel,
+│   │   ├── data/          API, repositorio y Room (payload cifrado con Keystore)
+│   │   ├── model/         deportes, estados de sincronización y causas de rechazo
+│   │   └── sync/          motor de sincronización, WorkManager y coordinación con la sesión
 │   └── status/            pantalla técnica de estado del BFF
 └── ui/theme/              tema Material 3 de marca (ADR-012)
 ```
@@ -48,6 +56,22 @@ app/src/main/java/com/lfnj/sport_app/
   y un `organizer` o `service_provider` no abre sesión.
 - `core/network` no registra solicitudes, respuestas ni encabezados (pueden contener credenciales).
   Cada solicitud lleva un `X-Correlation-ID` UUID que el BFF propaga.
+
+### Registro de entrenamiento offline first (HU032, ADR-029)
+
+- La pantalla `entrenamientos/sesion` lee la fuente local (Room). Iniciar y finalizar guardan
+  primero la sesión y su comando (`START`/`FINISH`) en una transacción y luego programan la
+  sincronización; funcionan sin red y muestran `LOCAL`, `PENDING_SYNC`, `SYNCED` o `SYNC_FAILED`.
+- `session_id` e `Idempotency-Key` son UUID v4 generados y persistidos en el dispositivo. Deporte,
+  plan e instantes se guardan cifrados con AES-GCM (clave `sportapp.training.v1` de Android
+  Keystore); en claro solo quedan identificadores y metadatos técnicos. La base
+  `sportapp_training.db` se excluye del respaldo y de la transferencia entre dispositivos.
+- WorkManager ejecuta un trabajo único por deportista (huella SHA-256 del `user_id`), con red y
+  reintento exponencial solo ante pérdida de red, `502`, `503` o `504`. El fin nunca se envía antes
+  del inicio; un rechazo funcional deja la cadena en `SYNC_FAILED` con su causa y los pendientes
+  vencen a los 30 días. Al cerrar sesión se cancela; solo el mismo deportista la reanuda.
+- El cronómetro usa el reloj monotónico mientras vive el proceso y se reconstruye desde
+  `started_at` tras reiniciar; la duración oficial la calcula el backend.
 
 ## Configuración por variante
 
@@ -94,6 +118,10 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   componentes que requieren Android.
 - Las pruebas instrumentadas y de contrato usan respuestas simuladas: **no son E2E**. El E2E
   exige la aplicación contra un `bff-mobile` real.
+- HU032: las pruebas JVM usan una fuente local en memoria con la semántica del DAO; el cifrado
+  real, Room, el esquema exportado, el reinicio del proceso y WorkManager se prueban en el
+  dispositivo (`features/training/session/`). Mientras `bff-mobile` 0.5.0 no esté publicado,
+  `TrainingSessionAdrContractTest` fija operaciones y cuerpos con los ejemplos de ADR-029.
 
 ## CI y artefactos (GitHub Actions)
 

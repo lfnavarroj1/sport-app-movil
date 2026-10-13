@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lfnj.sport_app.core.config.AppConfig
 import com.lfnj.sport_app.core.session.RevocationResult
@@ -17,7 +18,7 @@ import com.lfnj.sport_app.core.session.SessionRevoker
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.ui.test.performScrollToNode
-import com.lfnj.sport_app.di.AppContainer
+import com.lfnj.sport_app.testing.TestAppContainer
 import com.lfnj.sport_app.ui.theme.SportappTheme
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -50,16 +51,20 @@ class LoginFlowTest {
     @Before
     fun setUp() = server.start()
 
+    private var container: TestAppContainer? = null
+
     @After
-    fun tearDown() = server.shutdown()
+    fun tearDown() {
+        server.shutdown()
+        container?.close()
+    }
 
     private lateinit var navController: NavHostController
 
     private fun launch(revoker: SessionRevoker? = null) {
         val config = AppConfig(server.url("/").toString(), "test", "0.3.0", "0.1.0")
-        val container = object : AppContainer(config, store) {
-            override val sessionRevoker: SessionRevoker? = revoker
-        }
+        val container = TestAppContainer(config, store, ApplicationProvider.getApplicationContext(), revoker)
+        this.container = container
         composeRule.setContent {
             navController = rememberNavController()
             SportappTheme { AppNavHost(container, navController = navController) }

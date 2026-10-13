@@ -1,5 +1,6 @@
 package com.lfnj.sport_app.core.session
 
+import com.lfnj.sport_app.core.network.ApiResult
 import com.lfnj.sport_app.core.network.BffMobileClient
 import com.lfnj.sport_app.testing.FakeTokenStore
 import com.lfnj.sport_app.testing.SessionFixtures
@@ -431,5 +432,88 @@ class SessionManagerTest {
                 assertTrue("«$text» expone un dato sensible", secret !in text)
             }
         }
+    }
+
+    // ------------------------------------------------------------------ llamadas autenticadas (HU032)
+
+    @Test
+    fun `authorized entrega el access token vigente sin renovarlo`() = runTest {
+        loginAthlete()
+        val seen = mutableListOf<String>()
+
+        val result = manager.authorized { auth -> seen += auth; ApiResult.Success("ok") }
+
+        assertEquals(AuthorizedResult.Completed(ApiResult.Success("ok")), result)
+        assertEquals(listOf("Bearer $ACCESS_TOKEN"), seen)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun `authorized ante 401 renueva una vez y repite con el token nuevo`() = runTest {
+        loginAthlete()
+        server.enqueue(ok(sessionBody(accessToken = "access-token-sintetico-2", refreshToken = ROTATED_REFRESH_TOKEN)))
+        val answers = ArrayDeque(listOf<ApiResult<String>>(ApiResult.HttpFailure(401, "invalid_access_token", null, null), ApiResult.Success("ok")))
+        val seen = mutableListOf<String>()
+
+        val result = manager.authorized { auth -> seen += auth; answers.removeFirst() }
+
+        assertEquals(AuthorizedResult.Completed(ApiResult.Success("ok")), result)
+        assertEquals(listOf("Bearer $ACCESS_TOKEN", "Bearer access-token-sintetico-2"), seen)
+        assertEquals(ROTATED_REFRESH_TOKEN, store.value)
+    }
+
+    @Test
+    fun `authorized con el token renovado tambien rechazado elimina la sesion local`() = runTest {
+        loginAthlete()
+        server.enqueue(ok(sessionBody(accessToken = "access-token-sintetico-2", refreshToken = ROTATED_REFRESH_TOKEN)))
+
+        val result = manager.authorized<String> { ApiResult.HttpFailure(401, "invalid_access_token", null, null) }
+
+        assertEquals(AuthorizedResult.SignedOut, result)
+        assertNull(manager.currentUser.value)
+        assertNull(store.value)
+    }
+
+    @Test
+    fun `authorized sin sesion no llama al BFF`() = runTest {
+        var called = false
+
+        assertEquals(AuthorizedResult.SignedOut, manager.authorized { called = true; ApiResult.Success("ok") })
+        assertTrue(!called)
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun `authorized sin red para renovar informa sin conexion y conserva la sesion`() = runTest {
+        loginAthlete()
+        now += 900_000 // access token vencido
+        server.shutdown()
+        var called = false
+
+        assertEquals(AuthorizedResult.Completed(ApiResult.NoConnection), manager.authorized { called = true; ApiResult.Success("ok") })
+        assertTrue(!called)
+        assertEquals(REFRESH_TOKEN, store.value)
+    }
+
+    @Test
+    fun `authorized con renovacion no disponible pide reintentar`() = runTest {
+        loginAthlete()
+        now += 900_000
+        server.enqueue(error(503, "upstream_unavailable"))
+
+        assertEquals(AuthorizedResult.RenewalUnavailable, manager.authorized { ApiResult.Success("ok") })
+    }
+
+    @Test
+    fun `access conserva las ultimas capacidades del usuario y se limpia al cerrar la sesion local`() = runTest {
+        loginAthlete()
+        assertNull(manager.access.value)
+        server.enqueue(ok(capabilitiesBody()))
+
+        manager.loadAccess()
+        assertTrue("training.session.record" in manager.access.value!!.capabilities)
+
+        manager.clearLocalSession()
+        assertNull(manager.access.value)
     }
 }

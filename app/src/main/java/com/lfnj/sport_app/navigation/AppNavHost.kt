@@ -27,6 +27,11 @@ import com.lfnj.sport_app.features.identity.start.SessionStartViewModel
 import com.lfnj.sport_app.features.identity.unauthorized.UnauthorizedScreen
 import com.lfnj.sport_app.features.status.StatusScreen
 import com.lfnj.sport_app.features.status.StatusViewModel
+import com.lfnj.sport_app.core.session.SubscriptionStatus
+import com.lfnj.sport_app.features.training.session.TrainingSessionScreen
+import com.lfnj.sport_app.features.training.session.TrainingSessionViewModel
+import com.lfnj.sport_app.features.training.session.model.TRAINING_SESSION_CAPABILITY
+import com.lfnj.sport_app.features.training.session.model.TrainingOwner
 
 private const val NOTICE_ARG = "notice"
 
@@ -99,7 +104,14 @@ fun AppNavHost(
                     val viewModel: HomeViewModel = viewModel(
                         factory = viewModelFactory {
                             initializer {
-                                HomeViewModel(user, sessionManager::loadAccess, sessionManager.canLogout, sessionManager::logout)
+                                HomeViewModel(
+                                    user = user,
+                                    loadAccess = sessionManager::loadAccess,
+                                    logoutAvailable = sessionManager.canLogout,
+                                    openTrainingSession = container.trainingSessionRepository
+                                        .observeOpenSession(TrainingOwner.keyOf(user.userId)),
+                                    performLogout = sessionManager::logout,
+                                )
                             }
                         }
                     )
@@ -112,7 +124,52 @@ fun AppNavHost(
                             )
                         }
                     }
-                    AthleteHomeScreen(state = state, onRetry = viewModel::refresh, onLogout = viewModel::logout)
+                    AthleteHomeScreen(
+                        state = state,
+                        onRetry = viewModel::refresh,
+                        onLogout = viewModel::logout,
+                        onNavigate = { route -> navController.navigate(route) { launchSingleTop = true } },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.TRAINING_SESSION) {
+            // HU032: misma guarda que athlete_home; la partición local es la del deportista autenticado.
+            val user = remember { sessionManager.currentUser.value }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                else -> {
+                    // Solo orienta la experiencia: sin capacidades conocidas el BFF decide al sincronizar.
+                    val canStart = sessionManager.access.value?.let {
+                        it.subscriptionStatus == SubscriptionStatus.ACTIVE && TRAINING_SESSION_CAPABILITY in it.capabilities
+                    } ?: true
+                    val viewModel: TrainingSessionViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer {
+                                TrainingSessionViewModel(TrainingOwner.keyOf(user.userId), container.trainingSessionRepository, canStart)
+                            }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    TrainingSessionScreen(
+                        state = state,
+                        onSelectSport = viewModel::selectSport,
+                        onStart = viewModel::start,
+                        onFinish = viewModel::finish,
+                        onDismiss = viewModel::dismiss,
+                        onBack = { navController.popBackStack() },
+                    )
                 }
             }
         }

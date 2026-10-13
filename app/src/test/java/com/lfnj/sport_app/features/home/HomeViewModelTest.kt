@@ -13,6 +13,7 @@ import com.lfnj.sport_app.testing.MainDispatcherRule
 import com.lfnj.sport_app.testing.SessionFixtures.FREE_CAPABILITIES
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -150,5 +151,19 @@ class HomeViewModelTest {
 
         assertEquals(HomeExit(Destinations.LOGIN), vm.uiState.value.navigateTo)
         assertNull(vm.uiState.value.access)
+    }
+
+    @Test
+    fun `HU032 una sesion de entrenamiento abierta mantiene accesible su registro`() = runTest(mainDispatcherRule.dispatcher) {
+        val open = MutableStateFlow(false)
+        val vm = HomeViewModel(user, { AccessOutcome.NoConnection }, openTrainingSession = open)
+        advanceUntilIdle()
+        assertEquals(listOf("home", "logout"), vm.uiState.value.ids())
+
+        open.value = true
+        advanceUntilIdle()
+
+        assertEquals(listOf("home", "training.session.record", "logout"), vm.uiState.value.ids())
+        assertTrue(vm.uiState.value.openTrainingSession)
     }
 }
