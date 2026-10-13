@@ -43,14 +43,15 @@ import androidx.compose.ui.unit.dp
 import com.lfnj.sport_app.R
 import com.lfnj.sport_app.core.session.AccessOutcome
 import com.lfnj.sport_app.core.session.SubscriptionStatus
+import com.lfnj.sport_app.navigation.Destinations
 import com.lfnj.sport_app.navigation.MenuAction
 import com.lfnj.sport_app.navigation.MenuEntry
 import com.lfnj.sport_app.navigation.NavigationRegistry
 import kotlinx.coroutines.launch
 
 /**
- * Inicio del deportista con menú lateral construido desde las capacidades vigentes (HU003 CA7)
- * y la acción «Cerrar sesión» (HU004).
+ * Inicio del deportista con menú lateral construido desde las capacidades vigentes (HU003 CA7),
+ * la acción «Cerrar sesión» (HU004) y los destinos implementados, como HU032.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +60,7 @@ fun AthleteHomeScreen(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     onLogout: () -> Unit = {},
+    onNavigate: (String) -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -69,7 +71,10 @@ fun AthleteHomeScreen(
             ModalDrawerSheet(Modifier.testTag("athlete_menu")) {
                 AthleteMenu(
                     state,
-                    onSelectHome = { scope.launch { drawerState.close() } },
+                    onSelectRoute = { route ->
+                        scope.launch { drawerState.close() }
+                        if (route != Destinations.ATHLETE_HOME) onNavigate(route)
+                    },
                     onLogout = {
                         scope.launch { drawerState.close() }
                         onLogout()
@@ -166,7 +171,7 @@ private fun PlanStatusCard(state: HomeUiState, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun AthleteMenu(state: HomeUiState, onSelectHome: () -> Unit, onLogout: () -> Unit) {
+private fun AthleteMenu(state: HomeUiState, onSelectRoute: (String) -> Unit, onLogout: () -> Unit) {
     Column(Modifier.verticalScroll(rememberScrollState()).padding(vertical = 12.dp)) {
         state.user?.let {
             Text(it.fullName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 28.dp))
@@ -187,7 +192,7 @@ private fun AthleteMenu(state: HomeUiState, onSelectHome: () -> Unit, onLogout: 
                         .semantics { heading() },
                 )
             }
-            entries.forEach { entry -> MenuItem(entry, state.loggingOut, onSelectHome, onLogout) }
+            entries.forEach { entry -> MenuItem(entry, state.loggingOut, onSelectRoute, onLogout) }
         }
         if (state.access?.subscriptionStatus == SubscriptionStatus.PROVISIONING) {
             Text(
@@ -200,7 +205,7 @@ private fun AthleteMenu(state: HomeUiState, onSelectHome: () -> Unit, onLogout: 
 }
 
 @Composable
-private fun MenuItem(entry: MenuEntry, loggingOut: Boolean, onSelectHome: () -> Unit, onLogout: () -> Unit) {
+private fun MenuItem(entry: MenuEntry, loggingOut: Boolean, onSelectRoute: (String) -> Unit, onLogout: () -> Unit) {
     if (entry.action == MenuAction.LOGOUT) {
         NavigationDrawerItem(
             label = { Text(stringResource(if (loggingOut) R.string.home_logging_out else entry.label)) },
@@ -213,8 +218,8 @@ private fun MenuItem(entry: MenuEntry, loggingOut: Boolean, onSelectHome: () -> 
     } else if (entry.route != null) {
         NavigationDrawerItem(
             label = { Text(stringResource(entry.label)) },
-            selected = entry.id == "home",
-            onClick = onSelectHome,
+            selected = entry.route == Destinations.ATHLETE_HOME,
+            onClick = { if (!loggingOut) onSelectRoute(entry.route) },
             modifier = Modifier
                 .padding(horizontal = 12.dp)
                 .testTag("menu_${entry.id}"),

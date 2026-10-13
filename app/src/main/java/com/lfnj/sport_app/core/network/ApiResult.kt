@@ -9,12 +9,16 @@ sealed interface ApiResult<out T> {
 
     sealed interface Failure : ApiResult<Nothing>
 
-    /** Respuesta HTTP no exitosa con el `code` versionado del contrato, si vino en el cuerpo. */
+    /**
+     * Respuesta HTTP no exitosa con el `code` versionado del contrato, si vino en el cuerpo, y
+     * las causas `details[].issue` de una validación (sin valores enviados).
+     */
     data class HttpFailure(
         val status: Int,
         val code: String?,
         val correlationId: String?,
         val retryAfterSeconds: Long?,
+        val issues: List<String> = emptyList(),
     ) : Failure
 
     /** Sin red, servidor inalcanzable o conexión interrumpida. */

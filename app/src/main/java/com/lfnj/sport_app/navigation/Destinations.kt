@@ -10,4 +10,7 @@ object Destinations {
     const val UNAUTHORIZED = "unauthorized"
     const val STATUS = "status"
     const val ATHLETE_HOME = "athlete_home"
+
+    /** HU032: registrar una sesión de entrenamiento (`/entrenamientos/sesion`). */
+    const val TRAINING_SESSION = "entrenamientos/sesion"
 }

@@ -110,4 +110,26 @@ class ApiCallTest {
 
         assertEquals(ApiResult.NoConnection, call())
     }
+
+    @Test
+    fun `un 422 conserva solo las causas de validacion`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(422).setBody(
+                """{"code":"validation_error","message":"m","details":[{"field":"started_at","issue":"too_old"},{"issue":"required"}]}"""
+            )
+        )
+
+        val result = call() as ApiResult.HttpFailure
+
+        assertEquals(listOf("too_old", "required"), result.issues)
+    }
+
+    @Test
+    fun `204 sin cuerpo es exito vacio solo cuando la operacion lo admite`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(204))
+        server.enqueue(MockResponse().setResponseCode(204))
+
+        assertEquals(ApiResult.Success(null), apiCallAllowingNoContent(BffMobileClient.json) { api.ready() })
+        assertEquals(ApiResult.InvalidResponse, call())
+    }
 }
