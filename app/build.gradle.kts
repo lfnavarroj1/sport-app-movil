@@ -39,7 +39,7 @@ android {
         }
 
         // Versión exacta del contrato consumido (backend `contracts/openapi/bff-mobile.openapi.json`).
-        buildConfigField("String", "BFF_MOBILE_CONTRACT_VERSION", "\"0.3.0\"")
+        buildConfigField("String", "BFF_MOBILE_CONTRACT_VERSION", "\"0.8.0\"")
     }
 
     buildTypes {

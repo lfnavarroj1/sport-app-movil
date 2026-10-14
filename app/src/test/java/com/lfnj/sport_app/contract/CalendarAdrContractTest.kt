@@ -20,12 +20,8 @@ import java.time.Instant
 import java.time.YearMonth
 
 /**
- * HU035 frente a la sección «Contrato público (`bff-mobile`)» de ADR-031 (aceptado el 2026-10-12).
- *
- * `BLOQUEADO`: la versión de `bff-mobile` que publica `GET /v1/me/calendar` (`T-HU035-BE`) aún no
- * está integrada en el backend, por lo que no existe la copia OpenAPI para [OpenApiContract]. Cuando
- * se publique, se copia en `src/test/resources/contracts/` y se agrega la verificación con
- * `assertApiMatches`; estas pruebas fijan mientras tanto la operación y el ejemplo del ADR.
+ * HU035 frente a la sección «Contrato público (`bff-mobile`)» de ADR-031 (aceptado el 2026-10-12):
+ * operación y ejemplo del ADR. La correspondencia con la copia OpenAPI está en [CalendarContractTest].
  */
 class CalendarAdrContractTest {
 
