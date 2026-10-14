@@ -190,7 +190,7 @@ class TrainingSessionRepository(
         }
     }
 
-    private suspend fun adopt(owner: String, remote: TrainingSessionDto) {
+    private suspend fun adopt(owner: String, remote: ActiveTrainingSessionDto) {
         if (remote.status != TrainingSessionDto.STATUS_ACTIVE) return
         val sport = TrainingSport.fromWire(remote.sport) ?: return
         val startedAt = runCatching { Instant.parse(remote.startedAt) }.getOrNull() ?: return
