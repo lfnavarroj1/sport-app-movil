@@ -65,7 +65,7 @@ necesitas otro documento, explica qué decisión concreta requiere.
 | Navegación, ViewModel y DI | Navigation Compose + lifecycle-viewmodel-compose; DI manual (`di/AppContainer`), sin Hilt/Koin |
 | Almacenamiento seguro | Android Keystore (AES-256-GCM, clave no exportable); solo texto cifrado en SharedPreferences privadas excluidas del backup; access token solo en memoria |
 | Tema | Paleta Material 3 de la web «Energía deportiva» (ADR-012) |
-| Contrato consumido | `bff-mobile` 0.3.0 (`BFF_MOBILE_CONTRACT_VERSION` en `app/build.gradle.kts`) |
+| Contrato consumido | `bff-mobile` 0.8.0, copia exacta de backend `develop` `eb745b7` (`BFF_MOBILE_CONTRACT_VERSION` en `app/build.gradle.kts`; origen y SHA-256 en `app/src/test/resources/contracts/README.md`) |
 | Actores admitidos | Solo `athlete` (HU003 CA11, ADR-025): único inicio `athlete_home`; organizador y profesional usan la web |
 | Offline first (HU032, ADR-026/029) | Room 2.8.5 + KSP 2.3.12 (la línea `2.2.10-2.0.x` no admite el Kotlin integrado de AGP 9) y WorkManager 2.12.0; payload cifrado con su propia clave de Keystore; cola por deportista sin tokens; no hay cola HTTP genérica |
 | Caché de lectura (HU035, ADR-031) | Room 2.8.5 en `sportapp_calendar.db`, separada de HU032, con su propia clave de Keystore; una fila por deportista con el último periodo confirmado; sin WorkManager; se elimina al terminar la sesión |

@@ -139,12 +139,12 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   exige la aplicación contra un `bff-mobile` real.
 - HU032: las pruebas JVM usan una fuente local en memoria con la semántica del DAO; el cifrado
   real, Room, el esquema exportado, el reinicio del proceso y WorkManager se prueban en el
-  dispositivo (`features/training/session/`). Mientras `bff-mobile` 0.5.0 no esté publicado,
-  `TrainingSessionAdrContractTest` fija operaciones y cuerpos con los ejemplos de ADR-029.
+  dispositivo (`features/training/session/`). `TrainingSessionContractTest` verifica la copia de
+  `bff-mobile` 0.8.0 y `TrainingSessionAdrContractTest`, los cuerpos y ejemplos de ADR-029.
 - HU035: la caché en memoria y el cifrado de prueba cubren la lógica en la JVM; Room, Keystore, el
   esquema exportado, la limpieza al cerrar sesión y el respaldo se prueban en el dispositivo
-  (`features/calendar/`). Mientras `bff-mobile` no publique `GET /v1/me/calendar`,
-  `CalendarAdrContractTest` fija la operación y el ejemplo de ADR-031.
+  (`features/calendar/`). `CalendarContractTest` verifica la copia de `bff-mobile` 0.8.0 y
+  `CalendarAdrContractTest`, el ejemplo de ADR-031.
 
 ## CI y artefactos (GitHub Actions)
 
