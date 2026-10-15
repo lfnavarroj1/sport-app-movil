@@ -93,19 +93,18 @@ integraciones de Graphify (hooks, `/graphify`) existen solo en `documentacion`; 
   `graphify-out` paralelo). Si una regla genérica pide actualizar el grafo tras editar código, no la
   cumplas: solicítalo al responsable en el cierre.
 - Antes de editar una `T-HUxxx-MOB`, después de cargar las instrucciones de §1 (pasos 1–4):
-  1. `graphify explain "<etiqueta del paquete de la HU>" --graph …`;
-  2. `graphify query "HUxxx móvil Kotlin pantalla estados offline sincronización contrato bff-mobile" --seed "<etiqueta del paquete>" --graph … --budget 3000`;
+  1. `graphify explain "<H1 del paquete de la HU>" --graph …`;
+  2. `graphify query "HUxxx móvil Kotlin pantalla estados offline sincronización contrato bff-mobile" --seed "<H1 del paquete>" --graph … --budget 3000`;
   3. `graphify query "HUxxx offline first cola sincronización" --seed "<ADR del cliente móvil devuelto en el paso 2>" --graph … --budget 3000`.
   Si falta un aspecto, repite con otra semilla (ADR, guía del dominio o archivo devuelto), no con más
   palabras clave; sube el presupuesto solo si una consulta enfocada sigue truncada. `graphify path "<A>" "<B>" --undirected`
   solo para confirmar una relación concreta.
-- **Etiquetas del paquete móvil:** los paquetes `tareas-hu/` de las HU móviles están etiquetados
-  `HUxxx <título>` **sin dos puntos** (p. ej. `HU035 Ver calendario de eventos y salidas`,
-  `HU032 Iniciar y finalizar entrenamiento`), no `HUxxx: <título>` como dice la guía. Un nombre
-  aproximado puede resolver sin aviso al nodo del catálogo (`explain "HU032: Iniciar o finalizar
-  entrenamiento"` devuelve el de `catalogo-historias.md`). Comprueba que `Source:` sea
-  `…/guias-desarrollo/tareas-hu/HUxxx-….md`; si no, usa el id del nodo
-  (`documentacion_arquitectura_guias_desarrollo_tareas_hu_<archivo>_documento`).
+- **Etiqueta del paquete:** el H1 completo del archivo en `tareas-hu/`, con el sufijo:
+  `HUxxx: <título> — paquete de asignación` (p. ej. `HU035: Ver calendario con eventos o salidas
+  programadas — paquete de asignación`). Una etiqueta aproximada (sin el sufijo o con otro título)
+  puede resolver sin aviso al nodo del catálogo: comprueba que `Source:` sea
+  `…/guias-desarrollo/tareas-hu/HUxxx-….md`. Si Graphify responde `Ambiguous`, usa
+  `<ruta>::<etiqueta>` en `explain`/`path` o el id del nodo en `--seed`; no corrijas el H1 del paquete.
 - Abre y verifica solo las fuentes devueltas que ya estén en el contexto de §1; si el grafo muestra
   otro documento necesario, pide su activación. `EXTRACTED` es evidencia directa; `INFERRED` y
   `AMBIGUOUS` se verifican en la fuente. Si el grafo contradice una fuente vigente, prevalece la
