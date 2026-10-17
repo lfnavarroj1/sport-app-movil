@@ -82,3 +82,37 @@ Estructura y comandos completos en `README.md`.
   Usa el AVD `sportapp_api33` y fija `ANDROID_SERIAL=emulator-5554` para no instalar en un teléfono personal conectado.
 - BFF móvil local: `http://10.0.2.2:18081/` desde el emulador (composición Kubernetes `sportapp-local`
   del repositorio `platform`); dispositivo físico con `adb reverse tcp:18081 tcp:18081`.
+
+## 6. Graphify (índice de contexto, solo lectura)
+
+Fuente: `DOC_ROOT/graphify/instrucciones-agentes.md` (bloque común y «Aplicación móvil»). Las
+integraciones de Graphify (hooks, `/graphify`) existen solo en `documentacion`; aquí rigen estas reglas.
+
+- Grafo central de solo lectura: `DOC_ROOT/graphify-out/graph.json`. Pasa **siempre**
+  `--graph "..\documentacion\graphify-out\graph.json"`; en este repositorio no hay grafo.
+- **Prohibido** desde `movil`: `graphify update`, `graphify extract` y `/graphify` (crearían un
+  `graphify-out` paralelo). Si una regla genérica pide actualizar el grafo tras editar código, no la
+  cumplas: solicítalo al responsable en el cierre.
+- Antes de editar una `T-HUxxx-MOB`, después de cargar las instrucciones de §1 (pasos 1–4):
+  1. `graphify explain "<H1 del paquete de la HU>" --graph …`;
+  2. `graphify query "HUxxx móvil Kotlin pantalla estados offline sincronización contrato bff-mobile" --seed "<H1 del paquete>" --graph … --budget 3000`;
+  3. `graphify query "HUxxx offline first cola sincronización" --seed "<ADR del cliente móvil devuelto en el paso 2>" --graph … --budget 3000`.
+  Si falta un aspecto, repite con otra semilla (ADR, guía del dominio o archivo devuelto), no con más
+  palabras clave; sube el presupuesto solo si una consulta enfocada sigue truncada. `graphify path "<A>" "<B>" --undirected`
+  solo para confirmar una relación concreta.
+- **Etiqueta del paquete:** el H1 completo del archivo en `tareas-hu/`, con el sufijo:
+  `HUxxx: <título> — paquete de asignación` (p. ej. `HU035: Ver calendario con eventos o salidas
+  programadas — paquete de asignación`). Una etiqueta aproximada (sin el sufijo o con otro título)
+  puede resolver sin aviso al nodo del catálogo: comprueba que `Source:` sea
+  `…/guias-desarrollo/tareas-hu/HUxxx-….md`. Si Graphify responde `Ambiguous`, usa
+  `<ruta>::<etiqueta>` en `explain`/`path` o el id del nodo en `--seed`; no corrijas el H1 del paquete.
+- Abre y verifica solo las fuentes devueltas que ya estén en el contexto de §1; si el grafo muestra
+  otro documento necesario, pide su activación. `EXTRACTED` es evidencia directa; `INFERRED` y
+  `AMBIGUOUS` se verifican en la fuente. Si el grafo contradice una fuente vigente, prevalece la
+  fuente y se reporta el grafo como desactualizado. Un nodo de código o prueba que cite la HU no
+  prueba que esté integrada ni aceptada.
+- Graphify no amplía alcance, rutas de escritura ni permisos. Incluye estas reglas en el prompt de
+  todo subagente que explore contexto.
+- Al entregar: indica qué fuentes recuperaste con Graphify y cuáles verificaste; no afirmes que
+  Graphify ejecutó pruebas ni validó aceptación; pide al responsable actualizar el grafo central
+  desde `documentacion` tras integrar código y documentación.
