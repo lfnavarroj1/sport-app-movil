@@ -1,3 +1,9 @@
+# Instrucciones locales de agentes (no se versionan)
+CLAUDE.md
+AGENTS.md
+.claude/
+.codex/
+
 *.iml
 .gradle
 /local.properties
