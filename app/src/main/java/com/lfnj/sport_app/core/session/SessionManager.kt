@@ -64,7 +64,9 @@ sealed interface AuthorizedResult<out T> {
 sealed interface LogoutOutcome {
     /** Revocación confirmada o idempotente (CA5, CA7). */
     data object LoggedOut : LogoutOutcome
-    /** Cierre local realizado, pero la revocación remota no pudo confirmarse (CA6). */
+    /** Cierre local realizado; la revocación remota quedó en la cola cifrada y se reintentará (CA6, CA7). */
+    data object LoggedOutRemotePending : LogoutOutcome
+    /** Cierre local realizado, pero la revocación remota no se confirmó ni quedó pendiente. */
     data object LoggedOutRemoteUnconfirmed : LogoutOutcome
 }
 
@@ -98,7 +100,7 @@ class SessionManager(
      */
     val access: StateFlow<AccessSnapshot?> = _access.asStateFlow()
 
-    /** `false` mientras el contrato de `bff-mobile` no exponga la operación de cierre (HU004). */
+    /** `true` si hay una cola de revocación configurada para el cierre de sesión (HU004). */
     val canLogout: Boolean get() = revoker != null
 
     suspend fun login(email: String, password: String): LoginOutcome {
@@ -203,26 +205,36 @@ class SessionManager(
     suspend fun clearLocalSession() = mutex.withLock { clearLocked() }
 
     /**
-     * Cierra la sesión (HU004). Primero elimina la sesión local —memoria y almacenamiento
-     * seguro— para que nunca pueda restaurarse, aunque el proceso termine durante la llamada;
-     * luego solicita la revocación con el refresh token retenido solo en esta llamada. Sin
-     * confirmación remota no se guarda el token para reintentos (CA6).
+     * Cierra la sesión (HU004). Primero elimina la sesión local —memoria y almacenamiento seguro—
+     * para que nunca pueda restaurarse, aunque el proceso termine durante la llamada (CA5, CA6).
+     * Después entrega la credencial renovable, retenida solo en esta llamada, a la cola cifrada de
+     * revocación, separada del almacén de sesión: la confirma de inmediato o la deja pendiente
+     * para el trabajo durable (CA7). El candado se libera antes de la red para no demorar un nuevo
+     * inicio de sesión, que nunca reutiliza ni mezcla la credencial pendiente.
      */
-    suspend fun logout(): LogoutOutcome = mutex.withLock {
-        val refreshToken = session?.refreshToken ?: store.read()
-        clearLocked()
-        val result = when {
-            refreshToken == null -> RevocationResult.ALREADY_CLOSED
-            revoker == null -> RevocationResult.NOT_CONFIRMED
+    suspend fun logout(): LogoutOutcome {
+        val pending = mutex.withLock {
+            val current = session
+            val refreshToken = current?.refreshToken ?: store.read()
+            clearLocked()
+            refreshToken?.let { it to current?.refreshExpiresAtMillis }
+        } ?: return LogoutOutcome.LoggedOut
+        val (refreshToken, expiresAt) = pending
+        val result = when (revoker) {
+            null -> RevocationResult.NOT_CONFIRMED
             else -> try {
-                revoker.revoke(refreshToken)
+                revoker.revoke(refreshToken, expiresAt)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 RevocationResult.NOT_CONFIRMED
             }
         }
-        if (result == RevocationResult.NOT_CONFIRMED) LogoutOutcome.LoggedOutRemoteUnconfirmed else LogoutOutcome.LoggedOut
+        return when (result) {
+            RevocationResult.CONFIRMED, RevocationResult.ALREADY_CLOSED -> LogoutOutcome.LoggedOut
+            RevocationResult.PENDING -> LogoutOutcome.LoggedOutRemotePending
+            RevocationResult.NOT_CONFIRMED -> LogoutOutcome.LoggedOutRemoteUnconfirmed
+        }
     }
 
     // ---------------------------------------------------------------- internos
@@ -268,6 +280,7 @@ class SessionManager(
             accessToken = response.accessToken,
             accessExpiresAtMillis = clock() + response.expiresIn * 1000,
             refreshToken = response.refreshToken,
+            refreshExpiresAtMillis = clock() + response.refreshExpiresIn * 1000,
         )
         _currentUser.value = user
         return Established.Ok(user)

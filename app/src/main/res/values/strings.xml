@@ -34,7 +34,9 @@
     <string name="login_submitting">Ingresando…</string>
     <string name="login_service_status">Estado del servicio</string>
     <string name="login_session_expired">Tu sesión expiró. Inicia sesión de nuevo.</string>
-    <string name="login_logout_remote_unconfirmed">Cerraste sesión en este dispositivo, pero no pudimos confirmar el cierre con el servidor por falta de conexión.</string>
+    <string name="login_logged_out">Cerraste sesión en este dispositivo.</string>
+    <string name="login_logout_remote_pending">Cerraste sesión en este dispositivo. El cierre en el servidor quedó pendiente y se completará automáticamente cuando haya conexión.</string>
+    <string name="login_logout_remote_unconfirmed">Cerraste sesión en este dispositivo, pero no pudimos confirmar el cierre con el servidor.</string>
     <string name="login_email_required">Ingresa tu correo electrónico.</string>
     <string name="login_email_too_long">El correo no puede superar 254 caracteres.</string>
     <string name="login_password_required">Ingresa tu contraseña.</string>

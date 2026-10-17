@@ -10,6 +10,11 @@ import com.lfnj.sport_app.core.session.SecureTokenStore
 import com.lfnj.sport_app.core.session.SessionApi
 import com.lfnj.sport_app.core.session.SessionManager
 import com.lfnj.sport_app.core.session.SessionRevoker
+import com.lfnj.sport_app.core.session.revocation.RevocationDatabase
+import com.lfnj.sport_app.core.session.revocation.RevocationQueue
+import com.lfnj.sport_app.core.session.revocation.RevocationResumer
+import com.lfnj.sport_app.core.session.revocation.RevocationScheduler
+import com.lfnj.sport_app.core.session.revocation.WorkManagerRevocationScheduler
 import com.lfnj.sport_app.features.calendar.data.CalendarApi
 import com.lfnj.sport_app.features.calendar.data.CalendarCacheJanitor
 import com.lfnj.sport_app.features.calendar.data.CalendarRepository
@@ -43,11 +48,29 @@ open class AppContainer(
         HttpStatusRepository(bffApi(HealthApi::class.java), BffMobileClient.json)
     }
 
-    /**
-     * Revocación remota de la sesión (HU004). `BLOQUEADO`: `bff-mobile` 0.3.0 no expone la
-     * operación de cierre, por lo que no hay implementación y «Cerrar sesión» queda deshabilitada.
-     */
-    protected open val sessionRevoker: SessionRevoker? = null
+    // ------------------------------------------------------------------ HU004 (ADR-026)
+
+    protected open val revocationDatabase: RevocationDatabase by lazy { RevocationDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de la cola de revocación, distinta de la del almacén de sesión. */
+    protected open val revocationCipher: TokenCipher by lazy { KeystoreTokenCipher(RevocationQueue.KEY_ALIAS) }
+
+    protected open val revocationScheduler: RevocationScheduler by lazy { WorkManagerRevocationScheduler(appContext) }
+
+    open val revocationQueue: RevocationQueue by lazy {
+        RevocationQueue(
+            dao = revocationDatabase.revocationDao(),
+            cipher = revocationCipher,
+            api = bffApi(SessionApi::class.java),
+            json = BffMobileClient.json,
+            scheduler = revocationScheduler,
+        )
+    }
+
+    /** Revocación remota de la sesión mediante `POST /v1/sessions/revoke` y su cola cifrada (HU004). */
+    protected open val sessionRevoker: SessionRevoker? get() = revocationQueue
+
+    val revocationResumer: RevocationResumer by lazy { RevocationResumer(revocationQueue, revocationScheduler) }
 
     open val sessionManager: SessionManager by lazy {
         SessionManager(bffApi(SessionApi::class.java), secureTokenStore, BffMobileClient.json, revoker = sessionRevoker)
