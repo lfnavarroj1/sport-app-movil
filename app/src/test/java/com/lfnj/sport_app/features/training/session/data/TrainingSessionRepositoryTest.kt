@@ -11,6 +11,7 @@ import com.lfnj.sport_app.testing.SessionFixtures
 import com.lfnj.sport_app.testing.SessionFixtures.ACCESS_TOKEN
 import com.lfnj.sport_app.testing.InMemoryTrainingDao
 import com.lfnj.sport_app.testing.TrainingFixtures
+import com.lfnj.sport_app.testing.TrainingFixtures.activeSessionBody
 import com.lfnj.sport_app.testing.TrainingFixtures.sessionBody
 import com.lfnj.sport_app.testing.TrainingHarness
 import kotlinx.coroutines.async
@@ -200,7 +201,7 @@ class TrainingSessionRepositoryTest {
     fun `una sesion activa remota se adopta como confirmada y se puede finalizar`() = runTest {
         h.login()
         val remoteId = "8b89aca8-bb50-4dc9-8501-61353967de48"
-        h.server.enqueue(MockResponse().setBody(sessionBody(remoteId, sport = "strength")))
+        h.server.enqueue(MockResponse().setBody(activeSessionBody(remoteId, sport = "strength")))
 
         assertEquals(RemoteCheck.CHECKED, h.repository.checkRemoteActive(h.owner))
 
@@ -217,7 +218,7 @@ class TrainingSessionRepositoryTest {
     fun `la sesion remota nunca contradice una sesion local abierta`() = runTest {
         h.login()
         val localId = start()
-        h.server.enqueue(MockResponse().setBody(sessionBody("8b89aca8-bb50-4dc9-8501-61353967de48")))
+        h.server.enqueue(MockResponse().setBody(activeSessionBody("8b89aca8-bb50-4dc9-8501-61353967de48")))
 
         h.repository.checkRemoteActive(h.owner)
 
@@ -229,7 +230,7 @@ class TrainingSessionRepositoryTest {
         h.login()
         val id = start()
         h.repository.finish(h.owner, id)
-        h.server.enqueue(MockResponse().setBody(sessionBody(id)))
+        h.server.enqueue(MockResponse().setBody(activeSessionBody(id)))
 
         h.repository.checkRemoteActive(h.owner)
 
@@ -239,7 +240,7 @@ class TrainingSessionRepositoryTest {
     @Test
     fun `un deporte desconocido en la sesion remota no se adopta`() = runTest {
         h.login()
-        h.server.enqueue(MockResponse().setBody(sessionBody("8b89aca8-bb50-4dc9-8501-61353967de48", sport = "yoga")))
+        h.server.enqueue(MockResponse().setBody(activeSessionBody("8b89aca8-bb50-4dc9-8501-61353967de48", sport = "yoga")))
 
         h.repository.checkRemoteActive(h.owner)
 

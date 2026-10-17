@@ -43,6 +43,29 @@ class OpenApiContract private constructor(private val document: JsonObject) {
     fun hasOperation(method: String, path: String): Boolean =
         paths[path]?.jsonObject?.containsKey(method) == true
 
+    /** Parámetros `in` = [location] de la operación (`query`, `header`, `path`), en minúsculas. */
+    fun parameters(method: String, path: String, location: String): Set<String> =
+        operation(method, path)["parameters"]?.jsonArray.orEmpty()
+            .map { it.jsonObject }
+            .filter { it.getValue("in").jsonPrimitive.content == location }
+            .map { it.getValue("name").jsonPrimitive.content.lowercase() }
+            .toSet()
+
+    /**
+     * Como [assertModelMatches], para el cuerpo JSON en línea de la operación (los cuerpos de
+     * HU032 no están en `components`).
+     */
+    fun assertRequestBodyMatches(method: String, path: String, serializer: KSerializer<*>) {
+        val schema = operation(method, path).getValue("requestBody").jsonObject.getValue("content").jsonObject
+            .getValue("application/json").jsonObject.getValue("schema").jsonObject
+        val properties = schema["properties"]?.jsonObject?.keys.orEmpty()
+        val required = schema["required"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty()
+        val descriptor = serializer.descriptor
+        val modelNames = (0 until descriptor.elementsCount).map(descriptor::getElementName).toSet()
+        assertTrue("$method $path: propiedades ausentes del contrato: ${modelNames - properties}", (modelNames - properties).isEmpty())
+        assertTrue("$method $path: faltan obligatorias: ${required - modelNames}", (required - modelNames).isEmpty())
+    }
+
     /**
      * Verifica que cada propiedad del modelo exista en el esquema y que el modelo declare todas
      * las propiedades obligatorias del esquema. Los nombres se toman del descriptor serializado.

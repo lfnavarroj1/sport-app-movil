@@ -18,12 +18,9 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 
 /**
- * HU032 frente a la sección «Contrato HTTP» de ADR-029 (aceptado el 2026-10-12).
- *
- * `BLOQUEADO`: `bff-mobile` 0.5.0 con estas operaciones aún no está publicado en el backend
- * (`T-HU032-BE`), por lo que no existe la copia OpenAPI para [OpenApiContract]. Cuando se publique,
- * se copia en `src/test/resources/contracts/` y se agrega la verificación con `assertApiMatches` y
- * `assertModelMatches`; estas pruebas fijan mientras tanto los nombres y ejemplos del ADR.
+ * HU032 frente a la sección «Contrato HTTP» de ADR-029 (aceptado el 2026-10-12): cuerpos exactos,
+ * ejemplos y códigos de error. La correspondencia con la copia OpenAPI está en
+ * [TrainingSessionContractTest].
  */
 class TrainingSessionAdrContractTest {
     private val json = BffMobileClient.json

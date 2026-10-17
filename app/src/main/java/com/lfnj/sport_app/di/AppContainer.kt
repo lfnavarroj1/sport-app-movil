@@ -10,6 +10,11 @@ import com.lfnj.sport_app.core.session.SecureTokenStore
 import com.lfnj.sport_app.core.session.SessionApi
 import com.lfnj.sport_app.core.session.SessionManager
 import com.lfnj.sport_app.core.session.SessionRevoker
+import com.lfnj.sport_app.features.calendar.data.CalendarApi
+import com.lfnj.sport_app.features.calendar.data.CalendarCacheJanitor
+import com.lfnj.sport_app.features.calendar.data.CalendarRepository
+import com.lfnj.sport_app.features.calendar.data.local.CalendarCacheCodec
+import com.lfnj.sport_app.features.calendar.data.local.CalendarDatabase
 import com.lfnj.sport_app.features.status.HttpStatusRepository
 import com.lfnj.sport_app.features.status.StatusRepository
 import com.lfnj.sport_app.features.training.session.data.TrainingSessionApi
@@ -87,4 +92,23 @@ open class AppContainer(
     val trainingSyncCoordinator: TrainingSyncCoordinator by lazy {
         TrainingSyncCoordinator(sessionManager.currentUser, trainingSessionRepository::hasPendingCommands, trainingSyncScheduler)
     }
+
+    // ------------------------------------------------------------------ HU035 (ADR-031)
+
+    protected open val calendarDatabase: CalendarDatabase by lazy { CalendarDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de la caché del calendario, distinta de la de la sesión y de HU032. */
+    protected open val calendarCipher: TokenCipher by lazy { KeystoreTokenCipher(CalendarCacheCodec.KEY_ALIAS) }
+
+    open val calendarRepository: CalendarRepository by lazy {
+        CalendarRepository(
+            dao = calendarDatabase.calendarCacheDao(),
+            codec = CalendarCacheCodec(calendarCipher, BffMobileClient.json),
+            api = bffApi(CalendarApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    val calendarCacheJanitor: CalendarCacheJanitor by lazy { CalendarCacheJanitor(sessionManager.currentUser, calendarRepository) }
 }
