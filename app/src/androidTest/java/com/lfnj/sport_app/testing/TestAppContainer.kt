@@ -7,6 +7,11 @@ import com.lfnj.sport_app.core.security.KeystoreTokenCipher
 import com.lfnj.sport_app.core.security.TokenCipher
 import com.lfnj.sport_app.core.session.SecureTokenStore
 import com.lfnj.sport_app.core.session.SessionRevoker
+import com.lfnj.sport_app.core.session.revocation.RevocationDatabase
+import com.lfnj.sport_app.core.session.revocation.RevocationQueue
+import com.lfnj.sport_app.core.session.revocation.RevocationScheduler
+import com.lfnj.sport_app.core.network.BffMobileClient
+import com.lfnj.sport_app.core.session.SessionApi
 import com.lfnj.sport_app.di.AppContainer
 import com.lfnj.sport_app.features.calendar.data.local.CalendarDatabase
 import com.lfnj.sport_app.features.training.session.data.TrainingSyncScheduler
@@ -39,20 +44,50 @@ class RecordingScheduler : TrainingSyncScheduler {
     }
 }
 
+/** Registra las programaciones del trabajo de revocación (HU004); la prueba ejecuta la cola. */
+class RecordingRevocationScheduler : RevocationScheduler {
+    var scheduled = 0
+    override fun schedule() {
+        scheduled++
+    }
+}
+
 /**
- * Contenedor real con bases de HU032 y HU035 en memoria, claves de Keystore de prueba y sincronización
- * controlada por la prueba (sin WorkManager), para no tocar los datos de la aplicación instalada.
+ * Contenedor real con bases de HU032, HU035 y la cola de revocación de HU004 en memoria, claves de
+ * Keystore de prueba y sincronización controlada por la prueba (sin WorkManager), para no tocar los
+ * datos de la aplicación instalada.
  */
 class TestAppContainer(
     config: AppConfig,
     store: SecureTokenStore,
     context: Context,
-    revoker: SessionRevoker? = null,
+    private val revoker: SessionRevoker? = null,
 ) : AppContainer(config, store, context) {
     val database: TrainingDatabase = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java).build()
     val scheduler = RecordingScheduler()
 
-    override val sessionRevoker: SessionRevoker? = revoker
+    val revocation: RevocationDatabase = Room.inMemoryDatabaseBuilder(context, RevocationDatabase::class.java).build()
+    val revocationRecorder = RecordingRevocationScheduler()
+
+    /** Desplaza el reloj de la cola para alcanzar la próxima ejecución sin esperar. */
+    var revocationClockOffsetMillis = 0L
+
+    override val revocationDatabase: RevocationDatabase get() = revocation
+    override val revocationCipher: TokenCipher = KeystoreTokenCipher(REVOCATION_TEST_KEY_ALIAS)
+    override val revocationScheduler: RevocationScheduler get() = revocationRecorder
+    override val revocationQueue: RevocationQueue by lazy {
+        RevocationQueue(
+            dao = revocation.revocationDao(),
+            cipher = revocationCipher,
+            api = bffApi(SessionApi::class.java),
+            json = BffMobileClient.json,
+            scheduler = revocationRecorder,
+            clock = { System.currentTimeMillis() + revocationClockOffsetMillis },
+        )
+    }
+
+    /** Sin [revoker] explícito se usa la cola real de revocación contra el BFF simulado. */
+    override val sessionRevoker: SessionRevoker? get() = revoker ?: revocationQueue
     override val trainingDatabase: TrainingDatabase get() = database
     override val trainingSyncScheduler: TrainingSyncScheduler get() = scheduler
     override val trainingCipher: TokenCipher = KeystoreTokenCipher(TEST_KEY_ALIAS)
@@ -64,13 +99,16 @@ class TestAppContainer(
     fun close() {
         database.close()
         calendar.close()
+        revocation.close()
         deleteTestKey()
         deleteTestKey(CALENDAR_TEST_KEY_ALIAS)
+        deleteTestKey(REVOCATION_TEST_KEY_ALIAS)
     }
 
     companion object {
         const val TEST_KEY_ALIAS = "sportapp.training.test"
         const val CALENDAR_TEST_KEY_ALIAS = "sportapp.calendar.test"
+        const val REVOCATION_TEST_KEY_ALIAS = "sportapp.revocation.test"
 
         fun deleteTestKey(alias: String = TEST_KEY_ALIAS) = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias)
     }

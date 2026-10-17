@@ -75,7 +75,7 @@ object NavigationRegistry {
      * opciones visibles = deportista ∩ canal móvil ∩ capacidades vigentes (HU003 CA7).
      * Sin [access] (no cargado o con error), con suscripción distinta de `ACTIVE` o con un actor
      * que no sea deportista, solo quedan las opciones base. «Cerrar sesión» solo se habilita con
-     * [logoutAvailable], es decir, cuando existe la operación de cierre en `bff-mobile` (HU004).
+     * [logoutAvailable], es decir, cuando el contenedor provee la cola de revocación (HU004).
      * Con [openTrainingSession] se muestra «Registrar entrenamiento» aunque la capacidad ya no esté
      * vigente: finalizar una sesión propia no la exige (HU032, ADR-029 §1).
      */

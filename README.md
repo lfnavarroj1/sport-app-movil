@@ -30,14 +30,15 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032 y HU035
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU035 y HU004
 ├── MainActivity.kt        única Activity; aloja la navegación Compose
 ├── di/                    AppContainer (DI manual)
 ├── core/
 │   ├── config/            AppConfig por variante (URL del BFF, ambiente, versión de contrato)
 │   ├── network/           cliente Retrofit/OkHttp, ApiResult, errores del contrato, correlación
 │   ├── security/          Android Keystore (AES-256-GCM) y almacenamiento cifrado del refresh token
-│   └── session/           API y modelos de sesión, SessionManager (HU003)
+│   └── session/           API y modelos de sesión, SessionManager (HU003) y cierre (HU004)
+│       └── revocation/    cola cifrada de revocación en Room y su trabajo de WorkManager (HU004)
 ├── navigation/            NavHost y destinos
 ├── features/<feature>/    pantalla (Compose) → ViewModel → repositorio → API del BFF
 │   ├── identity/          arranque/recuperación, acceso y acceso no autorizado (HU003)
@@ -75,6 +76,23 @@ app/src/main/java/com/lfnj/sport_app/
   vencen a los 30 días. Al cerrar sesión se cancela; solo el mismo deportista la reanuda.
 - El cronómetro usa el reloj monotónico mientras vive el proceso y se reconstruye desde
   `started_at` tras reiniciar; la duración oficial la calcula el backend.
+
+### Cierre de sesión offline first (HU004, ADR-026)
+
+- «Cerrar sesión» elimina primero la sesión local (access token en memoria, identidad y refresh
+  token del almacén seguro), limpia la pila de navegación y abre el acceso como raíz; la sesión
+  nunca puede restaurarse aunque el proceso termine durante el cierre.
+- La credencial renovable pasa a una cola cifrada **separada** del almacén de sesión
+  (`sportapp_revocation.db`, AES-GCM con la clave `sportapp.revocation.v1`, excluida del respaldo):
+  cada entrada guarda solo id local, credencial cifrada, vencimiento (`refresh_expires_in`),
+  `Idempotency-Key`, intentos y próxima ejecución. El flujo de restauración de HU003 no la lee.
+- Se intenta `POST /v1/sessions/revoke` de inmediato. `204` confirma (también una sesión ya
+  cerrada); red, timeout y `5xx` (`503`/`504`) dejan la entrada pendiente y programan un trabajo
+  único de WorkManager con red y espera exponencial (30 s hasta 5 h) que repite la misma clave hasta
+  confirmar o hasta que la credencial venza, momento en que se descarta sin enviarla. Un `422` se
+  descarta. La etiqueta propia evita que la cancelación de HU032 al cerrar sesión lo detenga.
+- El acceso informa «Cerraste sesión en este dispositivo» y, si corresponde, que el cierre en el
+  servidor quedó pendiente. Un nuevo inicio de sesión no reutiliza ni mezcla la credencial pendiente.
 
 ### Calendario deportivo (HU035, ADR-031)
 
@@ -145,6 +163,11 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   esquema exportado, la limpieza al cerrar sesión y el respaldo se prueban en el dispositivo
   (`features/calendar/`). `CalendarContractTest` verifica la copia de `bff-mobile` 0.8.0 y
   `CalendarAdrContractTest`, el ejemplo de ADR-031.
+- HU004: `RevocationQueueTest` cubre la cola con MockWebServer (204, 422, 503/504, sin red,
+  vencimiento, clave estable) y `SessionContractTest`, `POST /v1/sessions/revoke`; Room, Keystore,
+  la separación del almacén de sesión, el reinicio del proceso, el esquema, el respaldo y
+  WorkManager se prueban en el dispositivo (`core/session/revocation/`), y el recorrido en
+  `navigation/LoginFlowTest`.
 
 ## CI y artefactos (GitHub Actions)
 

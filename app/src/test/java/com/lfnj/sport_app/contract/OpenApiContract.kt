@@ -66,6 +66,12 @@ class OpenApiContract private constructor(private val document: JsonObject) {
         assertTrue("$method $path: faltan obligatorias: ${required - modelNames}", (required - modelNames).isEmpty())
     }
 
+    /** Nombre del esquema de `components` al que remite el cuerpo JSON de la operación (`$ref`), o `null`. */
+    fun requestBodySchemaRef(method: String, path: String): String? =
+        operation(method, path).getValue("requestBody").jsonObject.getValue("content").jsonObject
+            .getValue("application/json").jsonObject.getValue("schema").jsonObject["\$ref"]
+            ?.jsonPrimitive?.content?.substringAfterLast('/')
+
     /**
      * Verifica que cada propiedad del modelo exista en el esquema y que el modelo declare todas
      * las propiedades obligatorias del esquema. Los nombres se toman del descriptor serializado.
