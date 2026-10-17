@@ -151,13 +151,15 @@ class TrainingSessionScreenTest {
         )
 
         composeRule.onNodeWithText("Duración confirmada: 0 h 45 min 00 s").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Confirmado por SportApp").assertIsDisplayed()
+        // Cada texto se desplaza a la vista antes de verificarlo: en pantallas bajas (emulador de CI)
+        // el estado de la tarjeta queda por debajo de su duración.
+        composeRule.onNodeWithText("Confirmado por SportApp").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Duración en el dispositivo (sin confirmar): 0 h 45 min 00 s").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Pendiente de sincronizar").assertIsDisplayed()
+        composeRule.onNodeWithText("Pendiente de sincronizar").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("No sincronizado").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(
             "Ya tenías otro entrenamiento en curso, por ejemplo desde otro dispositivo. Este registro no fue aceptado."
-        ).assertIsDisplayed()
+        ).performScrollTo().assertIsDisplayed()
 
         composeRule.onNodeWithTag("training_dismiss_s-pend").assertDoesNotExist()
         composeRule.onNodeWithTag("training_dismiss_s-ok").assertContentDescriptionEquals("Descartar el registro de Carrera")
