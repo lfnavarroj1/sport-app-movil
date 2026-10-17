@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Copia en la nube y transferencia entre dispositivos (Android 12+). La sesión cifrada se
-    excluye de ambas (HU003 CA6).
+    Copia en la nube y transferencia entre dispositivos (Android 12+). La sesión cifrada (HU003 CA6)
+    y los registros de entrenamiento con su cola de sincronización (HU032, ADR-029 offline §5) se
+    excluyen de ambas.
 -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
+        <exclude domain="database" path="sportapp_training.db" />
+        <exclude domain="database" path="sportapp_training.db-shm" />
+        <exclude domain="database" path="sportapp_training.db-wal" />
+        <exclude domain="database" path="sportapp_training.db-journal" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
+        <exclude domain="database" path="sportapp_training.db" />
+        <exclude domain="database" path="sportapp_training.db-shm" />
+        <exclude domain="database" path="sportapp_training.db-wal" />
+        <exclude domain="database" path="sportapp_training.db-journal" />
     </device-transfer>
 </data-extraction-rules>

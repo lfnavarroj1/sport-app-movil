@@ -47,6 +47,19 @@ sealed interface AccessOutcome {
     data class Unavailable(val correlationId: String?) : AccessOutcome
 }
 
+/**
+ * Resultado de una llamada autenticada de otra feature al BFF móvil ([SessionManager.authorized]).
+ * Nunca contiene el access token.
+ */
+sealed interface AuthorizedResult<out T> {
+    /** La llamada se ejecutó; su resultado puede ser éxito o falla HTTP/red. */
+    data class Completed<T>(val result: ApiResult<T>) : AuthorizedResult<T>
+    /** No hay sesión vigente (cerrada, vencida o rechazada): se requiere iniciar sesión de nuevo. */
+    data object SignedOut : AuthorizedResult<Nothing>
+    /** Había que renovar el access token y el BFF no respondió de forma utilizable: reintentar luego. */
+    data object RenewalUnavailable : AuthorizedResult<Nothing>
+}
+
 /** Resultado del cierre de sesión (HU004). La sesión local siempre queda eliminada. */
 sealed interface LogoutOutcome {
     /** Revocación confirmada o idempotente (CA5, CA7). */
@@ -74,9 +87,16 @@ class SessionManager(
     private val mutex = Mutex()
     private var session: AuthSession? = null
     private val _currentUser = MutableStateFlow<SessionUser?>(null)
+    private val _access = MutableStateFlow<AccessSnapshot?>(null)
 
     /** Usuario autenticado, o `null` sin sesión. Lo usan las guardas de navegación. */
     val currentUser: StateFlow<SessionUser?> = _currentUser.asStateFlow()
+
+    /**
+     * Últimas capacidades cargadas con [loadAccess] para el usuario actual, o `null` si aún no se
+     * conocen. Solo orienta la experiencia; la autorización la decide el BFF.
+     */
+    val access: StateFlow<AccessSnapshot?> = _access.asStateFlow()
 
     /** `false` mientras el contrato de `bff-mobile` no exponga la operación de cierre (HU004). */
     val canLogout: Boolean get() = revoker != null
@@ -137,6 +157,7 @@ class SessionManager(
         }
         return when (result) {
             is ApiResult.Success -> toSnapshot(result.value, current.user)
+                ?.also { _access.value = it.access }
                 ?: clearAndReturn(AccessOutcome.Unauthorized)
             is ApiResult.HttpFailure -> when (result.status) {
                 401 -> clearAndReturn(AccessOutcome.SessionExpired)
@@ -146,6 +167,33 @@ class SessionManager(
             ApiResult.NoConnection -> AccessOutcome.NoConnection
             ApiResult.Timeout, ApiResult.InvalidResponse, ApiResult.NotConfigured -> AccessOutcome.Unavailable(null)
         }
+    }
+
+    /**
+     * Ejecuta [call] con un access token vigente para otra feature del BFF móvil (p. ej. HU032).
+     * Renueva el token antes de vencer y, ante un `401`, una sola vez; si el token recién renovado
+     * también se rechaza, elimina la sesión local como [loadAccess]. El token solo se entrega a
+     * [call] como encabezado `Authorization` y no se conserva fuera de la memoria de la sesión.
+     */
+    suspend fun <T> authorized(call: suspend (authorization: String) -> ApiResult<T>): AuthorizedResult<T> {
+        val api = api ?: return AuthorizedResult.Completed(ApiResult.NotConfigured)
+        var current = when (val fresh = freshSession(api, rejectedAccessToken = null)) {
+            is Refreshed.Ok -> fresh.session
+            else -> return fresh.toAuthorizedFailure()
+        }
+        var result = call(current.bearer())
+        if (result is ApiResult.HttpFailure && result.status == 401) {
+            current = when (val fresh = freshSession(api, rejectedAccessToken = current.accessToken)) {
+                is Refreshed.Ok -> fresh.session
+                else -> return fresh.toAuthorizedFailure()
+            }
+            result = call(current.bearer())
+            if (result is ApiResult.HttpFailure && result.status == 401) {
+                clearLocalSession()
+                return AuthorizedResult.SignedOut
+            }
+        }
+        return AuthorizedResult.Completed(result)
     }
 
     /**
@@ -213,6 +261,7 @@ class SessionManager(
             return rejection
         }
         val user = SessionUser(response.user.userId, response.user.fullName, response.user.email, checkNotNull(actor))
+        if (_currentUser.value?.userId != user.userId) _access.value = null
         store.write(response.refreshToken)
         session = AuthSession(
             user = user,
@@ -282,9 +331,17 @@ class SessionManager(
         is Refreshed.Unavailable -> AccessOutcome.Unavailable(correlationId)
     }
 
+    private fun <T> Refreshed.toAuthorizedFailure(): AuthorizedResult<T> = when (this) {
+        is Refreshed.Ok -> error("No es una falla")
+        Refreshed.Expired, Refreshed.UnknownActor -> AuthorizedResult.SignedOut
+        Refreshed.NoConnection -> AuthorizedResult.Completed(ApiResult.NoConnection)
+        is Refreshed.Unavailable -> AuthorizedResult.RenewalUnavailable
+    }
+
     private fun clearLocked() {
         session = null
         store.clear()
+        _access.value = null
         _currentUser.value = null
     }
 

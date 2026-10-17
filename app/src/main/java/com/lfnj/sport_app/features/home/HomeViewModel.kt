@@ -11,9 +11,11 @@ import com.lfnj.sport_app.navigation.Destinations
 import com.lfnj.sport_app.navigation.MenuEntry
 import com.lfnj.sport_app.navigation.NavigationRegistry
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -26,6 +28,8 @@ data class HomeUiState(
     /** `NoConnection` o `Unavailable`: se conservan solo las opciones base y se ofrece reintentar. */
     val accessFailure: AccessOutcome? = null,
     val menu: List<MenuEntry> = NavigationRegistry.athleteMenu(null),
+    /** Sesión de entrenamiento abierta en el dispositivo (HU032): mantiene accesible su registro. */
+    val openTrainingSession: Boolean = false,
     /** Cierre de sesión en curso (HU004): bloquea acciones repetidas. */
     val loggingOut: Boolean = false,
     /** Salida forzada: sesión vencida o cerrada → acceso; actor no válido → acceso no autorizado. */
@@ -35,12 +39,14 @@ data class HomeUiState(
 /**
  * Inicio del deportista (`athlete_home`). Construye el menú con las capacidades vigentes de
  * `GET /v1/me/capabilities` (HU003 CA7), sale de forma segura si el BFF rechaza la sesión o el
- * actor (CA10) y coordina el cierre de sesión (HU004).
+ * actor (CA10) y coordina el cierre de sesión (HU004). [openTrainingSession] indica si el deportista
+ * tiene una sesión de entrenamiento abierta en el dispositivo (HU032).
  */
 class HomeViewModel(
     user: SessionUser?,
     private val loadAccess: suspend () -> AccessOutcome,
     private val logoutAvailable: Boolean = false,
+    openTrainingSession: Flow<Boolean> = emptyFlow(),
     private val performLogout: suspend () -> LogoutOutcome = { LogoutOutcome.LoggedOutRemoteUnconfirmed },
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
@@ -52,6 +58,17 @@ class HomeViewModel(
 
     init {
         refresh()
+        viewModelScope.launch {
+            openTrainingSession.collect { open ->
+                _uiState.update { state ->
+                    if (state.loggingOut || state.navigateTo != null) return@update state
+                    state.copy(
+                        openTrainingSession = open,
+                        menu = NavigationRegistry.athleteMenu(state.access, logoutAvailable, open),
+                    )
+                }
+            }
+        }
     }
 
     fun refresh() {
@@ -65,7 +82,7 @@ class HomeViewModel(
                     is AccessOutcome.Loaded -> state.copy(
                         loadingAccess = false,
                         access = outcome.access,
-                        menu = NavigationRegistry.athleteMenu(outcome.access, logoutAvailable),
+                        menu = NavigationRegistry.athleteMenu(outcome.access, logoutAvailable, state.openTrainingSession),
                     )
                     AccessOutcome.SessionExpired -> state.copy(
                         loadingAccess = false,

@@ -67,6 +67,7 @@ necesitas otro documento, explica qué decisión concreta requiere.
 | Tema | Paleta Material 3 de la web «Energía deportiva» (ADR-012) |
 | Contrato consumido | `bff-mobile` 0.3.0 (`BFF_MOBILE_CONTRACT_VERSION` en `app/build.gradle.kts`) |
 | Actores admitidos | Solo `athlete` (HU003 CA11, ADR-025): único inicio `athlete_home`; organizador y profesional usan la web |
+| Offline first (HU032, ADR-026/029) | Room 2.8.5 + KSP 2.3.12 (la línea `2.2.10-2.0.x` no admite el Kotlin integrado de AGP 9) y WorkManager 2.12.0; payload cifrado con su propia clave de Keystore; cola por deportista sin tokens; no hay cola HTTP genérica |
 
 Estructura y comandos completos en `README.md`.
 

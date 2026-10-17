@@ -5,6 +5,7 @@ import com.lfnj.sport_app.R
 import com.lfnj.sport_app.core.session.AccessSnapshot
 import com.lfnj.sport_app.core.session.ActorType
 import com.lfnj.sport_app.core.session.SubscriptionStatus
+import com.lfnj.sport_app.features.training.session.model.TRAINING_SESSION_CAPABILITY
 
 enum class MenuGroup(@param:StringRes val label: Int?) {
     MAIN(null),
@@ -47,8 +48,8 @@ data class MenuEntry(
  * aprobado (Mi perfil HU002, Mi plan HU016).
  */
 object NavigationRegistry {
-    private fun capability(code: String, label: Int, group: MenuGroup, order: Int, hu: String) =
-        MenuEntry(code, label, group, order, hu, capability = code)
+    private fun capability(code: String, label: Int, group: MenuGroup, order: Int, hu: String, route: String? = null) =
+        MenuEntry(code, label, group, order, hu, capability = code, route = route)
 
     val athlete: List<MenuEntry> = listOf(
         MenuEntry("home", R.string.menu_home, MenuGroup.MAIN, 10, "HU003", route = Destinations.ATHLETE_HOME),
@@ -58,7 +59,7 @@ object NavigationRegistry {
         capability("services.support.suggest", R.string.menu_athlete_support, MenuGroup.SERVICES, 140, "HU029"),
         capability("nutrition.routines.suggest", R.string.menu_athlete_nutrition_routines, MenuGroup.NUTRITION, 150, "HU030"),
         capability("integrations.strava.connect", R.string.menu_athlete_strava, MenuGroup.INTEGRATIONS, 160, "HU031"),
-        capability("training.session.record", R.string.menu_athlete_session, MenuGroup.TRAINING, 170, "HU032"),
+        capability(TRAINING_SESSION_CAPABILITY, R.string.menu_athlete_session, MenuGroup.TRAINING, 170, "HU032", Destinations.TRAINING_SESSION),
         capability("training.dashboard.view", R.string.menu_athlete_dashboard, MenuGroup.TRAINING, 180, "HU033"),
         capability("training.metrics.ftp_vo2max", R.string.menu_athlete_metrics, MenuGroup.TRAINING, 190, "HU034"),
         capability("calendar.sport.view", R.string.menu_athlete_calendar, MenuGroup.CALENDAR, 200, "HU035"),
@@ -74,12 +75,15 @@ object NavigationRegistry {
      * Sin [access] (no cargado o con error), con suscripción distinta de `ACTIVE` o con un actor
      * que no sea deportista, solo quedan las opciones base. «Cerrar sesión» solo se habilita con
      * [logoutAvailable], es decir, cuando existe la operación de cierre en `bff-mobile` (HU004).
+     * Con [openTrainingSession] se muestra «Registrar entrenamiento» aunque la capacidad ya no esté
+     * vigente: finalizar una sesión propia no la exige (HU032, ADR-029 §1).
      */
-    fun athleteMenu(access: AccessSnapshot?, logoutAvailable: Boolean = false): List<MenuEntry> {
+    fun athleteMenu(access: AccessSnapshot?, logoutAvailable: Boolean = false, openTrainingSession: Boolean = false): List<MenuEntry> {
         val capabilities = access
             ?.takeIf { it.actorType == ActorType.ATHLETE && it.subscriptionStatus == SubscriptionStatus.ACTIVE }
             ?.capabilities
             .orEmpty()
+            .let { if (openTrainingSession) it + TRAINING_SESSION_CAPABILITY else it }
         return athlete
             .filter { it.capability == null || it.capability in capabilities }
             .map { if (it.id == "logout" && logoutAvailable) it.copy(action = MenuAction.LOGOUT) else it }
