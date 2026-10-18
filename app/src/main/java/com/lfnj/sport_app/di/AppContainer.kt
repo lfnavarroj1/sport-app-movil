@@ -21,6 +21,12 @@ import com.lfnj.sport_app.features.calendar.data.CalendarRepository
 import com.lfnj.sport_app.features.calendar.data.local.CalendarCacheCodec
 import com.lfnj.sport_app.features.calendar.data.local.CalendarDatabase
 import com.lfnj.sport_app.features.status.HttpStatusRepository
+import com.lfnj.sport_app.features.training.metrics.data.TrainingMetricsApi
+import com.lfnj.sport_app.features.training.metrics.data.TrainingMetricsRepository
+import com.lfnj.sport_app.features.training.metrics.data.local.TrainingMetricsCodec
+import com.lfnj.sport_app.features.training.metrics.data.local.TrainingMetricsDatabase
+import com.lfnj.sport_app.features.training.metrics.sync.MetricsSyncEngine
+import com.lfnj.sport_app.features.training.metrics.sync.WorkManagerMetricsSyncScheduler
 import com.lfnj.sport_app.features.status.StatusRepository
 import com.lfnj.sport_app.features.training.session.data.TrainingSessionApi
 import com.lfnj.sport_app.features.training.session.data.TrainingSessionRepository
@@ -114,6 +120,47 @@ open class AppContainer(
 
     val trainingSyncCoordinator: TrainingSyncCoordinator by lazy {
         TrainingSyncCoordinator(sessionManager.currentUser, trainingSessionRepository::hasPendingCommands, trainingSyncScheduler)
+    }
+
+    // ------------------------------------------------------------------ HU034 (ADR-030)
+
+    protected open val trainingMetricsDatabase: TrainingMetricsDatabase by lazy { TrainingMetricsDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de los indicadores, distinta de la de la sesión, HU032 y HU035. */
+    protected open val trainingMetricsCipher: TokenCipher by lazy { KeystoreTokenCipher(TrainingMetricsCodec.KEY_ALIAS) }
+
+    protected open val trainingMetricsScheduler: TrainingSyncScheduler by lazy { WorkManagerMetricsSyncScheduler(appContext) }
+
+    private val trainingMetricsCodec by lazy { TrainingMetricsCodec(trainingMetricsCipher, BffMobileClient.json) }
+
+    private val trainingMetricsApi by lazy { bffApi(TrainingMetricsApi::class.java) }
+
+    open val trainingMetricsRepository: TrainingMetricsRepository by lazy {
+        TrainingMetricsRepository(
+            dao = trainingMetricsDatabase.trainingMetricsDao(),
+            transactions = trainingMetricsDatabase.transactions,
+            codec = trainingMetricsCodec,
+            api = trainingMetricsApi,
+            sessionManager = sessionManager,
+            scheduler = trainingMetricsScheduler,
+            json = BffMobileClient.json,
+        )
+    }
+
+    open val metricsSyncEngine: MetricsSyncEngine by lazy {
+        MetricsSyncEngine(
+            dao = trainingMetricsDatabase.trainingMetricsDao(),
+            transactions = trainingMetricsDatabase.transactions,
+            codec = trainingMetricsCodec,
+            api = trainingMetricsApi,
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    /** Detiene la cola de HU034 al cerrar sesión y la reanuda solo para el mismo deportista (ADR-030 offline §5). */
+    val metricsSyncCoordinator: TrainingSyncCoordinator by lazy {
+        TrainingSyncCoordinator(sessionManager.currentUser, trainingMetricsRepository::hasPending, trainingMetricsScheduler)
     }
 
     // ------------------------------------------------------------------ HU035 (ADR-031)

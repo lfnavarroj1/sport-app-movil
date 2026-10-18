@@ -7,6 +7,7 @@ import com.lfnj.sport_app.core.config.AppConfig
 import com.lfnj.sport_app.core.security.EncryptedTokenStore
 import com.lfnj.sport_app.core.session.revocation.RevocationWorkerFactory
 import com.lfnj.sport_app.di.AppContainer
+import com.lfnj.sport_app.features.training.metrics.sync.MetricsSyncWorkerFactory
 import com.lfnj.sport_app.features.training.session.sync.TrainingSyncWorkerFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +17,7 @@ class SportApp : Application(), Configuration.Provider {
     lateinit var container: AppContainer
         private set
 
-    /** Ámbito del proceso para la sincronización de HU032, la caché de HU035 y la cola de revocación de HU004. */
+    /** Ámbito del proceso para la sincronización de HU032 y HU034, la caché de HU035 y la cola de revocación de HU004. */
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
@@ -25,15 +26,17 @@ class SportApp : Application(), Configuration.Provider {
         container.trainingSyncCoordinator.start(applicationScope)
         container.calendarCacheJanitor.start(applicationScope)
         container.revocationResumer.start(applicationScope)
+        container.metricsSyncCoordinator.start(applicationScope)
     }
 
-    /** WorkManager crea los trabajos de HU032 y HU004 con las dependencias del contenedor manual. */
+    /** WorkManager crea los trabajos de HU032, HU034 y HU004 con las dependencias del contenedor manual. */
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(
                 DelegatingWorkerFactory().apply {
                     addFactory(TrainingSyncWorkerFactory { container.trainingSyncEngine })
                     addFactory(RevocationWorkerFactory { container.revocationQueue })
+                    addFactory(MetricsSyncWorkerFactory { container.metricsSyncEngine })
                 }
             )
             .build()

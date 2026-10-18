@@ -30,7 +30,7 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU035 y HU004
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035 y HU004
 ├── MainActivity.kt        única Activity; aloja la navegación Compose
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -46,6 +46,10 @@ app/src/main/java/com/lfnj/sport_app/
 │   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada
 │   │   └── model/         periodo por zona, elementos, fuentes y agrupación por día
 │   ├── home/              inicio del deportista con menú por capacidades (HU003)
+│   ├── training/metrics/  FTP y VO₂max estimados (HU034): pantalla y ViewModel dirigidos por el catálogo,
+│   │   ├── data/          API, repositorio y Room (catálogo, historial y cola cifrados con Keystore)
+│   │   ├── model/         catálogo, entradas, resultados, validación de experiencia y formato
+│   │   └── sync/          motor de sincronización y WorkManager
 │   ├── training/session/  registrar entrenamiento offline first (HU032): pantalla, ViewModel,
 │   │   ├── data/          API, repositorio y Room (payload cifrado con Keystore)
 │   │   ├── model/         deportes, estados de sincronización y causas de rechazo
@@ -93,6 +97,24 @@ app/src/main/java/com/lfnj/sport_app/
   descarta. La etiqueta propia evita que la cancelación de HU032 al cerrar sesión lo detenga.
 - El acceso informa «Cerraste sesión en este dispositivo» y, si corresponde, que el cierre en el
   servidor quedó pendiente. Un nuevo inicio de sesión no reutiliza ni mezcla la credencial pendiente.
+
+### Indicadores FTP y VO₂max (HU034, ADR-030)
+
+- La pantalla `entrenamientos/metricas` (capacidad `training.metrics.ftp_vo2max`; sin ella la opción no
+  aparece y la guarda devuelve al inicio) se construye solo con los metadatos del catálogo
+  (`GET /v1/training-metrics/catalog`, con `ETag`/`If-None-Match` y `304`): métodos, entradas enteras
+  con unidad y rango, y claves de texto resueltas desde recursos locales. Una clave desconocida —p. ej.
+  de un indicador agregado después en el backend— muestra el código técnico: un tercer indicador
+  escalar se captura y presenta sin cambiar el APK.
+- El móvil **no aplica fórmulas**: valida tipo, obligatoriedad, rango y `measured_at` (5 min a futuro,
+  365 días) solo para la experiencia, muestra el aviso `estimated_not_diagnostic` antes de enviar y
+  guarda el cálculo cifrado como `PENDING_SYNC` con `calculation_id` UUID v4 e `Idempotency-Key`
+  distintos. El resultado (`201`, o `200` si el `calculation_id` ya existía) siempre lo da el backend.
+- `sportapp_training_metrics.db` (clave `sportapp.training-metrics.v1`, excluida del respaldo) guarda por
+  deportista el catálogo (`STALE` a las 24 h), la primera página del historial con `last_synced_at`,
+  los resultados confirmados que la proyección aún no devuelve y la cola. WorkManager reintenta solo
+  red, `502`, `503` y `504`; un `4xx` deja `SYNC_FAILED` con el campo y la causa; los pendientes vencen a
+  los 30 días. Al cerrar sesión se detiene y solo el mismo deportista la reanuda.
 
 ### Calendario deportivo (HU035, ADR-031)
 
@@ -163,6 +185,11 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   esquema exportado, la limpieza al cerrar sesión y el respaldo se prueban en el dispositivo
   (`features/calendar/`). `CalendarContractTest` verifica la copia de `bff-mobile` 0.8.0 y
   `CalendarAdrContractTest`, el ejemplo de ADR-031.
+- HU034: `TrainingMetricsRepositoryTest`, `MetricsSyncEngineTest`, `TrainingMetricsViewModelTest` y
+  `TrainingMetricsModelsTest` en la JVM; `TrainingMetricsContractTest` verifica la copia 0.8.0, los
+  ejemplos de ADR-030 y un catálogo con un tercer indicador de prueba. Room, Keystore, reinicio,
+  esquema, respaldo, WorkManager, pantalla y recorrido se prueban en el dispositivo
+  (`features/training/metrics/` y `navigation/TrainingMetricsFlowTest`).
 - HU004: `RevocationQueueTest` cubre la cola con MockWebServer (204, 422, 503/504, sin red,
   vencimiento, clave estable) y `SessionContractTest`, `POST /v1/sessions/revoke`; Room, Keystore,
   la separación del almacén de sesión, el reinicio del proceso, el esquema, el respaldo y
