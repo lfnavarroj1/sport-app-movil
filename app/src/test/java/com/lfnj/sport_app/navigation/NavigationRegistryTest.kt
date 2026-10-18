@@ -81,7 +81,10 @@ class NavigationRegistryTest {
     fun `solo son navegables el inicio y las HU implementadas`() {
         val menu = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES))
 
-        assertEquals(listOf(Destinations.ATHLETE_HOME, Destinations.TRAINING_SESSION, Destinations.CALENDAR), menu.mapNotNull { it.route })
+        assertEquals(
+            listOf(Destinations.ATHLETE_HOME, Destinations.TRAINING_SESSION, Destinations.TRAINING_METRICS, Destinations.CALENDAR),
+            menu.mapNotNull { it.route },
+        )
     }
 
     @Test

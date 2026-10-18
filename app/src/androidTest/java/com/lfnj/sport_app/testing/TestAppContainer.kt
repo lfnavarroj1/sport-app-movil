@@ -14,6 +14,7 @@ import com.lfnj.sport_app.core.network.BffMobileClient
 import com.lfnj.sport_app.core.session.SessionApi
 import com.lfnj.sport_app.di.AppContainer
 import com.lfnj.sport_app.features.calendar.data.local.CalendarDatabase
+import com.lfnj.sport_app.features.training.metrics.data.local.TrainingMetricsDatabase
 import com.lfnj.sport_app.features.training.session.data.TrainingSyncScheduler
 import com.lfnj.sport_app.features.training.session.data.local.TrainingDatabase
 import java.security.KeyStore
@@ -53,7 +54,7 @@ class RecordingRevocationScheduler : RevocationScheduler {
 }
 
 /**
- * Contenedor real con bases de HU032, HU035 y la cola de revocación de HU004 en memoria, claves de
+ * Contenedor real con bases de HU032, HU034, HU035 y la cola de revocación de HU004 en memoria, claves de
  * Keystore de prueba y sincronización controlada por la prueba (sin WorkManager), para no tocar los
  * datos de la aplicación instalada.
  */
@@ -92,6 +93,12 @@ class TestAppContainer(
     override val trainingSyncScheduler: TrainingSyncScheduler get() = scheduler
     override val trainingCipher: TokenCipher = KeystoreTokenCipher(TEST_KEY_ALIAS)
 
+    val metrics: TrainingMetricsDatabase = Room.inMemoryDatabaseBuilder(context, TrainingMetricsDatabase::class.java).build()
+    val metricsScheduler = RecordingScheduler()
+    override val trainingMetricsDatabase: TrainingMetricsDatabase get() = metrics
+    override val trainingMetricsCipher: TokenCipher = KeystoreTokenCipher(METRICS_TEST_KEY_ALIAS)
+    override val trainingMetricsScheduler: TrainingSyncScheduler get() = metricsScheduler
+
     val calendar: CalendarDatabase = Room.inMemoryDatabaseBuilder(context, CalendarDatabase::class.java).build()
     override val calendarDatabase: CalendarDatabase get() = calendar
     override val calendarCipher: TokenCipher = KeystoreTokenCipher(CALENDAR_TEST_KEY_ALIAS)
@@ -100,15 +107,18 @@ class TestAppContainer(
         database.close()
         calendar.close()
         revocation.close()
+        metrics.close()
         deleteTestKey()
         deleteTestKey(CALENDAR_TEST_KEY_ALIAS)
         deleteTestKey(REVOCATION_TEST_KEY_ALIAS)
+        deleteTestKey(METRICS_TEST_KEY_ALIAS)
     }
 
     companion object {
         const val TEST_KEY_ALIAS = "sportapp.training.test"
         const val CALENDAR_TEST_KEY_ALIAS = "sportapp.calendar.test"
         const val REVOCATION_TEST_KEY_ALIAS = "sportapp.revocation.test"
+        const val METRICS_TEST_KEY_ALIAS = "sportapp.training-metrics.test"
 
         fun deleteTestKey(alias: String = TEST_KEY_ALIAS) = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias)
     }
