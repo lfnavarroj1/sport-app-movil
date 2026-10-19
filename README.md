@@ -137,7 +137,7 @@ app/src/main/java/com/lfnj/sport_app/
 | Variante | `APP_ENVIRONMENT` | `BFF_MOBILE_BASE_URL` |
 | --- | --- | --- |
 | `debug` | `local` | `http://10.0.2.2:18081/` (BFF móvil de la composición local vista desde el emulador). Texto claro permitido solo hacia `10.0.2.2`, `localhost` y `127.0.0.1`. |
-| `release` | `production` | Sin valor aprobado mientras producción GCP esté pendiente: la app informa «no tiene configurado el servicio». Solo HTTPS. |
+| `release` | `production` | URL de `bff-mobile` en Cloud Run, que pasa el script de release de la plataforma al compilar el APK de producción. Sin ella (CI) la app informa «no tiene configurado el servicio». Solo HTTPS. |
 
 Se sobrescriben sin tocar el código con `-Psportapp.bffMobileBaseUrl.debug=<url>` o
 `-Psportapp.bffMobileBaseUrl.release=<url>` (la URL debe terminar en `/`). Para un dispositivo
@@ -156,6 +156,22 @@ físico con la composición local: `adb reverse tcp:18081 tcp:18081` y
 | E2E HU003 contra la composición local (emulador → `http://10.0.2.2:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu003IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2eOrganizerEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2eServiceProviderEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña>` — las cuentas sintéticas se crean antes con `POST http://localhost:18080/v1/users` (`bff-web`, HU001), porque el móvil no tiene registro. Sin `e2ePassword` el paquete `e2e` se excluye. |
 | APK de depuración | `./gradlew :app:assembleDebug` |
 | Candidato de release sin firmar | `./gradlew :app:assembleRelease :app:bundleRelease` |
+
+### Versión y firma del APK de producción
+
+El APK de producción no lo genera GitHub Actions: lo compila y lo firma
+`sport-app-platform/scripts/sportapp-release-movil.ps1` en la estación del operador, desde el commit del
+tag, y lo adjunta a la GitHub Release del móvil. `app/build.gradle.kts` recibe:
+
+| Entrada | Uso | Sin valor |
+| --- | --- | --- |
+| `-Psportapp.versionName=X.Y.Z` | `versionName`: versión del tag del móvil | `0.1.0` |
+| `-Psportapp.versionCode=N` | `versionCode` = `MAJOR*1000000 + MINOR*1000 + PATCH` | `1` |
+| `-Psportapp.systemVersion=vX.Y.Z` | `BuildConfig.SYSTEM_VERSION`: versión de plataforma | `dev` |
+| `SPORTAPP_SIGNING_STORE_FILE`, `SPORTAPP_SIGNING_STORE_PASSWORD`, `SPORTAPP_SIGNING_KEY_ALIAS`, `SPORTAPP_SIGNING_KEY_PASSWORD` (entorno) | firma de release | APK sin firmar, como en CI |
+
+El almacén de claves vive fuera del repositorio. El APK se nombra
+`sportapp-movil-vX.Y.Z-sistema-vA.B.C.apk` y va con `SHA256SUMS` y `artifact.txt`.
 
 ### Ruta con tildes en Windows
 
@@ -211,4 +227,5 @@ pendientes de decisión; ningún material de firma vive en el repositorio.
 
 GitFlow del proyecto: `feature/HUxxx-descripcion`, `fix/...` y `chore/...` desde `develop`, PR a
 `develop`; `release/vX.Y.Z` y `hotfix/...` hacia `main`. La rama principal remota todavía se llama
-`master`; su renombrado a `main` está pendiente.
+`master`; `sportapp-release-movil.ps1 prepare` de la plataforma la renombra a `main`, que es la rama que
+exige `release-mobile.yml`.
