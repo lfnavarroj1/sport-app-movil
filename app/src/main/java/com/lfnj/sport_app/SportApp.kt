@@ -32,6 +32,8 @@ class SportApp : Application(), Configuration.Provider {
         container.routeSuggestionsCacheJanitor.start(applicationScope)
         container.virtualSessionsCacheJanitor.start(applicationScope)
         container.eventRegistrationsCacheJanitor.start(applicationScope)
+        // HU027: caché cifrada de eventos sugeridos, eliminada al terminar la sesión.
+        container.eventSuggestionsCacheJanitor.start(applicationScope)
     }
 
     /** WorkManager crea los trabajos de HU032, HU034 y HU004 con las dependencias del contenedor manual. */

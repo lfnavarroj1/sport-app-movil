@@ -24,6 +24,10 @@ import com.lfnj.sport_app.features.calendar.model.CalendarAccess
 import com.lfnj.sport_app.features.calendar.model.CalendarOwner
 import com.lfnj.sport_app.features.events.EventDetailScreen
 import com.lfnj.sport_app.features.events.EventDetailViewModel
+import com.lfnj.sport_app.features.events.EventSuggestionsScreen
+import com.lfnj.sport_app.features.events.EventSuggestionsViewModel
+import com.lfnj.sport_app.features.events.model.EventSuggestionsAccess
+import com.lfnj.sport_app.features.events.model.EventSuggestionsOwner
 import com.lfnj.sport_app.features.events.MyRegistrationsScreen
 import com.lfnj.sport_app.features.events.MyRegistrationsViewModel
 import com.lfnj.sport_app.features.events.model.EventRegistrationsOwner
@@ -534,6 +538,46 @@ fun AppNavHost(
                         onRequestCancel = viewModel::requestCancel,
                         onConfirmCancel = viewModel::confirmCancel,
                         onDismissCancel = viewModel::dismissCancel,
+                        onRetry = viewModel::retry,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.EVENT_SUGGESTIONS) {
+            // HU027: misma guarda que athlete_home y, además, la capacidad events.suggest vigente.
+            val user = remember { sessionManager.currentUser.value }
+            val allowed = remember { EventSuggestionsAccess.canView(sessionManager.access.value) }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                !allowed -> LaunchedEffect(Unit) {
+                    navController.navigate(Destinations.ATHLETE_HOME) {
+                        popUpTo(Destinations.EVENT_SUGGESTIONS) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                else -> {
+                    val viewModel: EventSuggestionsViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer { EventSuggestionsViewModel(EventSuggestionsOwner.keyOf(user.userId), container.eventSuggestionsRepository) }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    EventSuggestionsScreen(
+                        state = state,
+                        // El detalle y la inscripción son de HU041: se abre su destino sin modificarlo.
+                        onOpenEvent = { eventId -> navController.navigate(Destinations.eventDetail(eventId)) { launchSingleTop = true } },
                         onRetry = viewModel::retry,
                         onBack = { navController.popBackStack() },
                     )

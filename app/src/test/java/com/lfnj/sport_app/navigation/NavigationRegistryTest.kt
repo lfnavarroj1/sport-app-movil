@@ -82,7 +82,7 @@ class NavigationRegistryTest {
         val menu = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES))
 
         assertEquals(
-            listOf(Destinations.ATHLETE_HOME, Destinations.ROUTE_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.VIRTUAL_SESSIONS),
+            listOf(Destinations.ATHLETE_HOME, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.VIRTUAL_SESSIONS),
             menu.mapNotNull { it.route },
         )
     }
@@ -210,6 +210,39 @@ class NavigationRegistryTest {
                 .none { it.hu == "HU026" }
         )
         assertTrue(NavigationRegistry.athleteMenu(null).none { it.hu == "HU026" })
+    }
+
+    // ------------------------------------------------------------- HU027
+
+    @Test
+    fun `HU027 Eventos sugeridos queda habilitado con la capacidad`() {
+        val entry = NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES)).single { it.hu == "HU027" }
+
+        assertEquals(Destinations.EVENT_SUGGESTIONS, entry.route)
+        assertEquals("eventos/sugeridos", Destinations.EVENT_SUGGESTIONS)
+        assertEquals("events.suggest", entry.capability)
+        assertEquals(MenuGroup.EVENTS, entry.group)
+        assertEquals(120, entry.order)
+        assertTrue(entry.enabled)
+    }
+
+    @Test
+    fun `HU027 sin capacidad, sin suscripcion activa o sin capacidades conocidas no aparece`() {
+        assertTrue(NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES - "events.suggest")).none { it.hu == "HU027" })
+        assertTrue(
+            NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES, SubscriptionStatus.entries.first { it != SubscriptionStatus.ACTIVE }))
+                .none { it.hu == "HU027" }
+        )
+        assertTrue(NavigationRegistry.athleteMenu(null).none { it.hu == "HU027" })
+    }
+
+    @Test
+    fun `HU027 abre el detalle de HU041 sin registrar otro destino de detalle`() {
+        val detail = NavigationRegistry.contextual.single { it.route == Destinations.EVENT_DETAIL }
+
+        assertTrue("HU027" in detail.origins)
+        assertEquals("eventos/detalle/3f2a1b0c-9d8e-4f7a-8b6c-5d4e3f2a1b0c", Destinations.eventDetail("3f2a1b0c-9d8e-4f7a-8b6c-5d4e3f2a1b0c"))
+        assertTrue(NavigationRegistry.contextual.none { it.hu == "HU027" })
     }
 
     // ------------------------------------------------------------- HU028

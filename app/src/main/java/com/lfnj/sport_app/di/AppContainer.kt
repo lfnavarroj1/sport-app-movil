@@ -27,6 +27,11 @@ import com.lfnj.sport_app.features.events.data.EventRegistrationRepository
 import com.lfnj.sport_app.features.events.data.EventRegistrationsCacheJanitor
 import com.lfnj.sport_app.features.events.data.local.EventRegistrationsCodec
 import com.lfnj.sport_app.features.events.data.local.EventRegistrationsDatabase
+import com.lfnj.sport_app.features.events.data.EventSuggestionsApi
+import com.lfnj.sport_app.features.events.data.EventSuggestionsCacheJanitor
+import com.lfnj.sport_app.features.events.data.EventSuggestionsRepository
+import com.lfnj.sport_app.features.events.data.local.EventSuggestionsCodec
+import com.lfnj.sport_app.features.events.data.local.EventSuggestionsDatabase
 import com.lfnj.sport_app.features.recommendations.data.PlanSuggestionsApi
 import com.lfnj.sport_app.features.recommendations.data.PlanSuggestionsCacheJanitor
 import com.lfnj.sport_app.features.recommendations.data.PlanSuggestionsRepository
@@ -249,6 +254,27 @@ open class AppContainer(
 
     val routeSuggestionsCacheJanitor: RouteSuggestionsCacheJanitor by lazy {
         RouteSuggestionsCacheJanitor(sessionManager.currentUser, routeSuggestionsRepository)
+    }
+
+    // ------------------------------------------------------------------ HU027 (ADR-041)
+
+    protected open val eventSuggestionsDatabase: EventSuggestionsDatabase by lazy { EventSuggestionsDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de la caché de eventos sugeridos, distinta de la de la sesión y de las demás cachés. */
+    protected open val eventSuggestionsCipher: TokenCipher by lazy { KeystoreTokenCipher(EventSuggestionsCodec.KEY_ALIAS) }
+
+    open val eventSuggestionsRepository: EventSuggestionsRepository by lazy {
+        EventSuggestionsRepository(
+            dao = eventSuggestionsDatabase.eventSuggestionsCacheDao(),
+            codec = EventSuggestionsCodec(eventSuggestionsCipher, BffMobileClient.json),
+            api = bffApi(EventSuggestionsApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    val eventSuggestionsCacheJanitor: EventSuggestionsCacheJanitor by lazy {
+        EventSuggestionsCacheJanitor(sessionManager.currentUser, eventSuggestionsRepository)
     }
 
     // ------------------------------------------------------------------ HU033 (ADR-043)
