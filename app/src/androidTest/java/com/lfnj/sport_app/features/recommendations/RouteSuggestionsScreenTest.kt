@@ -10,7 +10,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -95,7 +97,7 @@ class RouteSuggestionsScreenTest {
         composeRule.onNodeWithText("Carrera · ${km("5.0")} km · Dificultad baja", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("Bogotá, CO", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("Está en tu ciudad", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithTag("route_suggestion_reason_SPORT_MATCH", useUnmergedTree = true).assertExists()
+        composeRule.onAllNodesWithTag("route_suggestion_reason_SPORT_MATCH", useUnmergedTree = true).assertCountEquals(2)
         // Sin autor resuelto se dice así, sin inventar un nombre.
         composeRule.onNodeWithTag("route_suggestion_b").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Autor no disponible", useUnmergedTree = true).assertIsDisplayed()
@@ -191,8 +193,10 @@ class RouteSuggestionsScreenTest {
     fun unErrorConCacheOfreceReintentarYDeshabilitaElBotonDuranteLaConsulta() {
         show(RouteSuggestionsUiState(zone = bogota, snapshot = snapshot(), problem = RouteSuggestionsProblem.UNAVAILABLE, refreshing = true))
 
-        composeRule.onNodeWithTag("route_suggestions_refreshing").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithTag("route_suggestions_retry").performScrollTo().assertIsNotEnabled()
+        // Con el indicador indeterminado activo no se desplaza: la pantalla no queda inactiva y la acción no termina.
+        composeRule.onNodeWithTag("route_suggestions_refreshing").assertIsDisplayed()
+        composeRule.onNodeWithTag("route_suggestions_problem").assertIsDisplayed()
+        composeRule.onNodeWithTag("route_suggestions_retry").assertIsNotEnabled()
     }
 
     @Test
