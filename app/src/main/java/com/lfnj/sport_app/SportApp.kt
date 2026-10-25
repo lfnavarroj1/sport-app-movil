@@ -17,7 +17,7 @@ class SportApp : Application(), Configuration.Provider {
     lateinit var container: AppContainer
         private set
 
-    /** Ámbito del proceso para la sincronización de HU032 y HU034, la caché de HU035 y la cola de revocación de HU004. */
+    /** Ámbito del proceso para la sincronización de HU032 y HU034, las cachés de HU035 y HU033 y la cola de revocación de HU004. */
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
@@ -27,6 +27,7 @@ class SportApp : Application(), Configuration.Provider {
         container.calendarCacheJanitor.start(applicationScope)
         container.revocationResumer.start(applicationScope)
         container.metricsSyncCoordinator.start(applicationScope)
+        container.trainingDashboardCacheJanitor.start(applicationScope)
     }
 
     /** WorkManager crea los trabajos de HU032, HU034 y HU004 con las dependencias del contenedor manual. */

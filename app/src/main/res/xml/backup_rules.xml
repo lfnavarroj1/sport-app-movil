@@ -4,7 +4,8 @@
     su clave vive en Android Keystore y no viaja con la copia (HU003 CA6). Tampoco los registros
     de entrenamiento y su cola de sincronización (HU032, ADR-029 offline §5) ni la caché
     del calendario deportivo (HU035, ADR-031 offline §3), ni la cola cifrada de revocación
-    de sesión (HU004, ADR-026) ni los indicadores de HU034 (ADR-030 offline §1).
+    de sesión (HU004, ADR-026) ni los indicadores de HU034 (ADR-030 offline §1) ni la caché del
+    tablero de entrenamientos (HU033, ADR-043 §5).
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
@@ -24,4 +25,8 @@
     <exclude domain="database" path="sportapp_training_metrics.db-shm" />
     <exclude domain="database" path="sportapp_training_metrics.db-wal" />
     <exclude domain="database" path="sportapp_training_metrics.db-journal" />
+    <exclude domain="database" path="sportapp_training_dashboard.db" />
+    <exclude domain="database" path="sportapp_training_dashboard.db-shm" />
+    <exclude domain="database" path="sportapp_training_dashboard.db-wal" />
+    <exclude domain="database" path="sportapp_training_dashboard.db-journal" />
 </full-backup-content>

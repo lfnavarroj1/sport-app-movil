@@ -82,7 +82,7 @@ class NavigationRegistryTest {
         val menu = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES))
 
         assertEquals(
-            listOf(Destinations.ATHLETE_HOME, Destinations.TRAINING_SESSION, Destinations.TRAINING_METRICS, Destinations.CALENDAR),
+            listOf(Destinations.ATHLETE_HOME, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR),
             menu.mapNotNull { it.route },
         )
     }
@@ -142,6 +142,28 @@ class NavigationRegistryTest {
         assertEquals(
             listOf("home", "training.session.record", "logout"),
             NavigationRegistry.athleteMenu(null, openTrainingSession = true).map { it.id },
+        )
+    }
+
+    // ------------------------------------------------------------- HU033
+
+    @Test
+    fun `HU033 Tablero de entrenamiento queda habilitado con la capacidad`() {
+        val entry = NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES)).single { it.hu == "HU033" }
+
+        assertEquals(Destinations.TRAINING_DASHBOARD, entry.route)
+        assertEquals("training.dashboard.view", entry.capability)
+        assertEquals(MenuGroup.TRAINING, entry.group)
+        assertEquals(180, entry.order)
+        assertTrue(entry.enabled)
+    }
+
+    @Test
+    fun `HU033 sin capacidad o sin suscripcion activa no aparece`() {
+        assertTrue(NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES - "training.dashboard.view")).none { it.hu == "HU033" })
+        assertTrue(
+            NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES, SubscriptionStatus.entries.first { it != SubscriptionStatus.ACTIVE }))
+                .none { it.hu == "HU033" }
         )
     }
 

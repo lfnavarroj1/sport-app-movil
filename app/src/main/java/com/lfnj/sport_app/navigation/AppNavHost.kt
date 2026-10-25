@@ -32,6 +32,9 @@ import com.lfnj.sport_app.features.identity.unauthorized.UnauthorizedScreen
 import com.lfnj.sport_app.features.status.StatusScreen
 import com.lfnj.sport_app.features.status.StatusViewModel
 import com.lfnj.sport_app.core.session.SubscriptionStatus
+import com.lfnj.sport_app.features.training.dashboard.TrainingDashboardScreen
+import com.lfnj.sport_app.features.training.dashboard.TrainingDashboardViewModel
+import com.lfnj.sport_app.features.training.dashboard.model.TrainingDashboardAccess
 import com.lfnj.sport_app.features.training.metrics.TrainingMetricsScreen
 import com.lfnj.sport_app.features.training.metrics.TrainingMetricsViewModel
 import com.lfnj.sport_app.features.training.metrics.model.TrainingMetricsAccess
@@ -175,6 +178,48 @@ fun AppNavHost(
                         onStart = viewModel::start,
                         onFinish = viewModel::finish,
                         onDismiss = viewModel::dismiss,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.TRAINING_DASHBOARD) {
+            // HU033: misma guarda que athlete_home y, además, la capacidad training.dashboard.view vigente.
+            val user = remember { sessionManager.currentUser.value }
+            val allowed = remember { TrainingDashboardAccess.canView(sessionManager.access.value) }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                !allowed -> LaunchedEffect(Unit) {
+                    navController.navigate(Destinations.ATHLETE_HOME) {
+                        popUpTo(Destinations.TRAINING_DASHBOARD) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                else -> {
+                    val viewModel: TrainingDashboardViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer { TrainingDashboardViewModel(TrainingOwner.keyOf(user.userId), container.trainingDashboardRepository) }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    TrainingDashboardScreen(
+                        state = state,
+                        onSelectRange = viewModel::selectRange,
+                        onSelectCustomRange = viewModel::selectCustomRange,
+                        onDismissCustomError = viewModel::dismissCustomError,
+                        onRetry = viewModel::retry,
+                        onRegisterTraining = { navController.navigate(Destinations.TRAINING_SESSION) { launchSingleTop = true } },
                         onBack = { navController.popBackStack() },
                     )
                 }

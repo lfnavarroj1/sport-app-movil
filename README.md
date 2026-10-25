@@ -30,7 +30,7 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035 y HU004
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU033, HU034, HU035 y HU004
 ├── MainActivity.kt        única Activity; aloja la navegación Compose
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -46,6 +46,9 @@ app/src/main/java/com/lfnj/sport_app/
 │   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada
 │   │   └── model/         periodo por zona, elementos, fuentes y agrupación por día
 │   ├── home/              inicio del deportista con menú por capacidades (HU003)
+│   ├── training/dashboard/ tablero de entrenamientos (HU033): pantalla con selector de periodo y ViewModel,
+│   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada por opción
+│   │   └── model/         periodos con desfase, agregados, fuentes y barras
 │   ├── training/metrics/  FTP y VO₂max estimados (HU034): pantalla y ViewModel dirigidos por el catálogo,
 │   │   ├── data/          API, repositorio y Room (catálogo, historial y cola cifrados con Keystore)
 │   │   ├── model/         catálogo, entradas, resultados, validación de experiencia y formato
@@ -115,6 +118,26 @@ app/src/main/java/com/lfnj/sport_app/
   los resultados confirmados que la proyección aún no devuelve y la cola. WorkManager reintenta solo
   red, `502`, `503` y `504`; un `4xx` deja `SYNC_FAILED` con el campo y la causa; los pendientes vencen a
   los 30 días. Al cerrar sesión se detiene y solo el mismo deportista la reanuda.
+
+### Tablero de entrenamientos (HU033, ADR-043)
+
+- La pantalla `entrenamientos/tablero` (capacidad `training.dashboard.view`; sin ella la opción no
+  aparece y la guarda devuelve al inicio) consulta `GET /v1/me/training-dashboard?from&to` para 7, 30
+  o 90 días (días completos hasta hoy) o un rango personalizado de hasta 366 días. `from`/`to` viajan
+  con el desfase del dispositivo; el periodo es `[from, to)` y las semanas ISO las calcula el BFF.
+- Muestra totales (sesiones, minutos totales y promedio, distancia en metros o «no disponible» si
+  llega `null`), barras por semana y por deporte con alternativa textual accesible, el origen de las
+  sesiones (`SPORTAPP`/`STRAVA`) y el último resultado por indicador con unidad, método, versión, fecha
+  y el aviso `estimated_not_diagnostic`. Números y fechas usan el formato regional sin alterar el
+  valor. Sin datos (`has_data: false` con todas las fuentes `OK`) muestra el estado vacío con
+  «Registrar entrenamiento»; una consulta interna de `sources[]` distinta de `OK` (o ausente) se
+  informa y sus secciones no se muestran: nunca se presentan ceros como confirmados.
+- Solo lectura: no hay cola de comandos ni WorkManager. `sportapp_training_dashboard.db` guarda una
+  fila por deportista y opción del selector (payload AES-GCM con la clave
+  `sportapp.training_dashboard.v1`, excluida del respaldo); cada `200` la reemplaza. Sin red muestra
+  el último tablero de esa opción con sus propias fechas y `last_synced_at`, y lo marca desactualizado
+  a las 24 h; un rango personalizado solo reutiliza la caché de exactamente las mismas fechas. Al
+  terminar la sesión se elimina la caché del deportista y, al autenticarse uno, la de cualquier otro.
 
 ### Calendario deportivo (HU035, ADR-031)
 
@@ -206,6 +229,12 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   ejemplos de ADR-030 y un catálogo con un tercer indicador de prueba. Room, Keystore, reinicio,
   esquema, respaldo, WorkManager, pantalla y recorrido se prueban en el dispositivo
   (`features/training/metrics/` y `navigation/TrainingMetricsFlowTest`).
+- HU033: `TrainingDashboardModelsTest`, `TrainingDashboardRepositoryTest` (MockWebServer: `200`,
+  vacío, fuente caída, `403`, `422`, `503`/`504`, sin red, respuesta inválida, partición y limpieza) y
+  `TrainingDashboardViewModelTest` en la JVM; `TrainingDashboardContractTest` verifica la operación y
+  sus esquemas en la copia de `bff-mobile`. Room, Keystore, reinicio, esquema, respaldo, pantalla y
+  recorrido se prueban en el dispositivo (`features/training/dashboard/` y
+  `navigation/TrainingDashboardFlowTest`).
 - HU004: `RevocationQueueTest` cubre la cola con MockWebServer (204, 422, 503/504, sin red,
   vencimiento, clave estable) y `SessionContractTest`, `POST /v1/sessions/revoke`; Room, Keystore,
   la separación del almacén de sesión, el reinicio del proceso, el esquema, el respaldo y
