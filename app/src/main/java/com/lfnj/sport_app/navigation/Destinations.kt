@@ -26,6 +26,9 @@ object Destinations {
     /** HU028: plantillas de plan sugeridas al deportista (`/entrenamientos/sugeridos`). */
     const val PLAN_SUGGESTIONS = "entrenamientos/sugeridos"
 
+    /** HU026: rutas sugeridas al deportista (`/entrenamientos/rutas`). */
+    const val ROUTE_SUGGESTIONS = "entrenamientos/rutas"
+
     /** Argumento de [EVENT_DETAIL]: `event_id` (UUID) del evento publicado. */
     const val EVENT_ID_ARG = "event_id"
 

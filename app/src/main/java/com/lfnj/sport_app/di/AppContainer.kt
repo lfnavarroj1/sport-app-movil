@@ -32,6 +32,11 @@ import com.lfnj.sport_app.features.recommendations.data.PlanSuggestionsCacheJani
 import com.lfnj.sport_app.features.recommendations.data.PlanSuggestionsRepository
 import com.lfnj.sport_app.features.recommendations.data.local.PlanSuggestionsCodec
 import com.lfnj.sport_app.features.recommendations.data.local.PlanSuggestionsDatabase
+import com.lfnj.sport_app.features.recommendations.data.RouteSuggestionsApi
+import com.lfnj.sport_app.features.recommendations.data.RouteSuggestionsCacheJanitor
+import com.lfnj.sport_app.features.recommendations.data.RouteSuggestionsRepository
+import com.lfnj.sport_app.features.recommendations.data.local.RouteSuggestionsCodec
+import com.lfnj.sport_app.features.recommendations.data.local.RouteSuggestionsDatabase
 import com.lfnj.sport_app.features.status.HttpStatusRepository
 import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardApi
 import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardCacheJanitor
@@ -218,6 +223,27 @@ open class AppContainer(
 
     val planSuggestionsCacheJanitor: PlanSuggestionsCacheJanitor by lazy {
         PlanSuggestionsCacheJanitor(sessionManager.currentUser, planSuggestionsRepository)
+    }
+
+    // ------------------------------------------------------------------ HU026 (ADR-041)
+
+    protected open val routeSuggestionsDatabase: RouteSuggestionsDatabase by lazy { RouteSuggestionsDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de la caché de rutas sugeridas, distinta de la de la sesión y de las demás cachés. */
+    protected open val routeSuggestionsCipher: TokenCipher by lazy { KeystoreTokenCipher(RouteSuggestionsCodec.KEY_ALIAS) }
+
+    open val routeSuggestionsRepository: RouteSuggestionsRepository by lazy {
+        RouteSuggestionsRepository(
+            dao = routeSuggestionsDatabase.routeSuggestionsCacheDao(),
+            codec = RouteSuggestionsCodec(routeSuggestionsCipher, BffMobileClient.json),
+            api = bffApi(RouteSuggestionsApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    val routeSuggestionsCacheJanitor: RouteSuggestionsCacheJanitor by lazy {
+        RouteSuggestionsCacheJanitor(sessionManager.currentUser, routeSuggestionsRepository)
     }
 
     // ------------------------------------------------------------------ HU033 (ADR-043)
