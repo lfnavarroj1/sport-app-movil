@@ -44,6 +44,10 @@ import com.lfnj.sport_app.features.recommendations.RouteSuggestionsScreen
 import com.lfnj.sport_app.features.recommendations.RouteSuggestionsViewModel
 import com.lfnj.sport_app.features.recommendations.model.RouteSuggestionsAccess
 import com.lfnj.sport_app.features.recommendations.model.RouteSuggestionsOwner
+import com.lfnj.sport_app.features.services.VirtualSessionsScreen
+import com.lfnj.sport_app.features.services.VirtualSessionsViewModel
+import com.lfnj.sport_app.features.services.model.VirtualSessionsAccess
+import com.lfnj.sport_app.features.services.model.VirtualSessionsOwner
 import com.lfnj.sport_app.features.status.StatusScreen
 import com.lfnj.sport_app.features.status.StatusViewModel
 import com.lfnj.sport_app.core.session.SubscriptionStatus
@@ -484,6 +488,53 @@ fun AppNavHost(
                         onCloseDetail = viewModel::closeDetail,
                         onRetry = viewModel::retry,
                         onOpenMap = { uri -> RouteMapLauncher.open(context, uri) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.VIRTUAL_SESSIONS) {
+            // HU040: misma guarda que athlete_home y, además, la capacidad services.virtual_sessions.schedule vigente.
+            val user = remember { sessionManager.currentUser.value }
+            val allowed = remember { VirtualSessionsAccess.canView(sessionManager.access.value) }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                !allowed -> LaunchedEffect(Unit) {
+                    navController.navigate(Destinations.ATHLETE_HOME) {
+                        popUpTo(Destinations.VIRTUAL_SESSIONS) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                else -> {
+                    val viewModel: VirtualSessionsViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer { VirtualSessionsViewModel(VirtualSessionsOwner.keyOf(user.userId), container.virtualSessionsRepository) }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    VirtualSessionsScreen(
+                        state = state,
+                        onSelectTab = viewModel::selectTab,
+                        onOpenService = viewModel::openService,
+                        onCloseService = viewModel::closeService,
+                        onChooseSlot = viewModel::chooseSlot,
+                        onConfirmBooking = viewModel::confirmBooking,
+                        onDismissBooking = viewModel::dismissBooking,
+                        onRequestCancel = viewModel::requestCancel,
+                        onConfirmCancel = viewModel::confirmCancel,
+                        onDismissCancel = viewModel::dismissCancel,
+                        onRetry = viewModel::retry,
                         onBack = { navController.popBackStack() },
                     )
                 }

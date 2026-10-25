@@ -29,6 +29,9 @@ object Destinations {
     /** HU026: rutas sugeridas al deportista (`/entrenamientos/rutas`). */
     const val ROUTE_SUGGESTIONS = "entrenamientos/rutas"
 
+    /** HU040: sesiones virtuales con entrenadores (`/servicios/sesiones-virtuales`, ADR-046 §8). */
+    const val VIRTUAL_SESSIONS = "servicios/sesiones-virtuales"
+
     /** Argumento de [EVENT_DETAIL]: `event_id` (UUID) del evento publicado. */
     const val EVENT_ID_ARG = "event_id"
 
