@@ -6,6 +6,7 @@ import com.lfnj.sport_app.core.session.AccessSnapshot
 import com.lfnj.sport_app.core.session.ActorType
 import com.lfnj.sport_app.core.session.SubscriptionStatus
 import com.lfnj.sport_app.features.calendar.model.CALENDAR_CAPABILITY
+import com.lfnj.sport_app.features.events.model.EVENTS_SUGGEST_CAPABILITY
 import com.lfnj.sport_app.features.recommendations.model.TRAINING_PLANS_SUGGEST_CAPABILITY
 import com.lfnj.sport_app.features.recommendations.model.TRAINING_ROUTES_SUGGEST_CAPABILITY
 import com.lfnj.sport_app.features.training.dashboard.model.TRAINING_DASHBOARD_CAPABILITY
@@ -70,7 +71,7 @@ object NavigationRegistry {
     val athlete: List<MenuEntry> = listOf(
         MenuEntry("home", R.string.menu_home, MenuGroup.MAIN, 10, "HU003", route = Destinations.ATHLETE_HOME),
         capability(TRAINING_ROUTES_SUGGEST_CAPABILITY, R.string.menu_athlete_routes, MenuGroup.TRAINING, 110, "HU026", Destinations.ROUTE_SUGGESTIONS),
-        capability("events.suggest", R.string.menu_athlete_events, MenuGroup.EVENTS, 120, "HU027"),
+        capability(EVENTS_SUGGEST_CAPABILITY, R.string.menu_athlete_events, MenuGroup.EVENTS, 120, "HU027", Destinations.EVENT_SUGGESTIONS),
         capability(TRAINING_PLANS_SUGGEST_CAPABILITY, R.string.menu_athlete_training_suggestions, MenuGroup.TRAINING, 130, "HU028", Destinations.PLAN_SUGGESTIONS),
         capability("services.support.suggest", R.string.menu_athlete_support, MenuGroup.SERVICES, 140, "HU029"),
         capability("nutrition.routines.suggest", R.string.menu_athlete_nutrition_routines, MenuGroup.NUTRITION, 150, "HU030"),

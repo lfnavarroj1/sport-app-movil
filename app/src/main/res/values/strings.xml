@@ -337,6 +337,45 @@
     <string name="route_suggestions_difficulty_moderate">moderada</string>
     <string name="route_suggestions_difficulty_high">alta</string>
 
+    <!-- HU027: eventos sugeridos (ADR-041) -->
+    <string name="event_suggestions_title">Eventos sugeridos</string>
+    <string name="event_suggestions_loading">Cargando eventos sugeridos…</string>
+    <string name="event_suggestions_refreshing">Actualizando los eventos sugeridos</string>
+    <string name="event_suggestions_synced_at">Lista confirmada el %1$s</string>
+    <string name="event_suggestions_stale">Esta lista tiene más de 24 horas y puede estar desactualizada.</string>
+    <string name="event_suggestions_offline_with_cache">Sin conexión: se muestra la última lista confirmada.</string>
+    <string name="event_suggestions_unavailable_with_cache">No se pudo actualizar la lista; se muestra la última confirmada.</string>
+    <string name="event_suggestions_never_synced">Aún no hay eventos sugeridos guardados en este teléfono. Conéctate para consultarlos.</string>
+    <string name="event_suggestions_error_unavailable">Los eventos sugeridos no están disponibles en este momento. Intenta de nuevo.</string>
+    <string name="event_suggestions_error_capability_required">Tu plan actual no incluye eventos sugeridos.</string>
+    <string name="event_suggestions_error_permission_required">Los eventos sugeridos solo están disponibles para deportistas.</string>
+    <string name="event_suggestions_error_invalid_request">No se pudo consultar la lista. Intenta de nuevo.</string>
+    <string name="event_suggestions_error_invalid_response">La lista recibida no es válida. Intenta de nuevo más tarde.</string>
+    <string name="event_suggestions_error_storage">No se pudo guardar la lista en el teléfono.</string>
+    <string name="event_suggestions_personalized">Sugeridos según tus deportes y tu ciudad</string>
+    <string name="event_suggestions_not_personalized">Próximos eventos publicados: esta lista no está personalizada</string>
+    <string name="event_suggestions_missing_sports">Registra tus deportes en tu perfil para recibir sugerencias personalizadas.</string>
+    <string name="event_suggestions_missing_city">Registra tu ciudad en tu perfil para recibir sugerencias personalizadas.</string>
+    <string name="event_suggestions_missing_other">Falta información de tu perfil para personalizar la lista.</string>
+    <string name="event_suggestions_context_unavailable">No pudimos consultar tu perfil en este momento; por eso la lista no está personalizada.</string>
+    <string name="event_suggestions_empty">No hay eventos publicados en los próximos 90 días.</string>
+    <string name="event_suggestions_empty_personalized">No hay eventos publicados en los próximos 90 días para sugerirte.</string>
+    <string name="event_suggestions_notice">Sugerir no te inscribe: abre un evento para ver su detalle e inscribirte.</string>
+    <string name="event_suggestions_reason_sport_match">Coincide con tu deporte</string>
+    <string name="event_suggestions_reason_city_match">En tu ciudad</string>
+    <string name="event_suggestions_reason_upcoming">Próximo evento</string>
+    <string name="event_suggestions_dates">%1$s – %2$s</string>
+    <string name="event_suggestions_time_zone">Hora de tu teléfono. Zona del evento: %1$s</string>
+    <string name="event_suggestions_discipline">Disciplina: %1$s</string>
+    <string name="event_suggestions_place">%1$s · %2$s (%3$s)</string>
+    <string name="event_suggestions_capacity">Cupo declarado: %1$d participantes</string>
+    <string name="event_suggestions_fee">Tarifa informativa: %1$s %2$s</string>
+    <string name="event_suggestions_fee_free">Tarifa informativa: gratuito</string>
+    <string name="event_suggestions_no_fee">Sin tarifa</string>
+    <string name="event_suggestions_fee_notice">El pago no se procesa en SportApp.</string>
+    <string name="event_suggestions_registered">Ya inscrito</string>
+    <string name="event_suggestions_open_detail">Abrir el detalle de %1$s</string>
+
     <!-- HU034: indicadores FTP y VO₂max (ADR-030) -->
     <string name="action_cancel">Cancelar</string>
     <string name="action_accept">Aceptar</string>

@@ -29,6 +29,9 @@ object Destinations {
     /** HU026: rutas sugeridas al deportista (`/entrenamientos/rutas`). */
     const val ROUTE_SUGGESTIONS = "entrenamientos/rutas"
 
+    /** HU027: eventos sugeridos al deportista (`/eventos/sugeridos`); cada evento abre [EVENT_DETAIL]. */
+    const val EVENT_SUGGESTIONS = "eventos/sugeridos"
+
     /** Argumento de [EVENT_DETAIL]: `event_id` (UUID) del evento publicado. */
     const val EVENT_ID_ARG = "event_id"
 

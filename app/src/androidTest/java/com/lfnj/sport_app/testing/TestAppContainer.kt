@@ -16,6 +16,7 @@ import com.lfnj.sport_app.di.AppContainer
 import com.lfnj.sport_app.features.calendar.data.local.CalendarDatabase
 import com.lfnj.sport_app.features.events.data.ConnectivityMonitor
 import com.lfnj.sport_app.features.events.data.local.EventRegistrationsDatabase
+import com.lfnj.sport_app.features.events.data.local.EventSuggestionsDatabase
 import com.lfnj.sport_app.features.recommendations.data.local.PlanSuggestionsDatabase
 import com.lfnj.sport_app.features.recommendations.data.local.RouteSuggestionsDatabase
 import com.lfnj.sport_app.features.training.dashboard.data.local.TrainingDashboardDatabase
@@ -127,6 +128,10 @@ class TestAppContainer(
     override val eventRegistrationsCipher: TokenCipher = KeystoreTokenCipher(EVENT_REGISTRATIONS_TEST_KEY_ALIAS)
     val online = MutableStateFlow(true)
     override val connectivityMonitor: ConnectivityMonitor = ConnectivityMonitor { online }
+    // HU027: caché de eventos sugeridos en memoria con su clave de prueba.
+    val eventSuggestions: EventSuggestionsDatabase = Room.inMemoryDatabaseBuilder(context, EventSuggestionsDatabase::class.java).build()
+    override val eventSuggestionsDatabase: EventSuggestionsDatabase get() = eventSuggestions
+    override val eventSuggestionsCipher: TokenCipher = KeystoreTokenCipher(EVENT_SUGGESTIONS_TEST_KEY_ALIAS)
 
     fun close() {
         database.close()
@@ -137,6 +142,7 @@ class TestAppContainer(
         dashboard.close()
         routeSuggestions.close()
         eventRegistrations.close()
+        eventSuggestions.close()
         deleteTestKey()
         deleteTestKey(CALENDAR_TEST_KEY_ALIAS)
         deleteTestKey(REVOCATION_TEST_KEY_ALIAS)
@@ -145,6 +151,7 @@ class TestAppContainer(
         deleteTestKey(DASHBOARD_TEST_KEY_ALIAS)
         deleteTestKey(ROUTE_SUGGESTIONS_TEST_KEY_ALIAS)
         deleteTestKey(EVENT_REGISTRATIONS_TEST_KEY_ALIAS)
+        deleteTestKey(EVENT_SUGGESTIONS_TEST_KEY_ALIAS)
     }
 
     companion object {
@@ -156,6 +163,7 @@ class TestAppContainer(
         const val DASHBOARD_TEST_KEY_ALIAS = "sportapp.training-dashboard.test"
         const val ROUTE_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.route_suggestions.test"
         const val EVENT_REGISTRATIONS_TEST_KEY_ALIAS = "sportapp.event_registrations.test"
+        const val EVENT_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.event_suggestions.test"
 
         fun deleteTestKey(alias: String = TEST_KEY_ALIAS) = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias)
     }
