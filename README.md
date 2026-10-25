@@ -30,7 +30,7 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033 y HU004
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026 y HU004
 ├── MainActivity.kt        única Activity; aloja la navegación Compose
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -46,9 +46,9 @@ app/src/main/java/com/lfnj/sport_app/
 │   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada
 │   │   └── model/         periodo por zona, elementos, fuentes y agrupación por día
 │   ├── home/              inicio del deportista con menú por capacidades (HU003)
-│   ├── recommendations/   entrenamientos sugeridos (HU028): pantalla de lista y detalle, ViewModel,
-│   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada
-│   │   └── model/         plantillas, motivos, contexto faltante y antigüedad
+│   ├── recommendations/   entrenamientos sugeridos (HU028) y rutas sugeridas (HU026): pantallas de lista y detalle, ViewModels,
+│   │   ├── data/          API, repositorios, limpieza al cerrar sesión y cachés Room cifradas (una por HU)
+│   │   └── model/         plantillas y rutas, motivos, contexto faltante, antigüedad y URI `geo:`
 │   ├── training/dashboard/ tablero de entrenamientos (HU033): pantalla con selector de periodo y ViewModel,
 │   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada por opción
 │   │   └── model/         periodos con desfase, agregados, fuentes y barras
@@ -174,6 +174,27 @@ app/src/main/java/com/lfnj/sport_app/
   `sportapp.plan_suggestions.v1`, excluida del respaldo) y cada `200` la reemplaza; sin red la muestra
   con `last_synced_at` y la marca desactualizada a las 24 h. Al terminar la sesión se elimina como en HU035.
 
+### Rutas sugeridas (HU026, ADR-041)
+
+- La opción 110 «Rutas sugeridas» (capacidad `training.routes.suggest`; sin ella la opción no aparece y
+  la guarda devuelve al inicio) abre `entrenamientos/rutas`, que consulta
+  `GET /v1/me/suggestions/routes?limit=20` y muestra las rutas en el orden del BFF (primero las de la
+  ciudad del deportista y luego por distancia) con autor (o «Autor no disponible»), deporte, distancia
+  con un decimal, dificultad, ciudad y país, y motivos (`SPORT_MATCH`, `CITY_MATCH`). El detalle
+  añade la descripción, la fecha de publicación, el punto de inicio y los puntos intermedios como lista.
+- «Abrir en mapas» entrega `geo:lat,lng?q=lat,lng(nombre)` a la aplicación de mapas del teléfono
+  (`Intent.ACTION_VIEW`); si no hay ninguna lo informa. No hay mapa embebido, proveedor cartográfico,
+  trazado GPX ni navegación, y la ubicación del teléfono no se consulta. Un texto fijo avisa que una
+  sugerencia no garantiza la seguridad de la ruta.
+- Con `personalized: false` la lista se presenta como no personalizada (últimas publicadas) y explica
+  cada `missing_context` o que Usuarios no respondió; con `missing_context: ["city"]` sigue
+  personalizada por deporte. Una respuesta con coordenadas fuera de rango, distancia sin un decimal,
+  `source` distinto de `ORGANIZER` o referencia distinta de `route` se rechaza completa.
+- Solo lectura, sin WorkManager: una fila por deportista en `sportapp_route_suggestions.db`, payload
+  AES-GCM con la clave `sportapp.route_suggestions.v1`, excluida del respaldo; cada `200` la
+  reemplaza (una ruta retirada desaparece), sin red se muestra con `last_synced_at` y se marca
+  desactualizada a las 24 h. Al terminar la sesión se elimina como en HU035.
+
 ## Configuración por variante
 
 | Variante | `APP_ENVIRONMENT` | `BFF_MOBILE_BASE_URL` |
@@ -197,6 +218,7 @@ físico con la composición local: `adb reverse tcp:18081 tcp:18081` y
 | Instrumentadas (Espresso/Compose) | `./gradlew :app:connectedDebugAndroidTest` (emulador o dispositivo conectado; `ANDROID_SERIAL` elige uno) |
 | E2E HU003 contra la composición local (emulador → `http://10.0.2.2:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu003IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2eOrganizerEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2eServiceProviderEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña>` — las cuentas sintéticas se crean antes con `POST http://localhost:18080/v1/users` (`bff-web`, HU001), porque el móvil no tiene registro. Sin `e2ePassword` el paquete `e2e` se excluye. |
 | E2E HU028 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu028IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña> -Pandroid.testInstrumentationRunnerArguments.e2eTemplateSuffix=<sufijo>` — antes, por `bff-web` (`localhost:18080`, con `Origin` permitido): deportista con `PUT /v1/me/sport-habits` (deporte y `primary_goal`) y profesional que publica «E2E HU028 Objetivo <sufijo>» (ese objetivo) y «E2E HU028 Deporte <sufijo>» (otro objetivo) con `POST /v1/training-plan-templates`. Datos sintéticos. |
+| E2E HU026 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu026IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña> -Pandroid.testInstrumentationRunnerArguments.e2eRouteSuffix=<sufijo>` — antes, por `bff-web` (`localhost:18080`, con `Origin` permitido): deportista con su ciudad (`PUT /v1/me/demographic-profile`) y un deporte (`PUT /v1/me/sport-habits`), ambos con `Idempotency-Key`, y organizador que publica con `POST /v1/routes` «E2E HU026 Ciudad <sufijo>» (ciudad del deportista, más larga), «E2E HU026 Corta <sufijo>» (otra ciudad, más corta) y «E2E HU026 Retirada <sufijo>», que retira con `POST /v1/routes/{route_id}/retire`. Datos sintéticos. |
 | APK de depuración | `./gradlew :app:assembleDebug` |
 | Candidato de release sin firmar | `./gradlew :app:assembleRelease :app:bundleRelease` |
 
@@ -253,6 +275,12 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   `PlanSuggestionsViewModelTest` en la JVM; `PlanSuggestionsContractTest` verifica la copia 0.15.0. Room,
   Keystore, reinicio, esquema, respaldo, limpieza, pantalla y recorrido se prueban en el dispositivo
   (`features/recommendations/` y `navigation/PlanSuggestionsFlowTest`).
+- HU026: `RouteSuggestionsModelsTest` (URI `geo:`, formatos, guarda y partición),
+  `RouteSuggestionsRepositoryTest` (MockWebServer y caché en memoria) y `RouteSuggestionsViewModelTest`
+  en la JVM; `RouteSuggestionsContractTest` verifica la operación y sus esquemas en la copia 0.15.0.
+  Room, Keystore, reinicio, esquema, respaldo, limpieza, pantalla (incluido el intent `geo:`) y
+  recorrido se prueban en el dispositivo (`features/recommendations/Route*` y
+  `navigation/RouteSuggestionsFlowTest`); `e2e/Hu026IntegratedE2eTest` usa la composición local.
 - HU033: `TrainingDashboardModelsTest`, `TrainingDashboardRepositoryTest` (MockWebServer: `200`,
   vacío, fuente caída, `403`, `422`, `503`/`504`, sin red, respuesta inválida, partición y limpieza) y
   `TrainingDashboardViewModelTest` en la JVM; `TrainingDashboardContractTest` verifica la operación y
