@@ -4,7 +4,7 @@ import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -396,7 +396,7 @@ private fun currentLocale(): Locale = LocalConfiguration.current.locales[0]
  * propio ni se registra la ubicación: solo se entrega el punto público de la ruta al intent.
  */
 object RouteMapLauncher {
-    fun intent(geoUri: String): Intent = Intent(Intent.ACTION_VIEW, Uri.parse(geoUri))
+    fun intent(geoUri: String): Intent = Intent(Intent.ACTION_VIEW, geoUri.toUri())
 
     /** `false` si ninguna aplicación del teléfono puede abrir la URI. */
     fun open(context: Context, geoUri: String): Boolean = try {
