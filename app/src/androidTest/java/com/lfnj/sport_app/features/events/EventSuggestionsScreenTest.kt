@@ -4,11 +4,13 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -88,7 +90,9 @@ class EventSuggestionsScreenTest {
         composeRule.onNodeWithTag("event_suggestion_a").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("event_suggestion_reason_a_SPORT_MATCH", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag("event_suggestion_reason_a_CITY_MATCH", useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithText("En tu ciudad", substring = true, useUnmergedTree = true).assertExists()
+        // «a» y «c» coinciden en ciudad; «b» solo en deporte.
+        composeRule.onAllNodesWithText("En tu ciudad", useUnmergedTree = true).assertCountEquals(2)
+        composeRule.onNodeWithTag("event_suggestion_reason_b_CITY_MATCH", useUnmergedTree = true).assertDoesNotExist()
         val (start, end) = EventFormat.range(match.startsAt, match.endsAt, bogota, locale)
         composeRule.onNodeWithText("$start – $end", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithText("Hora de tu teléfono. Zona del evento: America/Bogota", useUnmergedTree = true).assertExists()
