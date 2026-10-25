@@ -3,8 +3,8 @@
     Copia en la nube y transferencia entre dispositivos (Android 12+). La sesión cifrada (HU003 CA6),
     los registros de entrenamiento con su cola de sincronización (HU032, ADR-029 offline §5), la
     caché del calendario deportivo (HU035, ADR-031 offline §3) y la cola cifrada de revocación de
-    sesión (HU004, ADR-026) los indicadores de HU034 (ADR-030) y la caché de entrenamientos sugeridos
-    (HU028, ADR-041 §5) se excluyen de ambas.
+    sesión (HU004, ADR-026), los indicadores de HU034 (ADR-030), la caché de entrenamientos sugeridos
+    (HU028, ADR-041 §5) y la del tablero de entrenamientos (HU033, ADR-043 §5) se excluyen de ambas.
 -->
 <data-extraction-rules>
     <cloud-backup>
@@ -29,6 +29,10 @@
         <exclude domain="database" path="sportapp_plan_suggestions.db-shm" />
         <exclude domain="database" path="sportapp_plan_suggestions.db-wal" />
         <exclude domain="database" path="sportapp_plan_suggestions.db-journal" />
+        <exclude domain="database" path="sportapp_training_dashboard.db" />
+        <exclude domain="database" path="sportapp_training_dashboard.db-shm" />
+        <exclude domain="database" path="sportapp_training_dashboard.db-wal" />
+        <exclude domain="database" path="sportapp_training_dashboard.db-journal" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
@@ -52,5 +56,9 @@
         <exclude domain="database" path="sportapp_plan_suggestions.db-shm" />
         <exclude domain="database" path="sportapp_plan_suggestions.db-wal" />
         <exclude domain="database" path="sportapp_plan_suggestions.db-journal" />
+        <exclude domain="database" path="sportapp_training_dashboard.db" />
+        <exclude domain="database" path="sportapp_training_dashboard.db-shm" />
+        <exclude domain="database" path="sportapp_training_dashboard.db-wal" />
+        <exclude domain="database" path="sportapp_training_dashboard.db-journal" />
     </device-transfer>
 </data-extraction-rules>

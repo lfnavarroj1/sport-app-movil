@@ -7,6 +7,7 @@ import com.lfnj.sport_app.core.session.ActorType
 import com.lfnj.sport_app.core.session.SubscriptionStatus
 import com.lfnj.sport_app.features.calendar.model.CALENDAR_CAPABILITY
 import com.lfnj.sport_app.features.recommendations.model.TRAINING_PLANS_SUGGEST_CAPABILITY
+import com.lfnj.sport_app.features.training.dashboard.model.TRAINING_DASHBOARD_CAPABILITY
 import com.lfnj.sport_app.features.training.metrics.model.TRAINING_METRICS_CAPABILITY
 import com.lfnj.sport_app.features.training.session.model.TRAINING_SESSION_CAPABILITY
 
@@ -63,7 +64,7 @@ object NavigationRegistry {
         capability("nutrition.routines.suggest", R.string.menu_athlete_nutrition_routines, MenuGroup.NUTRITION, 150, "HU030"),
         capability("integrations.strava.connect", R.string.menu_athlete_strava, MenuGroup.INTEGRATIONS, 160, "HU031"),
         capability(TRAINING_SESSION_CAPABILITY, R.string.menu_athlete_session, MenuGroup.TRAINING, 170, "HU032", Destinations.TRAINING_SESSION),
-        capability("training.dashboard.view", R.string.menu_athlete_dashboard, MenuGroup.TRAINING, 180, "HU033"),
+        capability(TRAINING_DASHBOARD_CAPABILITY, R.string.menu_athlete_dashboard, MenuGroup.TRAINING, 180, "HU033", Destinations.TRAINING_DASHBOARD),
         capability(TRAINING_METRICS_CAPABILITY, R.string.menu_athlete_metrics, MenuGroup.TRAINING, 190, "HU034", Destinations.TRAINING_METRICS),
         capability(CALENDAR_CAPABILITY, R.string.menu_athlete_calendar, MenuGroup.CALENDAR, 200, "HU035", Destinations.CALENDAR),
         capability("training.realtime.monitor", R.string.menu_athlete_realtime, MenuGroup.TRAINING, 210, "HU036"),

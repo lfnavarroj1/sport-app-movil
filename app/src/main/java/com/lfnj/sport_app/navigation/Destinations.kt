@@ -14,6 +14,9 @@ object Destinations {
     /** HU032: registrar una sesión de entrenamiento (`/entrenamientos/sesion`). */
     const val TRAINING_SESSION = "entrenamientos/sesion"
 
+    /** HU033: tablero de entrenamientos (`/entrenamientos/tablero`). */
+    const val TRAINING_DASHBOARD = "entrenamientos/tablero"
+
     /** HU034: indicadores FTP y VO₂max estimados (`/entrenamientos/metricas`). */
     const val TRAINING_METRICS = "entrenamientos/metricas"
 

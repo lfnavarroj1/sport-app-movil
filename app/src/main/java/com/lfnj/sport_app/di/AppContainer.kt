@@ -26,6 +26,11 @@ import com.lfnj.sport_app.features.recommendations.data.PlanSuggestionsRepositor
 import com.lfnj.sport_app.features.recommendations.data.local.PlanSuggestionsCodec
 import com.lfnj.sport_app.features.recommendations.data.local.PlanSuggestionsDatabase
 import com.lfnj.sport_app.features.status.HttpStatusRepository
+import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardApi
+import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardCacheJanitor
+import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardRepository
+import com.lfnj.sport_app.features.training.dashboard.data.local.TrainingDashboardCodec
+import com.lfnj.sport_app.features.training.dashboard.data.local.TrainingDashboardDatabase
 import com.lfnj.sport_app.features.training.metrics.data.TrainingMetricsApi
 import com.lfnj.sport_app.features.training.metrics.data.TrainingMetricsRepository
 import com.lfnj.sport_app.features.training.metrics.data.local.TrainingMetricsCodec
@@ -206,5 +211,26 @@ open class AppContainer(
 
     val planSuggestionsCacheJanitor: PlanSuggestionsCacheJanitor by lazy {
         PlanSuggestionsCacheJanitor(sessionManager.currentUser, planSuggestionsRepository)
+    }
+
+    // ------------------------------------------------------------------ HU033 (ADR-043)
+
+    protected open val trainingDashboardDatabase: TrainingDashboardDatabase by lazy { TrainingDashboardDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de la caché del tablero, distinta de la de la sesión, HU028, HU032, HU034 y HU035. */
+    protected open val trainingDashboardCipher: TokenCipher by lazy { KeystoreTokenCipher(TrainingDashboardCodec.KEY_ALIAS) }
+
+    open val trainingDashboardRepository: TrainingDashboardRepository by lazy {
+        TrainingDashboardRepository(
+            dao = trainingDashboardDatabase.trainingDashboardCacheDao(),
+            codec = TrainingDashboardCodec(trainingDashboardCipher, BffMobileClient.json),
+            api = bffApi(TrainingDashboardApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    val trainingDashboardCacheJanitor: TrainingDashboardCacheJanitor by lazy {
+        TrainingDashboardCacheJanitor(sessionManager.currentUser, trainingDashboardRepository)
     }
 }
