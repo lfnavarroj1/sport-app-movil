@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -94,12 +95,12 @@ class EventSuggestionsScreenTest {
         composeRule.onAllNodesWithText("En tu ciudad", useUnmergedTree = true).assertCountEquals(2)
         composeRule.onNodeWithTag("event_suggestion_reason_b_CITY_MATCH", useUnmergedTree = true).assertDoesNotExist()
         val (start, end) = EventFormat.range(match.startsAt, match.endsAt, bogota, locale)
-        composeRule.onNodeWithText("$start – $end", useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithText("Hora de tu teléfono. Zona del evento: America/Bogota", useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithText("Parque Simón Bolívar · Bogotá (CO)", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("event_suggestion_dates_a", useUnmergedTree = true).assertTextEquals("$start – $end")
+        composeRule.onNodeWithTag("event_suggestion_time_zone_a", useUnmergedTree = true).assertTextEquals("Hora de tu teléfono. Zona del evento: America/Bogota")
+        composeRule.onNodeWithTag("event_suggestion_place_a", useUnmergedTree = true).assertTextEquals("Parque Simón Bolívar · Bogotá (CO)")
         composeRule.onNodeWithText("Tarifa informativa: 45000.00 COP", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag("event_suggestion_capacity_a", useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithText("Cupo declarado: 500 participantes", substring = true, useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("event_suggestion_capacity_a", useUnmergedTree = true).assertTextEquals("Cupo declarado: 500 participantes")
         composeRule.onNodeWithTag("event_suggestion_registered_a", useUnmergedTree = true).assertDoesNotExist()
         composeRule.onNodeWithTag("event_suggestions_synced_at").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("event_suggestions_notice").performScrollTo().assertIsDisplayed()
