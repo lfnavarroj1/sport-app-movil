@@ -44,6 +44,8 @@ internal data class CachedItem(
     @SerialName("duration_minutes") val durationMinutes: Int? = null,
     val rpe: Int? = null,
     val source: String? = null,
+    /** `event_id` del evento (HU041). Ausente en las cachés anteriores: se lee como `null`. */
+    @SerialName("event_id") val eventId: String? = null,
 )
 
 @Serializable
@@ -99,6 +101,7 @@ class CalendarCacheCodec(private val cipher: TokenCipher, private val json: Json
             sport = item.sport, startsAt = item.startsAt.epochSecond, endsAt = item.endsAt.epochSecond,
             timeZone = item.timeZone, locationName = item.location.name, locationCity = item.location.city,
             locationCountry = item.location.countryCode,
+            eventId = item.eventId,
         )
         is CalendarItem.PlannedSession -> CachedItem(
             kind = KIND_SESSION, itemId = item.itemId, occursOn = item.occursOn.toString(), title = item.title,
@@ -119,6 +122,7 @@ class CalendarCacheCodec(private val cipher: TokenCipher, private val json: Json
                 endsAt = Instant.ofEpochSecond(endsAt ?: return null),
                 timeZone = timeZone ?: return null,
                 location = EventLocation(locationName ?: return null, locationCity ?: return null, locationCountry ?: return null),
+                eventId = eventId,
             )
             KIND_SESSION -> CalendarItem.PlannedSession(itemId, date, title, sport ?: return null, durationMinutes, rpe)
             KIND_OTHER -> CalendarItem.Other(itemId, date, title, source ?: return null)

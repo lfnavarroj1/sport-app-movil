@@ -555,4 +555,54 @@
         <item quantity="many">Cupo total: %1$d personas</item>
         <item quantity="other">Cupo total: %1$d personas</item>
     </plurals>
+
+    <!-- HU041: inscripción a un evento publicado -->
+    <string name="event_detail_title">Detalle del evento</string>
+    <string name="event_loading">Cargando el evento…</string>
+    <string name="event_when">%1$s – %2$s</string>
+    <string name="event_time_zone">Zona horaria del evento: %1$s</string>
+    <string name="event_location">%1$s, %2$s (%3$s)</string>
+    <string name="event_capacity">Cupo declarado: %1$d participantes</string>
+    <string name="event_fee">Tarifa informativa: %1$s %2$s</string>
+    <string name="event_fee_notice">El pago no se procesa en SportApp.</string>
+    <string name="event_register">Inscribirme</string>
+    <string name="event_registering">Enviando tu inscripción…</string>
+    <string name="event_confirm_title">Confirmar inscripción</string>
+    <string name="event_confirm_message">¿Quieres inscribirte a «%1$s»? La inscripción se confirma con el servidor y no puede cancelarse desde la aplicación.</string>
+    <string name="event_confirm_send">Inscribirme</string>
+    <string name="event_registered_title">Inscripción confirmada</string>
+    <string name="event_registered_at">Inscrito el %1$s</string>
+    <string name="event_already_registered">Ya estás inscrito en este evento.</string>
+    <string name="event_block_started">El evento ya inició: la inscripción está cerrada.</string>
+    <string name="event_block_offline">Sin conexión. La inscripción requiere conexión a internet para confirmarse.</string>
+    <string name="event_open_registrations">Ver mis inscripciones</string>
+    <string name="event_error_not_found">Este evento no existe o ya no está publicado.</string>
+    <string name="event_error_no_connection">Sin conexión. No podemos mostrar el detalle del evento sin red.</string>
+    <string name="event_error_unavailable">No pudimos cargar el evento. Intenta de nuevo en unos minutos.</string>
+    <string name="event_error_permission_required">Tu cuenta no puede inscribirse a eventos desde la aplicación.</string>
+    <string name="event_error_invalid_response">Recibimos una respuesta inesperada. Intenta de nuevo.</string>
+    <string name="event_failure_already_registered">Ya estás inscrito en este evento.</string>
+    <string name="event_failure_full">El evento no tiene cupos disponibles.</string>
+    <string name="event_failure_closed">El evento ya inició: la inscripción está cerrada.</string>
+    <string name="event_failure_key_reused">No pudimos confirmar tu inscripción. Intenta de nuevo.</string>
+    <string name="event_failure_no_connection">Sin conexión. Tu inscripción no se confirmó; intenta de nuevo cuando tengas red.</string>
+    <string name="event_failure_unavailable">No pudimos confirmar tu inscripción. Intenta de nuevo en unos minutos.</string>
+    <string name="event_failure_invalid">No pudimos enviar tu inscripción. Intenta de nuevo.</string>
+    <string name="registrations_title">Mis inscripciones</string>
+    <string name="registrations_loading">Cargando tus inscripciones…</string>
+    <string name="registrations_refreshing">Actualizando…</string>
+    <string name="registrations_synced_at">Sincronizado: %1$s</string>
+    <string name="registrations_stale">Desactualizado: la última sincronización tiene más de 24 horas.</string>
+    <string name="registrations_offline_with_cache">Sin conexión. Mostramos tus inscripciones sincronizadas por última vez.</string>
+    <string name="registrations_unavailable_with_cache">No pudimos actualizar tus inscripciones. Mostramos las sincronizadas por última vez.</string>
+    <string name="registrations_never_synced">Aún no has sincronizado tus inscripciones. Conéctate a internet para consultarlas.</string>
+    <string name="registrations_error_unavailable">No pudimos cargar tus inscripciones. Intenta de nuevo en unos minutos.</string>
+    <string name="registrations_error_storage">No pudimos guardar tus inscripciones en este dispositivo. Intenta de nuevo.</string>
+    <string name="registrations_empty">Aún no tienes inscripciones a eventos.</string>
+    <string name="registrations_status_registered">Inscrito</string>
+    <string name="registrations_load_more">Cargar más</string>
+    <string name="registrations_loading_more">Cargando…</string>
+    <string name="registrations_open_event">Ver el evento</string>
+    <string name="calendar_open_registrations">Mis inscripciones</string>
+    <string name="calendar_open_event">Ver el detalle del evento</string>
 </resources>

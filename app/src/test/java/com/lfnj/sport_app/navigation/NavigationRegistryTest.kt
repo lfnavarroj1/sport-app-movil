@@ -248,4 +248,22 @@ class NavigationRegistryTest {
         assertTrue(entry.enabled)
         assertTrue(NavigationRegistry.athleteMenu(athlete(INTERMEDIATE_CAPABILITIES)).none { it.hu == "HU040" })
     }
+
+    @Test
+    fun `HU041 registra el detalle del evento y mis inscripciones como destinos sin opcion de menu`() {
+        val hu041 = NavigationRegistry.contextual.filter { it.hu == "HU041" }
+
+        assertEquals(listOf(Destinations.EVENT_DETAIL, Destinations.MY_EVENT_REGISTRATIONS), hu041.map { it.route })
+        assertTrue(hu041.all { it.capability == null })
+        assertTrue(hu041.first().origins.containsAll(listOf("HU035", "HU027")))
+        val menuRoutes = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES)).mapNotNull { it.route }
+        assertTrue(hu041.none { it.route in menuRoutes })
+        assertTrue(NavigationRegistry.athlete.none { it.hu == "HU041" })
+    }
+
+    @Test
+    fun `la ruta concreta del detalle lleva el event_id`() {
+        assertEquals("eventos/detalle/683f4e38-6bb3-4c47-a6dc-9bb1588c67ef", Destinations.eventDetail("683f4e38-6bb3-4c47-a6dc-9bb1588c67ef"))
+        assertEquals("eventos/detalle/{event_id}", Destinations.EVENT_DETAIL)
+    }
 }

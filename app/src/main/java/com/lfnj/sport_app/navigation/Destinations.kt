@@ -31,4 +31,19 @@ object Destinations {
 
     /** HU040: sesiones virtuales con entrenadores (`/servicios/sesiones-virtuales`, ADR-046 §8). */
     const val VIRTUAL_SESSIONS = "servicios/sesiones-virtuales"
+
+    /** Argumento de [EVENT_DETAIL]: `event_id` (UUID) del evento publicado. */
+    const val EVENT_ID_ARG = "event_id"
+
+    /**
+     * HU041: detalle de un evento publicado con la inscripción (`/eventos/detalle/{event_id}`). Se
+     * llega desde el calendario (HU035) o las sugerencias (HU027) con [eventDetail]; no es opción de menú.
+     */
+    const val EVENT_DETAIL = "eventos/detalle/{$EVENT_ID_ARG}"
+
+    /** HU041: «Mis inscripciones» (`/eventos/inscripciones`), desde el calendario o el detalle. */
+    const val MY_EVENT_REGISTRATIONS = "eventos/inscripciones"
+
+    /** Ruta concreta de [EVENT_DETAIL] para [eventId]. */
+    fun eventDetail(eventId: String): String = "eventos/detalle/$eventId"
 }

@@ -1,6 +1,8 @@
 package com.lfnj.sport_app.features.calendar
 
 import androidx.compose.ui.test.assertContentDescriptionContains
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
@@ -224,5 +226,55 @@ class CalendarScreenTest {
         show(state())
 
         composeRule.onNodeWithTag("calendar_current").assertDoesNotExist()
+    }
+
+    // ------------------------------------------------------------------ HU041: punto de entrada
+
+    private fun showWithEntry(state: CalendarUiState) = composeRule.setContent {
+        SportappTheme {
+            CalendarScreen(
+                state = state,
+                onPreviousMonth = {}, onNextMonth = {}, onCurrentMonth = {}, onModeChange = {}, onSelectDay = {},
+                onRetry = {}, onShowSyncedPeriod = {}, onBack = {},
+                onOpenEvent = { events += "event:$it" },
+                onOpenRegistrations = { events += "registrations" },
+            )
+        }
+    }
+
+    @Test
+    fun unEventoConEventIdAbreSuDetalleYLaSesionNo() {
+        val withId = event.copy(eventId = EVENT_ID)
+        showWithEntry(state(snapshot = snapshot(items = listOf(withId, session)), mode = CalendarMode.LIST))
+
+        composeRule.onNodeWithTag("calendar_item_EVENT_PUBLISHED:1").performScrollTo().assertHasClickAction().performClick()
+        composeRule.onNodeWithTag("calendar_item_TRAINING_PLAN_SESSION:1").performScrollTo().assertHasNoClickAction()
+        assertEquals(listOf("event:$EVENT_ID"), events)
+    }
+
+    @Test
+    fun unEventoDeUnaCacheAnteriorSinEventIdNoEsNavegable() {
+        showWithEntry(state(mode = CalendarMode.LIST))
+
+        composeRule.onNodeWithTag("calendar_item_EVENT_PUBLISHED:1").performScrollTo().assertHasNoClickAction()
+    }
+
+    @Test
+    fun laBarraAbreMisInscripciones() {
+        showWithEntry(state())
+
+        composeRule.onNodeWithTag("calendar_open_registrations").assertIsDisplayed().performClick()
+        assertEquals(listOf("registrations"), events)
+    }
+
+    @Test
+    fun sinElPuntoDeEntradaNoSeMuestraLaAccion() {
+        show(state())
+
+        composeRule.onNodeWithTag("calendar_open_registrations").assertDoesNotExist()
+    }
+
+    private companion object {
+        const val EVENT_ID = "683f4e38-6bb3-4c47-a6dc-9bb1588c67ef"
     }
 }

@@ -6,6 +6,7 @@ import com.lfnj.sport_app.features.calendar.model.CalendarSnapshot
 import com.lfnj.sport_app.features.calendar.model.CalendarSourceState
 import com.lfnj.sport_app.features.calendar.model.EventLocation
 import com.lfnj.sport_app.features.calendar.model.SourceStatus
+import com.lfnj.sport_app.features.events.model.EventIds
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import retrofit2.Response
@@ -42,7 +43,8 @@ data class CalendarResponseDto(
 
 /**
  * Elemento de cualquiera de las fuentes. Los campos propios de cada fuente son opcionales aquí y
- * se validan al convertirlo según su `source`. `reference` no se lee: HU035 no abre el detalle.
+ * se validan al convertirlo según su `source`. De `reference` solo se lee el `event_id` de un evento,
+ * con el que HU041 abre su detalle.
  */
 @Serializable
 data class CalendarItemDto(
@@ -57,6 +59,7 @@ data class CalendarItemDto(
     val location: CalendarLocationDto? = null,
     @SerialName("duration_minutes") val durationMinutes: Int? = null,
     val rpe: Int? = null,
+    val reference: CalendarReferenceDto? = null,
 ) {
     override fun toString(): String = "CalendarItemDto(source=$source)"
 }
@@ -68,6 +71,12 @@ data class CalendarLocationDto(
     @SerialName("country_code") val countryCode: String,
 ) {
     override fun toString(): String = "CalendarLocationDto(***)"
+}
+
+/** `EventReference` de un evento (`event_id`); las referencias de sesiones no se leen. */
+@Serializable
+data class CalendarReferenceDto(@SerialName("event_id") val eventId: String? = null) {
+    override fun toString(): String = "CalendarReferenceDto(***)"
 }
 
 @Serializable
@@ -106,6 +115,7 @@ private fun CalendarItemDto.toItem(): CalendarItem {
             endsAt = instant(endsAt ?: throw InvalidCalendarResponse()),
             timeZone = timeZone ?: throw InvalidCalendarResponse(),
             location = location?.let { EventLocation(it.name, it.city, it.countryCode) } ?: throw InvalidCalendarResponse(),
+            eventId = reference?.eventId?.takeIf(EventIds::isValid),
         )
         CalendarItemSource.TRAINING_PLAN_SESSION -> CalendarItem.PlannedSession(
             itemId = itemId,

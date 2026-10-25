@@ -42,6 +42,10 @@
         <exclude domain="database" path="sportapp_virtual_sessions.db-shm" />
         <exclude domain="database" path="sportapp_virtual_sessions.db-wal" />
         <exclude domain="database" path="sportapp_virtual_sessions.db-journal" />
+        <exclude domain="database" path="sportapp_event_registrations.db" />
+        <exclude domain="database" path="sportapp_event_registrations.db-shm" />
+        <exclude domain="database" path="sportapp_event_registrations.db-wal" />
+        <exclude domain="database" path="sportapp_event_registrations.db-journal" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
@@ -77,5 +81,9 @@
         <exclude domain="database" path="sportapp_virtual_sessions.db-shm" />
         <exclude domain="database" path="sportapp_virtual_sessions.db-wal" />
         <exclude domain="database" path="sportapp_virtual_sessions.db-journal" />
+        <exclude domain="database" path="sportapp_event_registrations.db" />
+        <exclude domain="database" path="sportapp_event_registrations.db-shm" />
+        <exclude domain="database" path="sportapp_event_registrations.db-wal" />
+        <exclude domain="database" path="sportapp_event_registrations.db-journal" />
     </device-transfer>
 </data-extraction-rules>
