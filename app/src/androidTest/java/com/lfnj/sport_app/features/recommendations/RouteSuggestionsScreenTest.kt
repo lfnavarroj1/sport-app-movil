@@ -1,7 +1,9 @@
 package com.lfnj.sport_app.features.recommendations
 
 import android.content.Intent
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -115,7 +117,7 @@ class RouteSuggestionsScreenTest {
 
         composeRule.onNode(hasTestTag("route_suggestion_a") and hasClickAction())
             .assert(SemanticsMatcher("etiqueta de acción") { node ->
-                node.config.getOrNull(androidx.compose.ui.semantics.SemanticsActions.OnClick)?.label == "Ver detalle de Circuito Parque Simón Bolívar"
+                node.config.getOrNull(SemanticsActions.OnClick)?.label == "Ver detalle de Circuito Parque Simón Bolívar"
             })
             .performScrollTo()
             .performClick()

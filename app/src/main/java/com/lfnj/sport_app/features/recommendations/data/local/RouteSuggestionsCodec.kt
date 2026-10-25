@@ -103,21 +103,25 @@ class RouteSuggestionsCodec(private val cipher: TokenCipher, private val json: J
     )
 
     /** `null` si una coordenada guardada está fuera de rango: no se abre un punto alterado. */
-    private fun CachedRoute.toSuggestion(): RouteSuggestion? = RouteSuggestion(
-        routeId = routeId,
-        title = title,
-        summary = summary,
-        sport = sport,
-        distanceKm = distanceKm,
-        difficulty = difficulty,
-        city = city,
-        countryCode = countryCode,
-        startPoint = startPoint.toPoint() ?: return null,
-        waypoints = waypoints.map { it.toPoint() ?: return null },
-        publishedAt = Instant.ofEpochSecond(publishedAt),
-        authorName = authorName,
-        reasons = reasons,
-    )
+    private fun CachedRoute.toSuggestion(): RouteSuggestion? {
+        val start = startPoint.toPoint() ?: return null
+        val points = waypoints.map { it.toPoint() ?: return null }
+        return RouteSuggestion(
+            routeId = routeId,
+            title = title,
+            summary = summary,
+            sport = sport,
+            distanceKm = distanceKm,
+            difficulty = difficulty,
+            city = city,
+            countryCode = countryCode,
+            startPoint = start,
+            waypoints = points,
+            publishedAt = Instant.ofEpochSecond(publishedAt),
+            authorName = authorName,
+            reasons = reasons,
+        )
+    }
 
     private fun CachedPoint.toPoint(): RoutePoint? = RoutePoint(lat, lng).takeIf { it.valid }
 
