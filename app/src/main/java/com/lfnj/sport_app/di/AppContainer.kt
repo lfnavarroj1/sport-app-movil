@@ -20,6 +20,11 @@ import com.lfnj.sport_app.features.calendar.data.CalendarCacheJanitor
 import com.lfnj.sport_app.features.calendar.data.CalendarRepository
 import com.lfnj.sport_app.features.calendar.data.local.CalendarCacheCodec
 import com.lfnj.sport_app.features.calendar.data.local.CalendarDatabase
+import com.lfnj.sport_app.features.recommendations.data.PlanSuggestionsApi
+import com.lfnj.sport_app.features.recommendations.data.PlanSuggestionsCacheJanitor
+import com.lfnj.sport_app.features.recommendations.data.PlanSuggestionsRepository
+import com.lfnj.sport_app.features.recommendations.data.local.PlanSuggestionsCodec
+import com.lfnj.sport_app.features.recommendations.data.local.PlanSuggestionsDatabase
 import com.lfnj.sport_app.features.status.HttpStatusRepository
 import com.lfnj.sport_app.features.training.metrics.data.TrainingMetricsApi
 import com.lfnj.sport_app.features.training.metrics.data.TrainingMetricsRepository
@@ -181,4 +186,25 @@ open class AppContainer(
     }
 
     val calendarCacheJanitor: CalendarCacheJanitor by lazy { CalendarCacheJanitor(sessionManager.currentUser, calendarRepository) }
+
+    // ------------------------------------------------------------------ HU028 (ADR-041)
+
+    protected open val planSuggestionsDatabase: PlanSuggestionsDatabase by lazy { PlanSuggestionsDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de la caché de sugerencias, distinta de la de la sesión, HU032, HU034 y HU035. */
+    protected open val planSuggestionsCipher: TokenCipher by lazy { KeystoreTokenCipher(PlanSuggestionsCodec.KEY_ALIAS) }
+
+    open val planSuggestionsRepository: PlanSuggestionsRepository by lazy {
+        PlanSuggestionsRepository(
+            dao = planSuggestionsDatabase.planSuggestionsCacheDao(),
+            codec = PlanSuggestionsCodec(planSuggestionsCipher, BffMobileClient.json),
+            api = bffApi(PlanSuggestionsApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    val planSuggestionsCacheJanitor: PlanSuggestionsCacheJanitor by lazy {
+        PlanSuggestionsCacheJanitor(sessionManager.currentUser, planSuggestionsRepository)
+    }
 }

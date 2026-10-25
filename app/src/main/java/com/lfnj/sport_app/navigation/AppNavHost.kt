@@ -29,6 +29,10 @@ import com.lfnj.sport_app.features.identity.login.LoginViewModel
 import com.lfnj.sport_app.features.identity.start.SessionStartScreen
 import com.lfnj.sport_app.features.identity.start.SessionStartViewModel
 import com.lfnj.sport_app.features.identity.unauthorized.UnauthorizedScreen
+import com.lfnj.sport_app.features.recommendations.PlanSuggestionsScreen
+import com.lfnj.sport_app.features.recommendations.PlanSuggestionsViewModel
+import com.lfnj.sport_app.features.recommendations.model.PlanSuggestionsAccess
+import com.lfnj.sport_app.features.recommendations.model.PlanSuggestionsOwner
 import com.lfnj.sport_app.features.status.StatusScreen
 import com.lfnj.sport_app.features.status.StatusViewModel
 import com.lfnj.sport_app.core.session.SubscriptionStatus
@@ -265,6 +269,46 @@ fun AppNavHost(
                         onSelectDay = viewModel::selectDay,
                         onRetry = viewModel::retry,
                         onShowSyncedPeriod = viewModel::showSyncedPeriod,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.PLAN_SUGGESTIONS) {
+            // HU028: misma guarda que athlete_home y, además, la capacidad training.plans.suggest vigente.
+            val user = remember { sessionManager.currentUser.value }
+            val allowed = remember { PlanSuggestionsAccess.canView(sessionManager.access.value) }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                !allowed -> LaunchedEffect(Unit) {
+                    navController.navigate(Destinations.ATHLETE_HOME) {
+                        popUpTo(Destinations.PLAN_SUGGESTIONS) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                else -> {
+                    val viewModel: PlanSuggestionsViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer { PlanSuggestionsViewModel(PlanSuggestionsOwner.keyOf(user.userId), container.planSuggestionsRepository) }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    PlanSuggestionsScreen(
+                        state = state,
+                        onOpenDetail = viewModel::openDetail,
+                        onCloseDetail = viewModel::closeDetail,
+                        onRetry = viewModel::retry,
                         onBack = { navController.popBackStack() },
                     )
                 }

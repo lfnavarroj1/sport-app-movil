@@ -8,4 +8,4 @@ reemplaza el archivo desde el commit del backend, se actualiza esta tabla y
 
 | Archivo | Versión | Origen | SHA-256 (LF) |
 | --- | --- | --- | --- |
-| `bff-mobile.openapi.json` | 0.8.0 | `sport-app-backend` `contracts/openapi/bff-mobile.openapi.json` en `develop` `eb745b7` (incluye HU032 PR #15 y HU035 PR #16); igual al OpenAPI desplegado en la composición local el 2026-10-14 | `8ac7a59b4d116be186c01305425b7332e1b9d86821c1383a77abaf91975481a4` |
+| `bff-mobile.openapi.json` | 0.15.0 | `sport-app-backend` `contracts/openapi/bff-mobile.openapi.json` en `develop` `acfff0f` (incluye HU028 PR #43 y HU033 PR #40); adoptada por HU028. Frente a 0.8.0, las operaciones ya consumidas (HU003, HU004, HU032, HU034, HU035) solo ganan campos opcionales | `b0fb9ca1e6378524211f5e6379b4fea4382061c1611b2c19d800cdbeba95a57d` |

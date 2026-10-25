@@ -58,7 +58,7 @@ class TrainingMetricsFlowTest {
         // Sin respuesta preparada, el servidor corta la conexión: así se simula la falta de red.
         server.dispatcher = QueueDispatcher().apply { setFailFast(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST)) }
         server.start()
-        val config = AppConfig(server.url("/").toString(), "test", "0.8.0", "0.1.0")
+        val config = AppConfig(server.url("/").toString(), "test", "0.15.0", "0.1.0")
         container = TestAppContainer(config, InMemoryTokenStore(), ApplicationProvider.getApplicationContext())
         composeRule.setContent {
             navController = rememberNavController()
