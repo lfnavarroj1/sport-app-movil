@@ -8,6 +8,7 @@ import com.lfnj.sport_app.core.session.SubscriptionStatus
 import com.lfnj.sport_app.features.calendar.model.CALENDAR_CAPABILITY
 import com.lfnj.sport_app.features.recommendations.model.TRAINING_PLANS_SUGGEST_CAPABILITY
 import com.lfnj.sport_app.features.recommendations.model.TRAINING_ROUTES_SUGGEST_CAPABILITY
+import com.lfnj.sport_app.features.services.model.VIRTUAL_SESSIONS_CAPABILITY
 import com.lfnj.sport_app.features.training.dashboard.model.TRAINING_DASHBOARD_CAPABILITY
 import com.lfnj.sport_app.features.training.metrics.model.TRAINING_METRICS_CAPABILITY
 import com.lfnj.sport_app.features.training.session.model.TRAINING_SESSION_CAPABILITY
@@ -71,7 +72,7 @@ object NavigationRegistry {
         capability("training.realtime.monitor", R.string.menu_athlete_realtime, MenuGroup.TRAINING, 210, "HU036"),
         capability("devices.measurement.connect", R.string.menu_athlete_devices, MenuGroup.DEVICES, 220, "HU037"),
         capability("nutrition.session.reminders", R.string.menu_athlete_reminders, MenuGroup.NUTRITION, 230, "HU038"),
-        capability("services.virtual_sessions.schedule", R.string.menu_athlete_virtual_sessions, MenuGroup.SERVICES, 250, "HU040"),
+        capability(VIRTUAL_SESSIONS_CAPABILITY, R.string.menu_athlete_virtual_sessions, MenuGroup.SERVICES, 250, "HU040", Destinations.VIRTUAL_SESSIONS),
         MenuEntry("logout", R.string.menu_logout, MenuGroup.ACCOUNT, 900, "HU004"),
     )
 

@@ -30,6 +30,11 @@ import com.lfnj.sport_app.features.recommendations.data.RouteSuggestionsCacheJan
 import com.lfnj.sport_app.features.recommendations.data.RouteSuggestionsRepository
 import com.lfnj.sport_app.features.recommendations.data.local.RouteSuggestionsCodec
 import com.lfnj.sport_app.features.recommendations.data.local.RouteSuggestionsDatabase
+import com.lfnj.sport_app.features.services.data.VirtualSessionsApi
+import com.lfnj.sport_app.features.services.data.VirtualSessionsCacheJanitor
+import com.lfnj.sport_app.features.services.data.VirtualSessionsRepository
+import com.lfnj.sport_app.features.services.data.local.VirtualSessionsCodec
+import com.lfnj.sport_app.features.services.data.local.VirtualSessionsDatabase
 import com.lfnj.sport_app.features.status.HttpStatusRepository
 import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardApi
 import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardCacheJanitor
@@ -258,5 +263,26 @@ open class AppContainer(
 
     val trainingDashboardCacheJanitor: TrainingDashboardCacheJanitor by lazy {
         TrainingDashboardCacheJanitor(sessionManager.currentUser, trainingDashboardRepository)
+    }
+
+    // ------------------------------------------------------------------ HU040 (ADR-046)
+
+    protected open val virtualSessionsDatabase: VirtualSessionsDatabase by lazy { VirtualSessionsDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de la caché de sesiones virtuales, distinta de la de la sesión y de las demás cachés. */
+    protected open val virtualSessionsCipher: TokenCipher by lazy { KeystoreTokenCipher(VirtualSessionsCodec.KEY_ALIAS) }
+
+    open val virtualSessionsRepository: VirtualSessionsRepository by lazy {
+        VirtualSessionsRepository(
+            dao = virtualSessionsDatabase.virtualSessionsCacheDao(),
+            codec = VirtualSessionsCodec(virtualSessionsCipher, BffMobileClient.json),
+            api = bffApi(VirtualSessionsApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    val virtualSessionsCacheJanitor: VirtualSessionsCacheJanitor by lazy {
+        VirtualSessionsCacheJanitor(sessionManager.currentUser, virtualSessionsRepository)
     }
 }
