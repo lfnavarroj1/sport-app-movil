@@ -80,7 +80,7 @@ android {
         }
 
         // Versión exacta del contrato consumido (backend `contracts/openapi/bff-mobile.openapi.json`).
-        buildConfigField("String", "BFF_MOBILE_CONTRACT_VERSION", "\"0.15.0\"")
+        buildConfigField("String", "BFF_MOBILE_CONTRACT_VERSION", "\"0.18.0\"")
         // Versión de plataforma (release-manifest.yaml) con la que se publicó este APK.
         buildConfigField("String", "SYSTEM_VERSION", "\"$systemVersion\"")
     }

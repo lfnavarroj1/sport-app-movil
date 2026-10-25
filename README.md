@@ -30,7 +30,7 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU041 y HU004
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041 y HU004
 ├── MainActivity.kt        única Activity; aloja la navegación Compose
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -52,6 +52,9 @@ app/src/main/java/com/lfnj/sport_app/
 │   ├── recommendations/   entrenamientos sugeridos (HU028) y rutas sugeridas (HU026): pantallas de lista y detalle, ViewModels,
 │   │   ├── data/          API, repositorios, limpieza al cerrar sesión y cachés Room cifradas (una por HU)
 │   │   └── model/         plantillas y rutas, motivos, contexto faltante, antigüedad y URI `geo:`
+│   ├── services/          sesiones virtuales con entrenadores (HU040): pantalla con pestañas, confirmación y ViewModel,
+│   │   ├── data/          API, repositorio (lecturas cacheadas y comandos solo en línea), limpieza y caché Room cifrada
+│   │   └── model/         servicios, intervalos, citas, ventana de 24 h, antelación de 1 h, zonas y tarifa
 │   ├── training/dashboard/ tablero de entrenamientos (HU033): pantalla con selector de periodo y ViewModel,
 │   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada por opción
 │   │   └── model/         periodos con desfase, agregados, fuentes y barras
@@ -198,6 +201,32 @@ app/src/main/java/com/lfnj/sport_app/
   reemplaza (una ruta retirada desaparece), sin red se muestra con `last_synced_at` y se marca
   desactualizada a las 24 h. Al terminar la sesión se elimina como en HU035.
 
+### Sesiones virtuales con entrenadores (HU040, ADR-046)
+
+- La opción `PREMIUM` 250 «Sesiones virtuales» (capacidad `services.virtual_sessions.schedule`; sin
+  ella la opción no aparece y la guarda devuelve al inicio) abre `servicios/sesiones-virtuales` con dos
+  pestañas. «Entrenadores» consulta `GET /v1/services/availability` (`category=COACHING`,
+  `modality=VIRTUAL&modality=HYBRID`, 30 días desde ahora, `limit=50`, hasta 5 páginas) y muestra
+  cada servicio con su modalidad, tarifa informativa y horarios. El contrato no publica el nombre
+  del profesional: se muestra el del servicio.
+- Cada intervalo se presenta en la zona del dispositivo y, además, en la del profesional
+  (`time_zone`). Un intervalo que empieza en menos de 1 h o que el deportista ya reservó no ofrece
+  «Reservar». La confirmación explica la tarifa (sin cobro), que el profesional coordinará el enlace
+  (`meeting_url` nulo) y hasta cuándo se puede cancelar.
+- `POST /v1/me/appointments` solo se envía con conectividad (no se encola): cada intento genera una
+  `Idempotency-Key` UUID que se conserva en los reintentos automáticos (red, `502`–`504`, hasta 3) y
+  en el reintento manual tras un resultado desconocido. `409 availability_full`,
+  `409 appointment_exists`, `403 capability_required` (plan requerido), `422 service_not_bookable` y
+  `422 availability_not_bookable` tienen mensajes propios; los conflictos vuelven a consultar.
+- «Mis sesiones» (`GET /v1/me/appointments`, `limit=100`, hasta 5 páginas) separa próximas e
+  historial (canceladas y pasadas, sin eliminar ninguna). `DELETE /v1/me/appointments/{appointment_id}`
+  solo se ofrece con 24 h o más de antelación; con menos se explica la ventana, y
+  `422 cancellation_window_closed` también se informa. No hay reprogramación.
+- Lectura offline first sin WorkManager: `sportapp_virtual_sessions.db` (tablas de catálogo y de citas,
+  una fila por deportista), payload AES-GCM con la clave `sportapp.virtual_sessions.v1`, excluida del
+  respaldo; sin red se muestra con `last_synced_at`, se marca desactualizada a las 24 h y no se
+  reserva ni cancela. Al terminar la sesión se elimina como en HU035.
+
 ### Inscripción a un evento publicado (HU041, ADR-032)
 
 - No hay opción de menú: el detalle `eventos/detalle/{event_id}` se abre desde la tarjeta de un evento
@@ -305,6 +334,13 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   Room, Keystore, reinicio, esquema, respaldo, limpieza, pantalla (incluido el intent `geo:`) y
   recorrido se prueban en el dispositivo (`features/recommendations/Route*` y
   `navigation/RouteSuggestionsFlowTest`); `e2e/Hu026IntegratedE2eTest` usa la composición local.
+- HU040: `VirtualSessionsModelsTest` (antelación, ventana de 24 h, zonas, tarifa, guarda y partición),
+  `VirtualSessionsRepositoryTest` (MockWebServer: `201`, reintentos con la misma clave, `409`, `403`,
+  `422`, `404`, sin red, paginación, caché y limpieza) y `VirtualSessionsViewModelTest` en la JVM;
+  `VirtualSessionsContractTest` verifica las cuatro operaciones y sus esquemas en la copia 0.18.0.
+  Room, Keystore, reinicio, esquema, respaldo, pantalla y recorrido se prueban en el dispositivo
+  (`features/services/` y `navigation/VirtualSessionsFlowTest`); `e2e/Hu040IntegratedE2eTest` requiere
+  la composición local con `bff-mobile` ≥ 0.18.0 y `complementary-services` 0.6.0.
 - HU033: `TrainingDashboardModelsTest`, `TrainingDashboardRepositoryTest` (MockWebServer: `200`,
   vacío, fuente caída, `403`, `422`, `503`/`504`, sin red, respuesta inválida, partición y limpieza) y
   `TrainingDashboardViewModelTest` en la JVM; `TrainingDashboardContractTest` verifica la operación y
@@ -322,8 +358,8 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   `EventSuggestionsRepositoryTest` (MockWebServer: `200` personalizado y no personalizado, Usuarios
   caído, «Ya inscrito», `403` por capacidad o permiso, `422`, `503`/`504`, sin red, respuesta inválida,
   partición y limpieza) y `EventSuggestionsViewModelTest` en la JVM; `EventSuggestionsContractTest`
-  verifica la operación y sus esquemas en la copia 0.15.0. Room, Keystore, reinicio, esquema, respaldo,
-  limpieza, pantalla y recorrido hasta el detalle de HU041 se prueban en el dispositivo
+  verifica la operación y sus esquemas en la copia versionada (sin cambios desde 0.15.0). Room, Keystore,
+  reinicio, esquema, respaldo, limpieza, pantalla y recorrido hasta el detalle de HU041 se prueban en el dispositivo
   (`features/events/EventSuggestions*` y `navigation/EventSuggestionsFlowTest`); el E2E es
   `e2e/Hu027IntegratedE2eTest`.
 - HU004: `RevocationQueueTest` cubre la cola con MockWebServer (204, 422, 503/504, sin red,

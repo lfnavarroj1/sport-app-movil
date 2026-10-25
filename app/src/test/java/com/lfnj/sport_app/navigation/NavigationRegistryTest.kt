@@ -82,7 +82,7 @@ class NavigationRegistryTest {
         val menu = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES))
 
         assertEquals(
-            listOf(Destinations.ATHLETE_HOME, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS,Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR),
+            listOf(Destinations.ATHLETE_HOME, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.VIRTUAL_SESSIONS),
             menu.mapNotNull { it.route },
         )
     }
@@ -266,6 +266,20 @@ class NavigationRegistryTest {
                 .none { it.hu == "HU028" }
         )
         assertTrue(NavigationRegistry.athleteMenu(null).none { it.hu == "HU028" })
+    }
+
+    // ------------------------------------------------------------- HU040
+
+    @Test
+    fun `HU040 Sesiones virtuales queda habilitada solo con la capacidad PREMIUM`() {
+        val entry = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES)).single { it.hu == "HU040" }
+
+        assertEquals(Destinations.VIRTUAL_SESSIONS, entry.route)
+        assertEquals("services.virtual_sessions.schedule", entry.capability)
+        assertEquals(MenuGroup.SERVICES, entry.group)
+        assertEquals(250, entry.order)
+        assertTrue(entry.enabled)
+        assertTrue(NavigationRegistry.athleteMenu(athlete(INTERMEDIATE_CAPABILITIES)).none { it.hu == "HU040" })
     }
 
     @Test
