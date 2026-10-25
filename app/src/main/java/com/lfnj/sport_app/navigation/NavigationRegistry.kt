@@ -46,6 +46,17 @@ data class MenuEntry(
 }
 
 /**
+ * Destino navegable que no es opción de menú: se abre desde otra pantalla ([origins], HU de
+ * origen). [capability] es `null` cuando el destino no exige capacidad de plan.
+ */
+data class ContextualDestination(
+    val route: String,
+    val hu: String,
+    val origins: List<String>,
+    val capability: String? = null,
+)
+
+/**
  * Registro único de navegación móvil (ADR-025 y `planes/05-menu-lateral-por-plan.md`). La
  * aplicación es exclusiva para deportistas, por lo que solo existe el menú de `athlete`, con las
  * capacidades de plan cuyas HU están aprobadas para el canal móvil (HU026–HU038 y HU040) y
@@ -73,6 +84,16 @@ object NavigationRegistry {
         capability("nutrition.session.reminders", R.string.menu_athlete_reminders, MenuGroup.NUTRITION, 230, "HU038"),
         capability("services.virtual_sessions.schedule", R.string.menu_athlete_virtual_sessions, MenuGroup.SERVICES, 250, "HU040"),
         MenuEntry("logout", R.string.menu_logout, MenuGroup.ACCOUNT, 900, "HU004"),
+    )
+
+    /**
+     * Destinos del deportista sin opción de menú. HU041 registra el detalle del evento publicado y
+     * «Mis inscripciones»: se llega desde el calendario (HU035) o las sugerencias (HU027) y la
+     * inscripción no exige capacidad de plan (ADR-032 §1).
+     */
+    val contextual: List<ContextualDestination> = listOf(
+        ContextualDestination(Destinations.EVENT_DETAIL, "HU041", origins = listOf("HU035", "HU027", "HU041")),
+        ContextualDestination(Destinations.MY_EVENT_REGISTRATIONS, "HU041", origins = listOf("HU035", "HU041")),
     )
 
     /**

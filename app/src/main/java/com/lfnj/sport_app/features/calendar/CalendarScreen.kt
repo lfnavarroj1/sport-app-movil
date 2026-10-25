@@ -2,6 +2,7 @@ package com.lfnj.sport_app.features.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -84,6 +85,10 @@ fun CalendarScreen(
     onShowSyncedPeriod: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** HU041: abre el detalle del evento publicado por su `event_id`. */
+    onOpenEvent: (String) -> Unit = {},
+    /** HU041: abre «Mis inscripciones»; sin él no se muestra la acción. */
+    onOpenRegistrations: (() -> Unit)? = null,
 ) {
     Scaffold(
         modifier = modifier,
@@ -93,6 +98,13 @@ fun CalendarScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag("calendar_back")) {
                         Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.action_back))
+                    }
+                },
+                actions = {
+                    onOpenRegistrations?.let { open ->
+                        TextButton(onClick = open, modifier = Modifier.testTag("calendar_open_registrations")) {
+                            Text(stringResource(R.string.calendar_open_registrations))
+                        }
                     }
                 },
             )
@@ -129,8 +141,8 @@ fun CalendarScreen(
                     SnapshotStatus(state, snapshot, onRetry)
                     when {
                         snapshot.confirmedEmpty -> Text(stringResource(R.string.calendar_empty), Modifier.testTag("calendar_empty"))
-                        state.mode == CalendarMode.MONTH -> MonthView(state, onSelectDay)
-                        else -> ListView(state)
+                        state.mode == CalendarMode.MONTH -> MonthView(state, onSelectDay, onOpenEvent)
+                        else -> ListView(state, onOpenEvent)
                     }
                 }
             }
@@ -267,7 +279,7 @@ private fun Notice(message: Int, tag: String, color: Color = Color.Unspecified) 
 // ------------------------------------------------------------------ vista de mes
 
 @Composable
-private fun MonthView(state: CalendarUiState, onSelectDay: (LocalDate) -> Unit) {
+private fun MonthView(state: CalendarUiState, onSelectDay: (LocalDate) -> Unit, onOpenEvent: (String) -> Unit) {
     val byDate = state.days.associateBy { it.date }
     val locale = currentLocale()
     val firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek
@@ -314,7 +326,7 @@ private fun MonthView(state: CalendarUiState, onSelectDay: (LocalDate) -> Unit) 
         if (items.isEmpty()) {
             Text(stringResource(R.string.calendar_day_no_items), Modifier.testTag("calendar_day_empty"))
         } else {
-            items.forEach { ItemCard(it, state.zone) }
+            items.forEach { ItemCard(it, state.zone, onOpenEvent) }
         }
     }
 }
@@ -367,7 +379,7 @@ private fun Dot(color: Color) = Box(Modifier.size(6.dp).background(color, Circle
 // ------------------------------------------------------------------ vista de lista
 
 @Composable
-private fun ListView(state: CalendarUiState) {
+private fun ListView(state: CalendarUiState, onOpenEvent: (String) -> Unit) {
     Column(Modifier.testTag("calendar_list"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         state.days.forEach { day ->
             Text(
@@ -377,14 +389,19 @@ private fun ListView(state: CalendarUiState) {
                     .padding(top = 8.dp)
                     .semantics { heading() },
             )
-            day.items.forEach { ItemCard(it, state.zone) }
+            day.items.forEach { ItemCard(it, state.zone, onOpenEvent) }
         }
     }
 }
 
-/** Tarjeta de un elemento; la fuente se distingue con etiqueta y color (no solo con color). */
+/**
+ * Tarjeta de un elemento; la fuente se distingue con etiqueta y color (no solo con color). Un evento
+ * con `event_id` abre su detalle (HU041).
+ */
 @Composable
-private fun ItemCard(item: CalendarItem, zone: ZoneId) {
+private fun ItemCard(item: CalendarItem, zone: ZoneId, onOpenEvent: (String) -> Unit) {
+    val eventId = (item as? CalendarItem.Event)?.eventId
+    val openLabel = stringResource(R.string.calendar_open_event)
     val colors = MaterialTheme.colorScheme
     val (badge, container) = when (item) {
         is CalendarItem.Event -> R.string.calendar_badge_event to colors.primaryContainer
@@ -396,6 +413,7 @@ private fun ItemCard(item: CalendarItem, zone: ZoneId) {
         modifier = Modifier
             .fillMaxWidth()
             .testTag("calendar_item_${item.itemId}")
+            .then(if (eventId != null) Modifier.clickable(role = Role.Button, onClickLabel = openLabel) { onOpenEvent(eventId) } else Modifier)
             .semantics(mergeDescendants = true) { },
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {

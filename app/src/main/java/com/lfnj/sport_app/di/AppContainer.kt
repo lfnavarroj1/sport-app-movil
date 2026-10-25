@@ -20,6 +20,13 @@ import com.lfnj.sport_app.features.calendar.data.CalendarCacheJanitor
 import com.lfnj.sport_app.features.calendar.data.CalendarRepository
 import com.lfnj.sport_app.features.calendar.data.local.CalendarCacheCodec
 import com.lfnj.sport_app.features.calendar.data.local.CalendarDatabase
+import com.lfnj.sport_app.features.events.data.AndroidConnectivityMonitor
+import com.lfnj.sport_app.features.events.data.ConnectivityMonitor
+import com.lfnj.sport_app.features.events.data.EventRegistrationApi
+import com.lfnj.sport_app.features.events.data.EventRegistrationRepository
+import com.lfnj.sport_app.features.events.data.EventRegistrationsCacheJanitor
+import com.lfnj.sport_app.features.events.data.local.EventRegistrationsCodec
+import com.lfnj.sport_app.features.events.data.local.EventRegistrationsDatabase
 import com.lfnj.sport_app.features.recommendations.data.PlanSuggestionsApi
 import com.lfnj.sport_app.features.recommendations.data.PlanSuggestionsCacheJanitor
 import com.lfnj.sport_app.features.recommendations.data.PlanSuggestionsRepository
@@ -258,5 +265,29 @@ open class AppContainer(
 
     val trainingDashboardCacheJanitor: TrainingDashboardCacheJanitor by lazy {
         TrainingDashboardCacheJanitor(sessionManager.currentUser, trainingDashboardRepository)
+    }
+
+    // ------------------------------------------------------------------ HU041 (ADR-032)
+
+    protected open val eventRegistrationsDatabase: EventRegistrationsDatabase by lazy { EventRegistrationsDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de «Mis inscripciones», distinta de la de la sesión y de las demás cachés. */
+    protected open val eventRegistrationsCipher: TokenCipher by lazy { KeystoreTokenCipher(EventRegistrationsCodec.KEY_ALIAS) }
+
+    /** Conectividad del dispositivo: sin red se deshabilita la inscripción (CA10). */
+    open val connectivityMonitor: ConnectivityMonitor by lazy { AndroidConnectivityMonitor(appContext) }
+
+    open val eventRegistrationRepository: EventRegistrationRepository by lazy {
+        EventRegistrationRepository(
+            dao = eventRegistrationsDatabase.eventRegistrationsCacheDao(),
+            codec = EventRegistrationsCodec(eventRegistrationsCipher, BffMobileClient.json),
+            api = bffApi(EventRegistrationApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    val eventRegistrationsCacheJanitor: EventRegistrationsCacheJanitor by lazy {
+        EventRegistrationsCacheJanitor(sessionManager.currentUser, eventRegistrationRepository)
     }
 }

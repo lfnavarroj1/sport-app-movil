@@ -309,4 +309,28 @@ class CalendarRepositoryTest {
         repository.clear(owner)
         assertNull(repository.observe(owner).first())
     }
+
+    // ----------------------------------------------------------------- HU041: punto de entrada al detalle
+
+    @Test
+    fun `el evento conserva el event_id de su referencia y la sesion no recibe ninguno`() = runTest {
+        login()
+        respond(CalendarFixtures.body())
+
+        repository.refresh(owner, november)
+
+        val cached = checkNotNull(repository.observe(owner).first())
+        assertEquals("683f4e38-6bb3-4c47-a6dc-9bb1588c67ef", (cached.items[0] as CalendarItem.Event).eventId)
+        assertTrue(cached.items[1] is CalendarItem.PlannedSession)
+    }
+
+    @Test
+    fun `un event_id que no es UUID no se usa para abrir el detalle`() = runTest {
+        login()
+        respond(CalendarFixtures.body(items = listOf(CalendarFixtures.event().replace("683f4e38-6bb3-4c47-a6dc-9bb1588c67ef", "no-es-uuid"))))
+
+        assertEquals(CalendarRefresh.Updated, repository.refresh(owner, november))
+
+        assertNull((checkNotNull(repository.observe(owner).first()).items.single() as CalendarItem.Event).eventId)
+    }
 }

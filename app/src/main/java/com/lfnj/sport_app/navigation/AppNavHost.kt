@@ -22,6 +22,11 @@ import com.lfnj.sport_app.features.calendar.CalendarScreen
 import com.lfnj.sport_app.features.calendar.CalendarViewModel
 import com.lfnj.sport_app.features.calendar.model.CalendarAccess
 import com.lfnj.sport_app.features.calendar.model.CalendarOwner
+import com.lfnj.sport_app.features.events.EventDetailScreen
+import com.lfnj.sport_app.features.events.EventDetailViewModel
+import com.lfnj.sport_app.features.events.MyRegistrationsScreen
+import com.lfnj.sport_app.features.events.MyRegistrationsViewModel
+import com.lfnj.sport_app.features.events.model.EventRegistrationsOwner
 import com.lfnj.sport_app.features.home.AthleteHomeScreen
 import com.lfnj.sport_app.features.home.HomeViewModel
 import com.lfnj.sport_app.features.identity.login.LoginNotice
@@ -320,6 +325,83 @@ fun AppNavHost(
                         onSelectDay = viewModel::selectDay,
                         onRetry = viewModel::retry,
                         onShowSyncedPeriod = viewModel::showSyncedPeriod,
+                        onBack = { navController.popBackStack() },
+                        onOpenEvent = { eventId -> navController.navigate(Destinations.eventDetail(eventId)) { launchSingleTop = true } },
+                        onOpenRegistrations = { navController.navigate(Destinations.MY_EVENT_REGISTRATIONS) { launchSingleTop = true } },
+                    )
+                }
+            }
+        }
+
+        composable(
+            route = Destinations.EVENT_DETAIL,
+            arguments = listOf(navArgument(Destinations.EVENT_ID_ARG) { type = NavType.StringType }),
+        ) { entry ->
+            // HU041: misma guarda que athlete_home; la inscripción no exige capacidad de plan (ADR-032 §1).
+            val user = remember { sessionManager.currentUser.value }
+            val eventId = entry.arguments?.getString(Destinations.EVENT_ID_ARG).orEmpty()
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                else -> {
+                    val viewModel: EventDetailViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer { EventDetailViewModel(eventId, container.eventRegistrationRepository, container.connectivityMonitor) }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    EventDetailScreen(
+                        state = state,
+                        onRegister = viewModel::requestRegister,
+                        onConfirmRegister = viewModel::confirmRegister,
+                        onCancelRegister = viewModel::cancelRegister,
+                        onDismissFailure = viewModel::dismissFailure,
+                        onRetry = viewModel::retry,
+                        onOpenRegistrations = { navController.navigate(Destinations.MY_EVENT_REGISTRATIONS) { launchSingleTop = true } },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.MY_EVENT_REGISTRATIONS) {
+            // HU041: misma guarda que athlete_home; sin capacidad de plan (ADR-032 §1).
+            val user = remember { sessionManager.currentUser.value }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                else -> {
+                    val viewModel: MyRegistrationsViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer {
+                                MyRegistrationsViewModel(EventRegistrationsOwner.keyOf(user.userId), container.eventRegistrationRepository)
+                            }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    MyRegistrationsScreen(
+                        state = state,
+                        onRetry = viewModel::retry,
+                        onLoadMore = viewModel::loadMore,
+                        onOpenEvent = { eventId -> navController.navigate(Destinations.eventDetail(eventId)) { launchSingleTop = true } },
                         onBack = { navController.popBackStack() },
                     )
                 }

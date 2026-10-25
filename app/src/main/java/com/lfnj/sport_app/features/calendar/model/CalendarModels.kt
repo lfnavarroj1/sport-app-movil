@@ -71,7 +71,11 @@ sealed interface CalendarItem {
     val occursOn: LocalDate
     val title: String
 
-    /** Evento masivo publicado (`EVENT_PUBLISHED`), con instantes UTC y su `time_zone` declarada. */
+    /**
+     * Evento masivo publicado (`EVENT_PUBLISHED`), con instantes UTC y su `time_zone` declarada.
+     * [eventId] es el `event_id` de su `reference`, con el que se abre el detalle de HU041; `null` si
+     * no vino o la caché es anterior a HU041.
+     */
     data class Event(
         override val itemId: String,
         override val occursOn: LocalDate,
@@ -81,6 +85,7 @@ sealed interface CalendarItem {
         val endsAt: Instant,
         val timeZone: String,
         val location: EventLocation,
+        val eventId: String? = null,
     ) : CalendarItem
 
     /** Sesión de un plan asignado (`TRAINING_PLAN_SESSION`): solo tiene fecha, sin hora. */

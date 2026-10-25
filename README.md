@@ -30,7 +30,7 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026 y HU004
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU041 y HU004
 ├── MainActivity.kt        única Activity; aloja la navegación Compose
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -45,6 +45,9 @@ app/src/main/java/com/lfnj/sport_app/
 │   ├── calendar/          calendario deportivo (HU035): pantalla de mes o lista, ViewModel,
 │   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada
 │   │   └── model/         periodo por zona, elementos, fuentes y agrupación por día
+│   ├── events/            detalle de evento, inscripción y «Mis inscripciones» (HU041): pantallas y ViewModels,
+│   │   ├── data/          API, repositorio, conectividad, limpieza al cerrar sesión y caché Room cifrada
+│   │   └── model/         detalle, inscripción confirmada, orden y antigüedad de la lista
 │   ├── home/              inicio del deportista con menú por capacidades (HU003)
 │   ├── recommendations/   entrenamientos sugeridos (HU028) y rutas sugeridas (HU026): pantallas de lista y detalle, ViewModels,
 │   │   ├── data/          API, repositorios, limpieza al cerrar sesión y cachés Room cifradas (una por HU)
@@ -195,6 +198,26 @@ app/src/main/java/com/lfnj/sport_app/
   reemplaza (una ruta retirada desaparece), sin red se muestra con `last_synced_at` y se marca
   desactualizada a las 24 h. Al terminar la sesión se elimina como en HU035.
 
+### Inscripción a un evento publicado (HU041, ADR-032)
+
+- No hay opción de menú: el detalle `eventos/detalle/{event_id}` se abre desde la tarjeta de un evento
+  del calendario (HU035, con el `event_id` de su `reference`) o desde las sugerencias (HU027, con
+  `Destinations.eventDetail`), y «Mis inscripciones» (`eventos/inscripciones`) desde el calendario o el
+  detalle. Ambos destinos están en `NavigationRegistry.contextual` y no exigen capacidad de plan.
+- El detalle (`GET /v1/events/{event_id}`) muestra fecha y hora en la zona del dispositivo, ubicación,
+  cupo declarado y la tarifa informativa con el aviso «El pago no se procesa en SportApp». «Inscribirme»
+  se deshabilita, con explicación, si ya existe `my_registration`, el evento inició o no hay conexión.
+- La inscripción (`POST /v1/events/{event_id}/registrations`, sin cuerpo) exige confirmación explícita
+  y solo se muestra con el `201`. Una `Idempotency-Key` UUID por intento lógico se conserva en hasta
+  tres reintentos automáticos (red, `502`, `503`, `504`) y en el reintento manual, y se renueva tras el
+  éxito o `idempotency_key_reused`; un `4xx` nunca se repite solo. `event_registration_exists` muestra
+  «ya inscrito» y recarga el detalle; `event_full` y `event_registration_closed` tienen mensaje propio.
+- No hay cola offline del comando (ADR-032 §8). «Mis inscripciones» (`GET /v1/me/event-registrations`,
+  páginas de 20 con cursor) se guarda en `sportapp_event_registrations.db` (una fila por deportista,
+  payload AES-GCM con la clave `sportapp.event_registrations.v1`, excluida del respaldo); sin red se
+  muestra con `last_synced_at` y se marca desactualizada a las 24 h. Al terminar la sesión se elimina
+  como en HU035.
+
 ## Configuración por variante
 
 | Variante | `APP_ENVIRONMENT` | `BFF_MOBILE_BASE_URL` |
@@ -287,6 +310,13 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   sus esquemas en la copia de `bff-mobile`. Room, Keystore, reinicio, esquema, respaldo, pantalla y
   recorrido se prueban en el dispositivo (`features/training/dashboard/` y
   `navigation/TrainingDashboardFlowTest`).
+- HU041: `EventRegistrationRepositoryTest` (MockWebServer: detalle `200`/`404`/`403`/`503`, comando
+  `201`, los cuatro `409`, `404`/`403`/`422`, reintentos con la misma clave, lista con y sin cursor,
+  sin red, partición y limpieza), `EventDetailViewModelTest`, `MyRegistrationsViewModelTest` y
+  `EventRegistrationModelsTest` en la JVM; `EventRegistrationContractTest` verifica las tres operaciones
+  en la copia 0.15.0 y `CalendarCacheCodecCompatibilityTest`, la lectura de cachés de HU035 anteriores.
+  Room, Keystore, reinicio, esquema, respaldo, pantallas y recorrido se prueban en el dispositivo
+  (`features/events/` y `navigation/EventRegistrationFlowTest`); el E2E es `e2e/Hu041IntegratedE2eTest`.
 - HU004: `RevocationQueueTest` cubre la cola con MockWebServer (204, 422, 503/504, sin red,
   vencimiento, clave estable) y `SessionContractTest`, `POST /v1/sessions/revoke`; Room, Keystore,
   la separación del almacén de sesión, el reinicio del proceso, el esquema, el respaldo y

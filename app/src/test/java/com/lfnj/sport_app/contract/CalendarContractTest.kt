@@ -3,6 +3,7 @@ package com.lfnj.sport_app.contract
 import com.lfnj.sport_app.features.calendar.data.CalendarApi
 import com.lfnj.sport_app.features.calendar.data.CalendarItemDto
 import com.lfnj.sport_app.features.calendar.data.CalendarLocationDto
+import com.lfnj.sport_app.features.calendar.data.CalendarReferenceDto
 import com.lfnj.sport_app.features.calendar.data.CalendarResponseDto
 import com.lfnj.sport_app.features.calendar.data.CalendarSourceDto
 import com.lfnj.sport_app.features.calendar.model.CalendarItemSource
@@ -34,7 +35,7 @@ class CalendarContractTest {
 
     /**
      * `CalendarItemDto` reúne las dos variantes de `items[]` (`EventCalendarItem` y
-     * `SessionCalendarItem`). `reference` se omite a propósito: HU035 no abre el detalle.
+     * `SessionCalendarItem`), incluida `reference`: HU041 abre el detalle con su `event_id`.
      */
     @Test
     fun `el elemento del cliente cubre ambas variantes del contrato`() {
@@ -42,13 +43,14 @@ class CalendarContractTest {
         val model = (0 until descriptor.elementsCount).map(descriptor::getElementName).toSet()
         val variants = listOf("EventCalendarItem", "SessionCalendarItem")
         val properties = variants.flatMap(contract::schemaProperties).toSet()
-        val required = variants.flatMap(contract::schemaRequired).toSet() - "reference"
+        val required = variants.flatMap(contract::schemaRequired).toSet()
 
         assertTrue("propiedades ausentes del contrato: ${model - properties}", (model - properties).isEmpty())
         assertTrue("faltan obligatorias: ${required - model}", (required - model).isEmpty())
         assertEquals(setOf("EVENT_PUBLISHED"), setOf(contract.const("EventCalendarItem", "source")))
         assertEquals(setOf("TRAINING_PLAN_SESSION"), setOf(contract.const("SessionCalendarItem", "source")))
         assertEquals(setOf("EVENT_PUBLISHED", "TRAINING_PLAN_SESSION"), CalendarItemSource.entries.map { it.wire }.toSet())
+        contract.assertModelMatches("EventReference", CalendarReferenceDto.serializer())
     }
 
     @Test
