@@ -196,13 +196,13 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
 - HU032: las pruebas JVM usan una fuente local en memoria con la semántica del DAO; el cifrado
   real, Room, el esquema exportado, el reinicio del proceso y WorkManager se prueban en el
   dispositivo (`features/training/session/`). `TrainingSessionContractTest` verifica la copia de
-  `bff-mobile` 0.8.0 y `TrainingSessionAdrContractTest`, los cuerpos y ejemplos de ADR-029.
+  `bff-mobile` 0.15.0 y `TrainingSessionAdrContractTest`, los cuerpos y ejemplos de ADR-029.
 - HU035: la caché en memoria y el cifrado de prueba cubren la lógica en la JVM; Room, Keystore, el
   esquema exportado, la limpieza al cerrar sesión y el respaldo se prueban en el dispositivo
-  (`features/calendar/`). `CalendarContractTest` verifica la copia de `bff-mobile` 0.8.0 y
+  (`features/calendar/`). `CalendarContractTest` verifica la copia de `bff-mobile` 0.15.0 y
   `CalendarAdrContractTest`, el ejemplo de ADR-031.
 - HU034: `TrainingMetricsRepositoryTest`, `MetricsSyncEngineTest`, `TrainingMetricsViewModelTest` y
-  `TrainingMetricsModelsTest` en la JVM; `TrainingMetricsContractTest` verifica la copia 0.8.0, los
+  `TrainingMetricsModelsTest` en la JVM; `TrainingMetricsContractTest` verifica la copia 0.15.0, los
   ejemplos de ADR-030 y un catálogo con un tercer indicador de prueba. Room, Keystore, reinicio,
   esquema, respaldo, WorkManager, pantalla y recorrido se prueban en el dispositivo
   (`features/training/metrics/` y `navigation/TrainingMetricsFlowTest`).

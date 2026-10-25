@@ -12,7 +12,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 
-/** Datos sintéticos de HU034 conforme a ADR-030 y la copia de `bff-mobile` 0.8.0. */
+/** Datos sintéticos de HU034 conforme a ADR-030 y la copia de `bff-mobile` 0.15.0. */
 object MetricsFixtures {
     val NOW: Instant = Instant.parse("2026-10-12T15:35:00Z")
     const val CALCULATION_ID = "7a2fef74-b7bb-43dd-b670-ad8d40aa11d2"
