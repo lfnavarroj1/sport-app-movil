@@ -103,19 +103,19 @@ class TrainingDashboardScreenTest {
         show(state())
 
         composeRule.onNodeWithTag("dashboard_range_last_30").assertIsSelected()
-        composeRule.onNodeWithTag("dashboard_total_sessions").assertIsDisplayed()
-        composeRule.onNodeWithText("Duración total: ${number(1_095)} min").assertIsDisplayed()
-        composeRule.onNodeWithText("Duración promedio: ${number(548)} min por sesión").assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_total_sessions").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Duración total: ${number(1_095)} min").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Duración promedio: ${number(548)} min por sesión").performScrollTo().assertIsDisplayed()
         // Sin filas con distancia el contrato envía null: se declara no disponible, nunca 0.
-        composeRule.onNodeWithTag("dashboard_distance_unavailable").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_synced_at").assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_distance_unavailable").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_synced_at").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun laDistanciaDisponibleSeMuestraEnMetros() {
         show(state(snapshot(distance = 20_500)))
 
-        composeRule.onNodeWithText("Distancia: ${number(20_500)} m").assertIsDisplayed()
+        composeRule.onNodeWithText("Distancia: ${number(20_500)} m").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -148,7 +148,7 @@ class TrainingDashboardScreenTest {
     fun sinDatosMuestraElEstadoVacioConEnlaceARegistrarSinGraficos() {
         show(state(snapshot(hasData = false)))
 
-        composeRule.onNodeWithTag("dashboard_empty").assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_empty").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("dashboard_weeks").assertDoesNotExist()
         composeRule.onNodeWithTag("dashboard_totals").assertDoesNotExist()
         composeRule.onNodeWithTag("dashboard_register_training").performClick()
@@ -159,7 +159,7 @@ class TrainingDashboardScreenTest {
     fun unaConsultaCaidaNoSePresentaComoCerosNiComoVacio() {
         show(state(snapshot(hasData = false, sessions = DashboardSourceStatus.UNAVAILABLE)))
 
-        composeRule.onNodeWithTag("dashboard_incomplete_training_sessions").assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_incomplete_training_sessions").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("dashboard_empty").assertDoesNotExist()
         composeRule.onNodeWithTag("dashboard_totals").assertDoesNotExist()
         composeRule.onNodeWithTag("dashboard_metrics_empty").performScrollTo().assertIsDisplayed()
@@ -169,17 +169,17 @@ class TrainingDashboardScreenTest {
     fun sinRedMuestraLaCacheConSuAntiguedadYAvisoDeDesactualizado() {
         show(state(problem = DashboardProblem.NO_CONNECTION, stale = true))
 
-        composeRule.onNodeWithTag("dashboard_problem").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_stale").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_synced_at").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_totals").assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_problem").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_stale").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_synced_at").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_totals").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun sinRedYSinCacheLoInformaYPermiteReintentar() {
         show(state(snapshot = null, problem = DashboardProblem.NO_CONNECTION))
 
-        composeRule.onNodeWithTag("dashboard_never_synced").assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_never_synced").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("dashboard_empty").assertDoesNotExist()
         composeRule.onNodeWithTag("dashboard_retry").performClick()
         assertEquals(listOf("retry"), events)
@@ -196,8 +196,8 @@ class TrainingDashboardScreenTest {
     fun unErrorSinCacheSeExplicaSinDetallesTecnicos() {
         show(state(snapshot = null, problem = DashboardProblem.CAPABILITY_REQUIRED))
 
-        composeRule.onNodeWithText("Tu plan actual no incluye el tablero de entrenamiento.").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_retry").assertIsDisplayed()
+        composeRule.onNodeWithText("Tu plan actual no incluye el tablero de entrenamiento.").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_retry").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -217,8 +217,8 @@ class TrainingDashboardScreenTest {
     fun personalizadoSinFechasPideElegirlas() {
         show(state(snapshot = null, range = DashboardRange.CUSTOM))
 
-        composeRule.onNodeWithTag("dashboard_custom_prompt").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_choose_dates").assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_custom_prompt").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("dashboard_choose_dates").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("dashboard_loading").assertDoesNotExist()
     }
 
