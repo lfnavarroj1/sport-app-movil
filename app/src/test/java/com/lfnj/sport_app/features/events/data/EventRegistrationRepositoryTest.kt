@@ -143,7 +143,7 @@ class EventRegistrationRepositoryTest {
         server.enqueue(EventRegistrationFixtures.error(503, "upstream_unavailable"))
         assertEquals(EventDetailResult.Unavailable("8c1f2d3e-0000-4000-8000-000000000041"), repository.detail(EVENT_ID))
 
-        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
         assertEquals(EventDetailResult.NoConnection, repository.detail(EVENT_ID))
     }
 
@@ -196,7 +196,7 @@ class EventRegistrationRepositoryTest {
     fun `un 502 y la falta de red tambien se reintentan con la misma clave`() = runTest {
         login()
         server.enqueue(MockResponse().setResponseCode(502))
-        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
         server.enqueue(MockResponse().setResponseCode(201).setBody(EventRegistrationFixtures.registration()))
 
         assertTrue(repository.register(EVENT_ID, key) is RegisterResult.Registered)
@@ -218,7 +218,7 @@ class EventRegistrationRepositoryTest {
     @Test
     fun `sin red tras los reintentos informa sin conexion`() = runTest {
         login()
-        repeat(4) { server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START)) }
+        repeat(4) { server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST)) }
 
         assertEquals(RegisterResult.NoConnection, repository.register(EVENT_ID, key))
         assertEquals(3, delays.size)
@@ -358,7 +358,7 @@ class EventRegistrationRepositoryTest {
         repository.refresh(owner)
         val syncedAt = clock.instant
         clock.instant = clock.instant.plusSeconds(3600)
-        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
 
         assertEquals(RegistrationsRefresh.NoConnection, repository.refresh(owner))
 
