@@ -214,6 +214,72 @@
         <item quantity="other">%d otras actividades</item>
     </plurals>
     <string name="calendar_day_empty_description">sin actividades</string>
+    <!-- HU028: entrenamientos sugeridos (ADR-041) -->
+    <string name="plan_suggestions_title">Entrenamientos sugeridos</string>
+    <string name="plan_suggestions_detail_title">Detalle de la plantilla</string>
+    <string name="plan_suggestions_loading">Cargando sugerencias…</string>
+    <string name="plan_suggestions_refreshing">Actualizando…</string>
+    <string name="plan_suggestions_synced_at">Sincronizado: %1$s</string>
+    <string name="plan_suggestions_stale">Desactualizado: la última sincronización tiene más de 24 horas.</string>
+    <string name="plan_suggestions_never_synced">Aún no has sincronizado tus sugerencias. Conéctate a internet para verlas.</string>
+    <string name="plan_suggestions_offline_with_cache">Sin conexión. Mostramos las sugerencias sincronizadas por última vez.</string>
+    <string name="plan_suggestions_unavailable_with_cache">No pudimos actualizar las sugerencias. Mostramos las sincronizadas por última vez.</string>
+    <string name="plan_suggestions_error_unavailable">No pudimos cargar las sugerencias en este momento. Intenta de nuevo.</string>
+    <string name="plan_suggestions_error_capability_required">Tu plan actual no incluye entrenamientos sugeridos.</string>
+    <string name="plan_suggestions_error_permission_required">Esta cuenta no puede consultar entrenamientos sugeridos.</string>
+    <string name="plan_suggestions_error_invalid_request">No pudimos consultar las sugerencias. Intenta de nuevo.</string>
+    <string name="plan_suggestions_error_invalid_response">Recibimos una respuesta que no pudimos interpretar. Intenta de nuevo.</string>
+    <string name="plan_suggestions_error_storage">No pudimos guardar las sugerencias en este dispositivo. Intenta de nuevo.</string>
+    <string name="plan_suggestions_personalized_full">Para ti: plantillas de tus deportes, primero las de tu objetivo principal.</string>
+    <string name="plan_suggestions_personalized_sport_only">Para ti: plantillas de tus deportes. Sin tu objetivo principal no podemos priorizarlas.</string>
+    <string name="plan_suggestions_not_personalized">Lista no personalizada: mostramos las plantillas publicadas más recientes.</string>
+    <string name="plan_suggestions_context_unavailable">No pudimos consultar tu perfil deportivo.</string>
+    <string name="plan_suggestions_missing_sports">Falta en tu perfil deportivo: los deportes que practicas.</string>
+    <string name="plan_suggestions_missing_primary_goal">Falta en tu perfil deportivo: tu objetivo principal.</string>
+    <string name="plan_suggestions_missing_other">Falta un dato de tu perfil deportivo.</string>
+    <string name="plan_suggestions_empty_personalized">Por ahora no hay plantillas publicadas para tus deportes.</string>
+    <string name="plan_suggestions_empty">Por ahora no hay plantillas publicadas.</string>
+    <string name="plan_suggestions_author">Por %1$s</string>
+    <string name="plan_suggestions_author_unknown">Autor no disponible</string>
+    <string name="plan_suggestions_open_detail">Ver detalle de %1$s</string>
+    <string name="plan_suggestions_summary_line">%1$s · %2$s · %3$s</string>
+    <plurals name="plan_suggestions_weeks">
+        <item quantity="one">%d semana</item>
+        <item quantity="many">%d semanas</item>
+        <item quantity="other">%d semanas</item>
+    </plurals>
+    <plurals name="plan_suggestions_sessions_per_week">
+        <item quantity="one">%d sesión por semana</item>
+        <item quantity="many">%d sesiones por semana</item>
+        <item quantity="other">%d sesiones por semana</item>
+    </plurals>
+    <plurals name="plan_suggestions_minutes">
+        <item quantity="one">%d minuto</item>
+        <item quantity="many">%d minutos</item>
+        <item quantity="other">%d minutos</item>
+    </plurals>
+    <string name="plan_suggestions_reasons_title">Por qué te la sugerimos</string>
+    <string name="plan_suggestions_reason_sport_match">Coincide con tu deporte</string>
+    <string name="plan_suggestions_reason_goal_match">Coincide con tu objetivo principal</string>
+    <string name="plan_suggestions_field_sport">Deporte: %1$s</string>
+    <string name="plan_suggestions_field_goal">Objetivo: %1$s</string>
+    <string name="plan_suggestions_field_level">Nivel: %1$s</string>
+    <string name="plan_suggestions_field_duration">Duración: %1$s</string>
+    <string name="plan_suggestions_field_published">Publicada: %1$s</string>
+    <string name="plan_suggestions_objectives_title">Objetivos</string>
+    <string name="plan_suggestions_sessions_title">Sesiones semanales</string>
+    <string name="plan_suggestions_session_header">%1$s · %2$s</string>
+    <string name="plan_suggestions_authorize_title">Autorizar a este profesional</string>
+    <string name="plan_suggestions_authorize_body">Si quieres que este profesional te asigne un plan de entrenamiento, autorízalo desde SportApp en la web. Esta sugerencia no asigna ni inicia ningún plan.</string>
+    <string name="plan_suggestions_level_beginner">Principiante</string>
+    <string name="plan_suggestions_level_intermediate">Intermedio</string>
+    <string name="plan_suggestions_level_advanced">Avanzado</string>
+    <string name="plan_suggestions_goal_health">Salud</string>
+    <string name="plan_suggestions_goal_performance">Rendimiento</string>
+    <string name="plan_suggestions_goal_weight_management">Control de peso</string>
+    <string name="plan_suggestions_goal_recreation">Recreación</string>
+    <string name="plan_suggestions_goal_competition">Competencia</string>
+
     <!-- HU034: indicadores FTP y VO₂max (ADR-030) -->
     <string name="action_cancel">Cancelar</string>
     <string name="action_accept">Aceptar</string>
