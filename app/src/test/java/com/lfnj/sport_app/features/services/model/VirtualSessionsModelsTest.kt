@@ -68,7 +68,7 @@ class VirtualSessionsModelsTest {
     fun `proximas son las reservadas sin terminar y el historial conserva canceladas y pasadas (CA6)`() {
         val upcoming = appointment(id = "proxima")
         val cancelled = appointment(id = "cancelada", status = AppointmentStatus.CANCELLED_BY_ATHLETE)
-        val past = appointment(now.minus(Duration.ofDays(2)), id = "pasada")
+        val past = appointment(now.minus(Duration.ofDays(2)), id = "pasada", availabilityId = "slot-pasado")
         val snapshot = AppointmentsSnapshot(listOf(past, upcoming, cancelled), now)
 
         assertEquals(listOf("proxima"), snapshot.upcoming(now).map { it.appointmentId })
