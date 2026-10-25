@@ -25,4 +25,7 @@ object Destinations {
 
     /** HU028: plantillas de plan sugeridas al deportista (`/entrenamientos/sugeridos`). */
     const val PLAN_SUGGESTIONS = "entrenamientos/sugeridos"
+
+    /** HU026: rutas sugeridas al deportista (`/entrenamientos/rutas`). */
+    const val ROUTE_SUGGESTIONS = "entrenamientos/rutas"
 }

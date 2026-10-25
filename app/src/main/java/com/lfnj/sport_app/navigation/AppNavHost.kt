@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -33,6 +34,11 @@ import com.lfnj.sport_app.features.recommendations.PlanSuggestionsScreen
 import com.lfnj.sport_app.features.recommendations.PlanSuggestionsViewModel
 import com.lfnj.sport_app.features.recommendations.model.PlanSuggestionsAccess
 import com.lfnj.sport_app.features.recommendations.model.PlanSuggestionsOwner
+import com.lfnj.sport_app.features.recommendations.RouteMapLauncher
+import com.lfnj.sport_app.features.recommendations.RouteSuggestionsScreen
+import com.lfnj.sport_app.features.recommendations.RouteSuggestionsViewModel
+import com.lfnj.sport_app.features.recommendations.model.RouteSuggestionsAccess
+import com.lfnj.sport_app.features.recommendations.model.RouteSuggestionsOwner
 import com.lfnj.sport_app.features.status.StatusScreen
 import com.lfnj.sport_app.features.status.StatusViewModel
 import com.lfnj.sport_app.core.session.SubscriptionStatus
@@ -354,6 +360,48 @@ fun AppNavHost(
                         onOpenDetail = viewModel::openDetail,
                         onCloseDetail = viewModel::closeDetail,
                         onRetry = viewModel::retry,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.ROUTE_SUGGESTIONS) {
+            // HU026: misma guarda que athlete_home y, además, la capacidad training.routes.suggest vigente.
+            val user = remember { sessionManager.currentUser.value }
+            val allowed = remember { RouteSuggestionsAccess.canView(sessionManager.access.value) }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                !allowed -> LaunchedEffect(Unit) {
+                    navController.navigate(Destinations.ATHLETE_HOME) {
+                        popUpTo(Destinations.ROUTE_SUGGESTIONS) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                else -> {
+                    val viewModel: RouteSuggestionsViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer { RouteSuggestionsViewModel(RouteSuggestionsOwner.keyOf(user.userId), container.routeSuggestionsRepository) }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    val context = LocalContext.current
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    RouteSuggestionsScreen(
+                        state = state,
+                        onOpenDetail = viewModel::openDetail,
+                        onCloseDetail = viewModel::closeDetail,
+                        onRetry = viewModel::retry,
+                        onOpenMap = { uri -> RouteMapLauncher.open(context, uri) },
                         onBack = { navController.popBackStack() },
                     )
                 }
