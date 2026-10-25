@@ -177,9 +177,9 @@ fun ServiceAvailabilityResponseDto.toServices(): List<CoachingService> = guarded
 
 fun AppointmentDto.toAppointment(): Appointment = guarded {
     val parsedStatus = AppointmentStatus.fromWire(status) ?: throw InvalidVirtualSessionsResponse()
-    val startsAt = instant(startsAt)
-    val endsAt = instant(endsAt)
-    if (!endsAt.isAfter(startsAt)) throw InvalidVirtualSessionsResponse()
+    val start = instant(startsAt)
+    val end = instant(endsAt)
+    if (!end.isAfter(start)) throw InvalidVirtualSessionsResponse()
     Appointment(
         appointmentId = appointmentId,
         serviceId = serviceId,
@@ -188,8 +188,8 @@ fun AppointmentDto.toAppointment(): Appointment = guarded {
         serviceName = service.name,
         modality = service.modality,
         fee = service.fee.toFee(),
-        startsAt = startsAt,
-        endsAt = endsAt,
+        startsAt = start,
+        endsAt = end,
         timeZone = ZoneId.of(timeZone),
         status = parsedStatus,
         bookedAt = instant(bookedAt),
@@ -199,10 +199,10 @@ fun AppointmentDto.toAppointment(): Appointment = guarded {
 }
 
 private fun CatalogIntervalDto.toSlot(): AvailabilitySlot {
-    val startsAt = instant(startsAt)
-    val endsAt = instant(endsAt)
-    if (!endsAt.isAfter(startsAt) || capacity < 1) throw InvalidVirtualSessionsResponse()
-    return AvailabilitySlot(availabilityId, startsAt, endsAt, ZoneId.of(timeZone), capacity)
+    val start = instant(startsAt)
+    val end = instant(endsAt)
+    if (!end.isAfter(start) || capacity < 1) throw InvalidVirtualSessionsResponse()
+    return AvailabilitySlot(availabilityId, start, end, ZoneId.of(timeZone), capacity)
 }
 
 private fun ServicePriceDto.toFee(): ServiceFee = ServiceFee(amount, currency, billingUnit)

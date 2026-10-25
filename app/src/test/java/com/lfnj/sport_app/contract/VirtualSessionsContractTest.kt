@@ -60,9 +60,9 @@ class VirtualSessionsContractTest {
 
     @Test
     fun `los catalogos del cliente son los del contrato`() {
-        assertTrue(VirtualSessionsApi.CATEGORY_COACHING in contract.enum("Category"))
-        assertTrue(ServiceModality.entries.map { it.wire }.toSet().all { it in contract.enum("Modality") })
-        OpenApiContract.assertSameElements("BillingUnit", contract.enum("BillingUnit"), BillingUnit.entries.map { it.wire }.toSet())
+        assertTrue(VirtualSessionsApi.CATEGORY_COACHING in contract.enumOf("Category"))
+        assertTrue(ServiceModality.entries.map { it.wire }.toSet().all { it in contract.enumOf("Modality") })
+        OpenApiContract.assertSameElements("BillingUnit", contract.enumOf("BillingUnit"), BillingUnit.entries.map { it.wire }.toSet())
         OpenApiContract.assertSameElements(
             "AppointmentResponse.status",
             contract.enumValues("AppointmentResponse", "status"),
@@ -104,7 +104,7 @@ class VirtualSessionsContractTest {
         Json.parseToJsonElement(text).jsonObject
     }
 
-    private fun OpenApiContract.enum(schema: String): Set<String> =
+    private fun OpenApiContract.enumOf(schema: String): Set<String> =
         document.getValue("components").jsonObject.getValue("schemas").jsonObject.getValue(schema).jsonObject
             .getValue("enum").jsonArray.map { it.jsonPrimitive.content }.toSet()
 
