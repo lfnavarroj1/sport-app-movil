@@ -44,8 +44,12 @@ import com.lfnj.sport_app.features.recommendations.RouteSuggestionsScreen
 import com.lfnj.sport_app.features.recommendations.RouteSuggestionsViewModel
 import com.lfnj.sport_app.features.recommendations.model.RouteSuggestionsAccess
 import com.lfnj.sport_app.features.recommendations.model.RouteSuggestionsOwner
+import com.lfnj.sport_app.features.services.SupportSuggestionsScreen
+import com.lfnj.sport_app.features.services.SupportSuggestionsViewModel
 import com.lfnj.sport_app.features.services.VirtualSessionsScreen
 import com.lfnj.sport_app.features.services.VirtualSessionsViewModel
+import com.lfnj.sport_app.features.services.model.SupportSuggestionsAccess
+import com.lfnj.sport_app.features.services.model.SupportSuggestionsOwner
 import com.lfnj.sport_app.features.services.model.VirtualSessionsAccess
 import com.lfnj.sport_app.features.services.model.VirtualSessionsOwner
 import com.lfnj.sport_app.features.status.StatusScreen
@@ -534,6 +538,46 @@ fun AppNavHost(
                         onRequestCancel = viewModel::requestCancel,
                         onConfirmCancel = viewModel::confirmCancel,
                         onDismissCancel = viewModel::dismissCancel,
+                        onRetry = viewModel::retry,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.SUPPORT_SUGGESTIONS) {
+            // HU029: misma guarda que athlete_home y, además, la capacidad services.support.suggest vigente.
+            val user = remember { sessionManager.currentUser.value }
+            val allowed = remember { SupportSuggestionsAccess.canView(sessionManager.access.value) }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                !allowed -> LaunchedEffect(Unit) {
+                    navController.navigate(Destinations.ATHLETE_HOME) {
+                        popUpTo(Destinations.SUPPORT_SUGGESTIONS) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                else -> {
+                    val viewModel: SupportSuggestionsViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer { SupportSuggestionsViewModel(SupportSuggestionsOwner.keyOf(user.userId), container.supportSuggestionsRepository) }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    SupportSuggestionsScreen(
+                        state = state,
+                        onOpenDetail = viewModel::openDetail,
+                        onCloseDetail = viewModel::closeDetail,
                         onRetry = viewModel::retry,
                         onBack = { navController.popBackStack() },
                     )

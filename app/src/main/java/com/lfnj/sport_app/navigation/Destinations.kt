@@ -32,6 +32,9 @@ object Destinations {
     /** HU040: sesiones virtuales con entrenadores (`/servicios/sesiones-virtuales`, ADR-046 §8). */
     const val VIRTUAL_SESSIONS = "servicios/sesiones-virtuales"
 
+    /** HU029: servicios de acompañamiento y logística sugeridos (`/servicios/acompanamiento`). */
+    const val SUPPORT_SUGGESTIONS = "servicios/acompanamiento"
+
     /** Argumento de [EVENT_DETAIL]: `event_id` (UUID) del evento publicado. */
     const val EVENT_ID_ARG = "event_id"
 

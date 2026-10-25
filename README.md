@@ -30,7 +30,7 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041 y HU004
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041, HU029 y HU004
 ├── MainActivity.kt        única Activity; aloja la navegación Compose
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -52,9 +52,9 @@ app/src/main/java/com/lfnj/sport_app/
 │   ├── recommendations/   entrenamientos sugeridos (HU028) y rutas sugeridas (HU026): pantallas de lista y detalle, ViewModels,
 │   │   ├── data/          API, repositorios, limpieza al cerrar sesión y cachés Room cifradas (una por HU)
 │   │   └── model/         plantillas y rutas, motivos, contexto faltante, antigüedad y URI `geo:`
-│   ├── services/          sesiones virtuales con entrenadores (HU040): pantalla con pestañas, confirmación y ViewModel,
-│   │   ├── data/          API, repositorio (lecturas cacheadas y comandos solo en línea), limpieza y caché Room cifrada
-│   │   └── model/         servicios, intervalos, citas, ventana de 24 h, antelación de 1 h, zonas y tarifa
+│   ├── services/          sesiones virtuales con entrenadores (HU040) y acompañamiento y logística sugeridos (HU029): pantallas y ViewModels,
+│   │   ├── data/          API, repositorio (lecturas cacheadas y comandos solo en línea), limpieza y caché Room cifrada (una por HU)
+│   │   └── model/         servicios, intervalos, citas, ventana de 24 h, antelación de 1 h, zonas y tarifa; sugerencias, motivos, fuentes y antigüedad
 │   ├── training/dashboard/ tablero de entrenamientos (HU033): pantalla con selector de periodo y ViewModel,
 │   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada por opción
 │   │   └── model/         periodos con desfase, agregados, fuentes y barras
@@ -227,6 +227,24 @@ app/src/main/java/com/lfnj/sport_app/
   respaldo; sin red se muestra con `last_synced_at`, se marca desactualizada a las 24 h y no se
   reserva ni cancela. Al terminar la sesión se elimina como en HU035.
 
+### Acompañamiento y logística sugeridos (HU029, ADR-041)
+
+- La opción `FREE` 140 «Acompañamiento y logística» (capacidad `services.support.suggest`; sin ella la
+  opción no aparece y la guarda devuelve al inicio) abre `servicios/acompanamiento` y consulta
+  `GET /v1/me/suggestions/services?limit=20` (copia 0.18.0). Cada servicio muestra proveedor
+  (`author_name`; «no disponible» si Usuarios no respondió), categoría, modalidad, tarifa informativa,
+  próximo intervalo en la zona del dispositivo y motivo (`EVENT_LOGISTICS`, `UPCOMING_AVAILABILITY`), en
+  el orden del BFF. El detalle añade la hora en la zona del proveedor y la descripción; es informativo:
+  no contrata, reserva ni paga.
+- `personalized: false` con `missing_context: ["event_registrations"]` explica que no hay inscripciones
+  vigentes; `sources` con `events` `UNAVAILABLE` explica que faltó el motivo logístico (CA5). Una lista
+  vacía se explica según haya o no inscripciones. `503`/`504` muestran error y reintento sin borrar la
+  caché; `403 capability_required` y `permission_required` ocultan los datos guardados.
+- Lectura offline first sin WorkManager: `sportapp_support_suggestions.db` (una fila por deportista),
+  payload AES-GCM con la clave `sportapp.support_suggestions.v1`, excluida del respaldo; cada `200` la
+  reemplaza (un servicio despublicado desaparece), sin red se muestra con `last_synced_at` y se marca
+  desactualizada a las 24 h. Al terminar la sesión se elimina como en HU035.
+
 ### Inscripción a un evento publicado (HU041, ADR-032)
 
 - No hay opción de menú: el detalle `eventos/detalle/{event_id}` se abre desde la tarjeta de un evento
@@ -271,6 +289,7 @@ físico con la composición local: `adb reverse tcp:18081 tcp:18081` y
 | E2E HU003 contra la composición local (emulador → `http://10.0.2.2:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu003IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2eOrganizerEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2eServiceProviderEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña>` — las cuentas sintéticas se crean antes con `POST http://localhost:18080/v1/users` (`bff-web`, HU001), porque el móvil no tiene registro. Sin `e2ePassword` el paquete `e2e` se excluye. |
 | E2E HU028 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu028IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña> -Pandroid.testInstrumentationRunnerArguments.e2eTemplateSuffix=<sufijo>` — antes, por `bff-web` (`localhost:18080`, con `Origin` permitido): deportista con `PUT /v1/me/sport-habits` (deporte y `primary_goal`) y profesional que publica «E2E HU028 Objetivo <sufijo>» (ese objetivo) y «E2E HU028 Deporte <sufijo>» (otro objetivo) con `POST /v1/training-plan-templates`. Datos sintéticos. |
 | E2E HU026 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu026IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña> -Pandroid.testInstrumentationRunnerArguments.e2eRouteSuffix=<sufijo>` — antes, por `bff-web` (`localhost:18080`, con `Origin` permitido): deportista con su ciudad (`PUT /v1/me/demographic-profile`) y un deporte (`PUT /v1/me/sport-habits`), ambos con `Idempotency-Key`, y organizador que publica con `POST /v1/routes` «E2E HU026 Ciudad <sufijo>» (ciudad del deportista, más larga), «E2E HU026 Corta <sufijo>» (otra ciudad, más corta) y «E2E HU026 Retirada <sufijo>», que retira con `POST /v1/routes/{route_id}/retire`. Datos sintéticos. |
+| E2E HU029 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu029IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo con inscripción> -Pandroid.testInstrumentationRunnerArguments.e2eUnregisteredEmail=<correo sin inscripciones> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña> -Pandroid.testInstrumentationRunnerArguments.e2eServiceSuffix=<sufijo>` — antes: un organizador publica un evento dentro de 31 días y el primer deportista se inscribe (HU041); un profesional publica por `bff-web` «E2E HU029 Transporte <sufijo>» (`TRANSPORT`) con un intervalo disponible ese día y «E2E HU029 Entrenamiento <sufijo>» (`COACHING`) con un intervalo en 31 días. El segundo deportista no tiene inscripciones. Datos sintéticos. |
 | APK de depuración | `./gradlew :app:assembleDebug` |
 | Candidato de release sin firmar | `./gradlew :app:assembleRelease :app:bundleRelease` |
 
@@ -340,6 +359,13 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   Room, Keystore, reinicio, esquema, respaldo, pantalla y recorrido se prueban en el dispositivo
   (`features/services/` y `navigation/VirtualSessionsFlowTest`); `e2e/Hu040IntegratedE2eTest` requiere
   la composición local con `bff-mobile` ≥ 0.18.0 y `complementary-services` 0.6.0.
+- HU029: `SupportSuggestionsModelsTest` (guarda, partición, códigos, fuentes y `STALE`),
+  `SupportSuggestionsRepositoryTest` (MockWebServer: `200`, vacía explicada, Eventos o Usuarios caídos,
+  `403`, `422`, `503`/`504`, `401`, sin red, respuesta inválida, cifrado, partición y limpieza) y
+  `SupportSuggestionsViewModelTest` en la JVM; `SupportSuggestionsContractTest` verifica la operación y sus
+  esquemas en la copia 0.18.0. Room, Keystore, reinicio, esquema, respaldo, limpieza, pantalla y recorrido
+  se prueban en el dispositivo (`features/services/Support*` y `navigation/SupportSuggestionsFlowTest`);
+  `e2e/Hu029IntegratedE2eTest` usa la composición local.
 - HU033: `TrainingDashboardModelsTest`, `TrainingDashboardRepositoryTest` (MockWebServer: `200`,
   vacío, fuente caída, `403`, `422`, `503`/`504`, sin red, respuesta inválida, partición y limpieza) y
   `TrainingDashboardViewModelTest` en la JVM; `TrainingDashboardContractTest` verifica la operación y

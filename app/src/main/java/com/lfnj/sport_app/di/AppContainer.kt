@@ -41,6 +41,11 @@ import com.lfnj.sport_app.features.services.data.VirtualSessionsApi
 import com.lfnj.sport_app.features.services.data.VirtualSessionsCacheJanitor
 import com.lfnj.sport_app.features.services.data.VirtualSessionsRepository
 import com.lfnj.sport_app.features.services.data.local.VirtualSessionsCodec
+import com.lfnj.sport_app.features.services.data.SupportSuggestionsApi
+import com.lfnj.sport_app.features.services.data.SupportSuggestionsCacheJanitor
+import com.lfnj.sport_app.features.services.data.SupportSuggestionsRepository
+import com.lfnj.sport_app.features.services.data.local.SupportSuggestionsCodec
+import com.lfnj.sport_app.features.services.data.local.SupportSuggestionsDatabase
 import com.lfnj.sport_app.features.services.data.local.VirtualSessionsDatabase
 import com.lfnj.sport_app.features.status.HttpStatusRepository
 import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardApi
@@ -315,5 +320,26 @@ open class AppContainer(
 
     val eventRegistrationsCacheJanitor: EventRegistrationsCacheJanitor by lazy {
         EventRegistrationsCacheJanitor(sessionManager.currentUser, eventRegistrationRepository)
+    }
+
+    // ------------------------------------------------------------------ HU029 (ADR-041)
+
+    protected open val supportSuggestionsDatabase: SupportSuggestionsDatabase by lazy { SupportSuggestionsDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de la caché de acompañamiento y logística, distinta de la de la sesión y de las demás cachés. */
+    protected open val supportSuggestionsCipher: TokenCipher by lazy { KeystoreTokenCipher(SupportSuggestionsCodec.KEY_ALIAS) }
+
+    open val supportSuggestionsRepository: SupportSuggestionsRepository by lazy {
+        SupportSuggestionsRepository(
+            dao = supportSuggestionsDatabase.supportSuggestionsCacheDao(),
+            codec = SupportSuggestionsCodec(supportSuggestionsCipher, BffMobileClient.json),
+            api = bffApi(SupportSuggestionsApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    val supportSuggestionsCacheJanitor: SupportSuggestionsCacheJanitor by lazy {
+        SupportSuggestionsCacheJanitor(sessionManager.currentUser, supportSuggestionsRepository)
     }
 }
