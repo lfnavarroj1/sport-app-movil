@@ -82,7 +82,7 @@ class NavigationRegistryTest {
         val menu = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES))
 
         assertEquals(
-            listOf(Destinations.ATHLETE_HOME, Destinations.TRAINING_SESSION, Destinations.TRAINING_METRICS, Destinations.CALENDAR),
+            listOf(Destinations.ATHLETE_HOME, Destinations.PLAN_SUGGESTIONS, Destinations.TRAINING_SESSION, Destinations.TRAINING_METRICS, Destinations.CALENDAR),
             menu.mapNotNull { it.route },
         )
     }
@@ -165,5 +165,28 @@ class NavigationRegistryTest {
                 .none { it.hu == "HU035" }
         )
         assertTrue(NavigationRegistry.athleteMenu(null, openTrainingSession = true).none { it.hu == "HU035" })
+    }
+
+    // ------------------------------------------------------------- HU028
+
+    @Test
+    fun `HU028 Entrenamientos sugeridos queda habilitado con la capacidad`() {
+        val entry = NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES)).single { it.hu == "HU028" }
+
+        assertEquals(Destinations.PLAN_SUGGESTIONS, entry.route)
+        assertEquals("training.plans.suggest", entry.capability)
+        assertEquals(MenuGroup.TRAINING, entry.group)
+        assertEquals(130, entry.order)
+        assertTrue(entry.enabled)
+    }
+
+    @Test
+    fun `HU028 sin capacidad, sin suscripcion activa o sin capacidades conocidas no aparece`() {
+        assertTrue(NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES - "training.plans.suggest")).none { it.hu == "HU028" })
+        assertTrue(
+            NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES, SubscriptionStatus.entries.first { it != SubscriptionStatus.ACTIVE }))
+                .none { it.hu == "HU028" }
+        )
+        assertTrue(NavigationRegistry.athleteMenu(null).none { it.hu == "HU028" })
     }
 }

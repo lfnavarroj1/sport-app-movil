@@ -19,4 +19,7 @@ object Destinations {
 
     /** HU035: calendario deportivo del deportista (`/calendario`). */
     const val CALENDAR = "calendario"
+
+    /** HU028: plantillas de plan sugeridas al deportista (`/entrenamientos/sugeridos`). */
+    const val PLAN_SUGGESTIONS = "entrenamientos/sugeridos"
 }

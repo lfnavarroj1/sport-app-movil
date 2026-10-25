@@ -30,7 +30,7 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035 y HU004
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028 y HU004
 ├── MainActivity.kt        única Activity; aloja la navegación Compose
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -46,6 +46,9 @@ app/src/main/java/com/lfnj/sport_app/
 │   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada
 │   │   └── model/         periodo por zona, elementos, fuentes y agrupación por día
 │   ├── home/              inicio del deportista con menú por capacidades (HU003)
+│   ├── recommendations/   entrenamientos sugeridos (HU028): pantalla de lista y detalle, ViewModel,
+│   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada
+│   │   └── model/         plantillas, motivos, contexto faltante y antigüedad
 │   ├── training/metrics/  FTP y VO₂max estimados (HU034): pantalla y ViewModel dirigidos por el catálogo,
 │   │   ├── data/          API, repositorio y Room (catálogo, historial y cola cifrados con Keystore)
 │   │   ├── model/         catálogo, entradas, resultados, validación de experiencia y formato
@@ -132,6 +135,22 @@ app/src/main/java/com/lfnj/sport_app/
 - Al terminar la sesión (cierre, vencimiento o cambio de deportista) se elimina la caché del
   deportista; al autenticarse uno se eliminan las de cualquier otro.
 
+### Entrenamientos sugeridos (HU028, ADR-041)
+
+- La opción 130 «Entrenamientos sugeridos» (capacidad `training.plans.suggest`; sin ella la opción no
+  aparece y la guarda devuelve al inicio) abre `entrenamientos/sugeridos`, que consulta
+  `GET /v1/me/suggestions/training-plan-templates?limit=20` y muestra las plantillas en el orden del BFF
+  con autor (o «Autor no disponible»), deporte, nivel, semanas, sesiones por semana y motivos. El
+  detalle añade objetivo, fecha de publicación, objetivos y sesiones semanales.
+- Con `personalized: false` la lista se presenta como no personalizada y explica cada
+  `missing_context` o que Usuarios no respondió; con `missing_context: ["primary_goal"]` sigue
+  personalizada por deporte. «Autorizar a este profesional» es solo un texto que remite a la web
+  (HU010): la app no asigna, copia ni inicia planes.
+- Solo lectura, sin WorkManager: la pantalla observa la última lista confirmada (una fila por
+  deportista en `sportapp_plan_suggestions.db`, payload AES-GCM con la clave
+  `sportapp.plan_suggestions.v1`, excluida del respaldo) y cada `200` la reemplaza; sin red la muestra
+  con `last_synced_at` y la marca desactualizada a las 24 h. Al terminar la sesión se elimina como en HU035.
+
 ## Configuración por variante
 
 | Variante | `APP_ENVIRONMENT` | `BFF_MOBILE_BASE_URL` |
@@ -206,6 +225,10 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   ejemplos de ADR-030 y un catálogo con un tercer indicador de prueba. Room, Keystore, reinicio,
   esquema, respaldo, WorkManager, pantalla y recorrido se prueban en el dispositivo
   (`features/training/metrics/` y `navigation/TrainingMetricsFlowTest`).
+- HU028: `PlanSuggestionsRepositoryTest` (MockWebServer y caché en memoria) y
+  `PlanSuggestionsViewModelTest` en la JVM; `PlanSuggestionsContractTest` verifica la copia 0.15.0. Room,
+  Keystore, reinicio, esquema, respaldo, limpieza, pantalla y recorrido se prueban en el dispositivo
+  (`features/recommendations/` y `navigation/PlanSuggestionsFlowTest`).
 - HU004: `RevocationQueueTest` cubre la cola con MockWebServer (204, 422, 503/504, sin red,
   vencimiento, clave estable) y `SessionContractTest`, `POST /v1/sessions/revoke`; Room, Keystore,
   la separación del almacén de sesión, el reinicio del proceso, el esquema, el respaldo y
