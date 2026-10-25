@@ -166,34 +166,40 @@ class VirtualSessionsCodec(private val cipher: TokenCipher, private val json: Js
     private fun CachedFee.toFee() = ServiceFee(amount, currency, billingUnit)
 
     /** `null` si un código guardado no es reconocible: no se reinterpreta como otro valor. */
-    private fun CachedService.toService(): CoachingService? = CoachingService(
-        serviceId = serviceId,
-        providerId = providerId,
-        name = name,
-        description = description,
-        modality = ServiceModality.fromWire(modality) ?: return null,
-        fee = fee.toFee(),
-        slots = slots.map {
-            AvailabilitySlot(it.availabilityId, Instant.ofEpochSecond(it.startsAt), Instant.ofEpochSecond(it.endsAt), ZoneId.of(it.timeZone), it.capacity)
-        },
-    )
+    private fun CachedService.toService(): CoachingService? {
+        val parsedModality = ServiceModality.fromWire(modality) ?: return null
+        return CoachingService(
+            serviceId = serviceId,
+            providerId = providerId,
+            name = name,
+            description = description,
+            modality = parsedModality,
+            fee = fee.toFee(),
+            slots = slots.map {
+                AvailabilitySlot(it.availabilityId, Instant.ofEpochSecond(it.startsAt), Instant.ofEpochSecond(it.endsAt), ZoneId.of(it.timeZone), it.capacity)
+            },
+        )
+    }
 
-    private fun CachedAppointment.toAppointment(): Appointment? = Appointment(
-        appointmentId = appointmentId,
-        serviceId = serviceId,
-        availabilityId = availabilityId,
-        providerId = providerId,
-        serviceName = serviceName,
-        modality = modality,
-        fee = fee.toFee(),
-        startsAt = Instant.ofEpochSecond(startsAt),
-        endsAt = Instant.ofEpochSecond(endsAt),
-        timeZone = ZoneId.of(timeZone),
-        status = AppointmentStatus.fromWire(status) ?: return null,
-        bookedAt = Instant.ofEpochSecond(bookedAt),
-        cancelledAt = cancelledAt?.let(Instant::ofEpochSecond),
-        version = version,
-    )
+    private fun CachedAppointment.toAppointment(): Appointment? {
+        val parsedStatus = AppointmentStatus.fromWire(status) ?: return null
+        return Appointment(
+            appointmentId = appointmentId,
+            serviceId = serviceId,
+            availabilityId = availabilityId,
+            providerId = providerId,
+            serviceName = serviceName,
+            modality = modality,
+            fee = fee.toFee(),
+            startsAt = Instant.ofEpochSecond(startsAt),
+            endsAt = Instant.ofEpochSecond(endsAt),
+            timeZone = ZoneId.of(timeZone),
+            status = parsedStatus,
+            bookedAt = Instant.ofEpochSecond(bookedAt),
+            cancelledAt = cancelledAt?.let(Instant::ofEpochSecond),
+            version = version,
+        )
+    }
 
     companion object {
         /** Alias de la clave no exportable de Android Keystore para la caché de HU040. */
