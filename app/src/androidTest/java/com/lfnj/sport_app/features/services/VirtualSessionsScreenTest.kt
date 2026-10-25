@@ -7,6 +7,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -142,7 +145,8 @@ class VirtualSessionsScreenTest {
         show(state(selected = service, booking = BookingDraft(service, slot, "k")))
         composeRule.onNodeWithTag("virtual_booking_dialog").assertIsDisplayed()
         composeRule.onNodeWithTag("virtual_booking_cancel_policy").assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.virtual_sessions_meeting_link)).assertExists()
+        // El detalle detrás del diálogo también lo explica: se verifica el texto dentro del diálogo.
+        composeRule.onNode(hasText(text(R.string.virtual_sessions_meeting_link)) and hasAnyAncestor(hasTestTag("virtual_booking_dialog"))).assertExists()
         composeRule.onNodeWithTag("virtual_booking_confirm").assertIsEnabled().performClick()
         assertEquals(listOf("confirm"), events)
     }
