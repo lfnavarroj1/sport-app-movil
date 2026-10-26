@@ -595,6 +595,60 @@
         <item quantity="other">Cupo total: %1$d personas</item>
     </plurals>
 
+    <!-- HU029: acompañamiento y logística sugeridos (ADR-041) -->
+    <string name="support_suggestions_title">Acompañamiento y logística</string>
+    <string name="support_suggestions_detail_title">Detalle del servicio</string>
+    <string name="support_suggestions_loading">Cargando servicios sugeridos…</string>
+    <string name="support_suggestions_refreshing">Actualizando servicios sugeridos</string>
+    <string name="support_suggestions_synced_at">Lista confirmada el %1$s</string>
+    <string name="support_suggestions_stale">Esta lista tiene más de 24 horas: puede que algunos servicios o intervalos ya no estén disponibles.</string>
+    <string name="support_suggestions_offline_with_cache">Sin conexión: se muestra la última lista confirmada.</string>
+    <string name="support_suggestions_unavailable_with_cache">No pudimos actualizar la lista: se muestra la última confirmada.</string>
+    <string name="support_suggestions_never_synced">Sin conexión y sin una lista guardada en este dispositivo. Conéctate para ver los servicios sugeridos.</string>
+    <string name="support_suggestions_error_unavailable">El servicio de sugerencias no está disponible en este momento. Inténtalo de nuevo más tarde.</string>
+    <string name="support_suggestions_error_capability_required">Tu plan actual no incluye las sugerencias de acompañamiento y logística.</string>
+    <string name="support_suggestions_error_permission_required">Esta opción es exclusiva para deportistas.</string>
+    <string name="support_suggestions_error_invalid_request">No pudimos consultar las sugerencias. Inténtalo de nuevo.</string>
+    <string name="support_suggestions_error_invalid_response">Recibimos una respuesta que no pudimos interpretar. Inténtalo de nuevo más tarde.</string>
+    <string name="support_suggestions_error_storage">No pudimos guardar la lista en este dispositivo. Inténtalo de nuevo.</string>
+    <string name="support_suggestions_personalized">Priorizamos el transporte y el acompañamiento disponibles los días de tus eventos inscritos.</string>
+    <string name="support_suggestions_not_personalized">Estas sugerencias no consideran tus eventos inscritos.</string>
+    <string name="support_suggestions_missing_registrations">No tienes inscripciones a eventos en los próximos 31 días: solo te sugerimos entrenamiento con disponibilidad próxima.</string>
+    <string name="support_suggestions_events_unavailable">No pudimos consultar tus inscripciones a eventos: la lista no incluye transporte ni acompañamiento para tus eventos.</string>
+    <string name="support_suggestions_missing_other">Faltó información para evaluar algunas sugerencias.</string>
+    <string name="support_suggestions_users_unavailable">No pudimos obtener el nombre de algunos proveedores.</string>
+    <string name="support_suggestions_empty">No hay servicios de entrenamiento, transporte o acompañamiento con disponibilidad que coincidan en los próximos 31 días.</string>
+    <string name="support_suggestions_empty_without_registrations">No hay sugerencias: no tienes inscripciones a eventos vigentes y no hay entrenamientos con disponibilidad en los próximos 31 días.</string>
+    <string name="support_suggestions_device_zone">Horas en la zona de tu dispositivo (%1$s).</string>
+    <string name="support_suggestions_fee_informative">Las tarifas son informativas: esta sugerencia no contrata, reserva ni cobra el servicio.</string>
+    <string name="support_suggestions_open_detail">Ver el detalle de %1$s</string>
+    <string name="support_suggestions_provider">Proveedor: %1$s</string>
+    <string name="support_suggestions_provider_unknown">Proveedor no disponible</string>
+    <string name="support_suggestions_summary_line">%1$s · %2$s</string>
+    <string name="support_suggestions_next_interval">Próximo intervalo: %1$s</string>
+    <string name="support_suggestions_reason_event_logistics">Disponible el día de tu evento</string>
+    <string name="support_suggestions_reason_upcoming_availability">Disponibilidad en los próximos 31 días</string>
+    <string name="support_suggestions_field_category">Categoría: %1$s</string>
+    <string name="support_suggestions_field_modality">Modalidad: %1$s</string>
+    <string name="support_suggestions_interval_title">Próximo intervalo disponible</string>
+    <string name="support_suggestions_provider_zone">Hora del proveedor (%1$s): %2$s</string>
+    <string name="support_suggestions_provider_zone_same">El proveedor está en la misma hora (%1$s).</string>
+    <string name="support_suggestions_reasons_title">Por qué te lo sugerimos</string>
+    <string name="support_suggestions_description_title">Descripción</string>
+    <string name="support_suggestions_hire_title">Contratar no está disponible en la aplicación</string>
+    <string name="support_suggestions_hire_body">Esta sugerencia es informativa: desde aquí no se contrata, reserva ni paga el servicio.</string>
+    <string name="support_suggestions_category_coaching">Entrenamiento</string>
+    <string name="support_suggestions_category_transport">Transporte</string>
+    <string name="support_suggestions_category_accompaniment">Acompañamiento</string>
+    <string name="support_suggestions_modality_in_person">Presencial</string>
+    <string name="support_suggestions_modality_virtual">Virtual</string>
+    <string name="support_suggestions_modality_hybrid">Híbrida (virtual o presencial)</string>
+    <string name="support_suggestions_fee">Tarifa informativa: %1$s %2$s</string>
+    <string name="support_suggestions_unit_service">por servicio</string>
+    <string name="support_suggestions_unit_session">por sesión</string>
+    <string name="support_suggestions_unit_hour">por hora</string>
+    <string name="support_suggestions_unit_day">por día</string>
+
     <!-- HU041: inscripción a un evento publicado -->
     <string name="event_detail_title">Detalle del evento</string>
     <string name="event_loading">Cargando el evento…</string>

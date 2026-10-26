@@ -82,7 +82,7 @@ class NavigationRegistryTest {
         val menu = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES))
 
         assertEquals(
-            listOf(Destinations.ATHLETE_HOME, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.VIRTUAL_SESSIONS),
+            listOf(Destinations.ATHLETE_HOME, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.SUPPORT_SUGGESTIONS, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.VIRTUAL_SESSIONS),
             menu.mapNotNull { it.route },
         )
     }
@@ -266,6 +266,30 @@ class NavigationRegistryTest {
                 .none { it.hu == "HU028" }
         )
         assertTrue(NavigationRegistry.athleteMenu(null).none { it.hu == "HU028" })
+    }
+
+    // ------------------------------------------------------------- HU029
+
+    @Test
+    fun `HU029 Acompañamiento y logística queda habilitado con la capacidad`() {
+        val entry = NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES)).single { it.hu == "HU029" }
+
+        assertEquals(Destinations.SUPPORT_SUGGESTIONS, entry.route)
+        assertEquals("servicios/acompanamiento", entry.route)
+        assertEquals("services.support.suggest", entry.capability)
+        assertEquals(MenuGroup.SERVICES, entry.group)
+        assertEquals(140, entry.order)
+        assertTrue(entry.enabled)
+    }
+
+    @Test
+    fun `HU029 sin capacidad, sin suscripcion activa o sin capacidades conocidas no aparece`() {
+        assertTrue(NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES - "services.support.suggest")).none { it.hu == "HU029" })
+        assertTrue(
+            NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES, SubscriptionStatus.entries.first { it != SubscriptionStatus.ACTIVE }))
+                .none { it.hu == "HU029" }
+        )
+        assertTrue(NavigationRegistry.athleteMenu(null).none { it.hu == "HU029" })
     }
 
     // ------------------------------------------------------------- HU040
