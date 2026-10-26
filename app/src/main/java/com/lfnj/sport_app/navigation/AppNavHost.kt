@@ -6,6 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -14,6 +16,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.lfnj.sport_app.core.session.ActorType
@@ -39,6 +42,12 @@ import com.lfnj.sport_app.features.identity.login.LoginViewModel
 import com.lfnj.sport_app.features.identity.start.SessionStartScreen
 import com.lfnj.sport_app.features.identity.start.SessionStartViewModel
 import com.lfnj.sport_app.features.identity.unauthorized.UnauthorizedScreen
+import com.lfnj.sport_app.features.notifications.NotificationPreferencesScreen
+import com.lfnj.sport_app.features.notifications.NotificationPreferencesViewModel
+import com.lfnj.sport_app.features.notifications.NotificationsInboxScreen
+import com.lfnj.sport_app.features.notifications.NotificationsInboxViewModel
+import com.lfnj.sport_app.features.notifications.model.NotificationsOwner
+import com.lfnj.sport_app.features.notifications.system.rememberSystemNotificationsEnabler
 import com.lfnj.sport_app.features.recommendations.PlanSuggestionsScreen
 import com.lfnj.sport_app.features.recommendations.PlanSuggestionsViewModel
 import com.lfnj.sport_app.features.recommendations.model.PlanSuggestionsAccess
@@ -72,6 +81,9 @@ import com.lfnj.sport_app.features.training.session.model.TrainingOwner
 
 private const val NOTICE_ARG = "notice"
 
+/** Destinos previos a una sesión validada: una notificación tocada espera hasta salir de ellos (HU039). */
+private val PRE_SESSION_ROUTES = setOf(Destinations.SESSION_START, "${Destinations.LOGIN}?$NOTICE_ARG={$NOTICE_ARG}", Destinations.UNAUTHORIZED, Destinations.STATUS)
+
 /** Navega a [route] eliminando la pila: Atrás no regresa a pantallas protegidas ni de otra sesión. */
 private fun NavHostController.replaceAll(route: String) = navigate(route) {
     popUpTo(graph.id) { inclusive = true }
@@ -88,6 +100,19 @@ fun AppNavHost(
     navController: NavHostController = rememberNavController(),
 ) {
     val sessionManager = container.sessionManager
+    // HU039: una notificación del sistema tocada abre el detalle del evento (HU041) cuando ya hay una
+    // sesión de deportista validada y visible; antes (arranque, acceso) espera sin descartarla.
+    val pendingOpen by container.notificationLaunch.pending.collectAsStateWithLifecycle()
+    val currentEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(pendingOpen, currentEntry?.destination?.route) {
+        val route = currentEntry?.destination?.route ?: return@LaunchedEffect
+        val user = sessionManager.currentUser.value
+        if (pendingOpen == null || user == null || user.actorType != ActorType.ATHLETE || route in PRE_SESSION_ROUTES) return@LaunchedEffect
+        container.notificationLaunch.consume()?.let { open ->
+            container.markNotificationReadInBackground(NotificationsOwner.keyOf(user.userId), open.notificationId)
+            navController.navigate(Destinations.eventDetail(open.eventId)) { launchSingleTop = true }
+        }
+    }
     NavHost(navController = navController, startDestination = Destinations.SESSION_START, modifier = modifier) {
         composable(Destinations.SESSION_START) {
             val viewModel: SessionStartViewModel = viewModel(
@@ -622,6 +647,86 @@ fun AppNavHost(
                         state = state,
                         onOpenDetail = viewModel::openDetail,
                         onCloseDetail = viewModel::closeDetail,
+                        onRetry = viewModel::retry,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.NOTIFICATIONS) {
+            // HU039: misma guarda que athlete_home; la bandeja es opción base, sin capacidad de plan (ADR-045 §11).
+            val user = remember { sessionManager.currentUser.value }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                else -> {
+                    val viewModel: NotificationsInboxViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer {
+                                NotificationsInboxViewModel(
+                                    NotificationsOwner.keyOf(user.userId),
+                                    container.notificationsRepository,
+                                    container.systemNotificationsProbe,
+                                )
+                            }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshSystemStatus() }
+                    val enableSystemNotifications = rememberSystemNotificationsEnabler(onResult = viewModel::refreshSystemStatus)
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    NotificationsInboxScreen(
+                        state = state,
+                        onOpen = { item ->
+                            viewModel.open(item)
+                            // El detalle es de HU041: se abre su destino sin modificarlo.
+                            navController.navigate(Destinations.eventDetail(item.eventId)) { launchSingleTop = true }
+                        },
+                        onRetry = viewModel::retry,
+                        onLoadMore = viewModel::loadMore,
+                        onDismissMarkReadProblem = viewModel::dismissMarkReadProblem,
+                        onEnableSystemNotifications = { enableSystemNotifications(state.systemNotifications) },
+                        onOpenPreferences = { navController.navigate(Destinations.NOTIFICATION_PREFERENCES) { launchSingleTop = true } },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.NOTIFICATION_PREFERENCES) {
+            // HU039: misma guarda que athlete_home; preferencias solo con conectividad.
+            val user = remember { sessionManager.currentUser.value }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                else -> {
+                    val viewModel: NotificationPreferencesViewModel = viewModel(
+                        factory = viewModelFactory { initializer { NotificationPreferencesViewModel(container.notificationsRepository) } }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    NotificationPreferencesScreen(
+                        state = state,
+                        onEventMatchesChange = viewModel::setEventMatches,
+                        onEventRemindersChange = viewModel::setEventReminders,
+                        onSave = viewModel::save,
                         onRetry = viewModel::retry,
                         onBack = { navController.popBackStack() },
                     )

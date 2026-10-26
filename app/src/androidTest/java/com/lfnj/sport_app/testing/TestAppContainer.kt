@@ -25,6 +25,12 @@ import com.lfnj.sport_app.features.training.dashboard.data.local.TrainingDashboa
 import com.lfnj.sport_app.features.training.metrics.data.local.TrainingMetricsDatabase
 import com.lfnj.sport_app.features.training.session.data.TrainingSyncScheduler
 import com.lfnj.sport_app.features.training.session.data.local.TrainingDatabase
+import com.lfnj.sport_app.features.notifications.data.NotificationAnnouncer
+import com.lfnj.sport_app.features.notifications.data.local.NotificationsDatabase
+import com.lfnj.sport_app.features.notifications.model.InboxNotification
+import com.lfnj.sport_app.features.notifications.model.SystemNotificationsStatus
+import com.lfnj.sport_app.features.notifications.sync.InboxSyncScheduler
+import com.lfnj.sport_app.features.notifications.system.SystemNotificationsProbe
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.security.KeyStore
 
@@ -62,8 +68,32 @@ class RecordingRevocationScheduler : RevocationScheduler {
     }
 }
 
+/** Registra los anuncios de HU039 en lugar de publicarlos en el sistema del teléfono. */
+class RecordingNotificationAnnouncer : NotificationAnnouncer {
+    val announced = mutableListOf<InboxNotification>()
+    val dismissed = mutableListOf<String>()
+    override fun announce(items: List<InboxNotification>) {
+        announced += items
+    }
+    override fun dismiss(notificationId: String) {
+        dismissed += notificationId
+    }
+}
+
+/** Registra la programación del trabajo periódico de HU039; la prueba ejecuta el motor. */
+class RecordingInboxSyncScheduler : InboxSyncScheduler {
+    var scheduled = 0
+    var cancelled = 0
+    override fun schedule() {
+        scheduled++
+    }
+    override fun cancel() {
+        cancelled++
+    }
+}
+
 /**
- * Contenedor real con bases de HU026, HU028, HU029, HU040, HU032, HU033, HU034, HU035, HU041 y la cola de revocación de HU004 en memoria, claves de
+ * Contenedor real con bases de HU026, HU028, HU029, HU039, HU040, HU032, HU033, HU034, HU035, HU041 y la cola de revocación de HU004 en memoria, claves de
  * Keystore de prueba y sincronización controlada por la prueba (sin WorkManager), para no tocar los
  * datos de la aplicación instalada.
  */
@@ -140,6 +170,16 @@ class TestAppContainer(
     override val virtualSessionsDatabase: VirtualSessionsDatabase get() = virtualSessions
     override val virtualSessionsCipher: TokenCipher = KeystoreTokenCipher(VIRTUAL_SESSIONS_TEST_KEY_ALIAS)
 
+    // HU039: bandeja en memoria con su clave de prueba, anuncios registrados y estado del sistema controlado.
+    val notifications: NotificationsDatabase = Room.inMemoryDatabaseBuilder(context, NotificationsDatabase::class.java).build()
+    override val notificationsDatabase: NotificationsDatabase get() = notifications
+    override val notificationsCipher: TokenCipher = KeystoreTokenCipher(NOTIFICATIONS_TEST_KEY_ALIAS)
+    val announcer = RecordingNotificationAnnouncer()
+    override val notificationAnnouncer: NotificationAnnouncer get() = announcer
+    val inboxScheduler = RecordingInboxSyncScheduler()
+    override val inboxSyncScheduler: InboxSyncScheduler get() = inboxScheduler
+    var systemNotifications = SystemNotificationsStatus.ENABLED
+    override val systemNotificationsProbe: SystemNotificationsProbe = SystemNotificationsProbe { systemNotifications }
     // HU029: caché de acompañamiento y logística sugeridos en memoria con su clave de prueba.
     val supportSuggestions: SupportSuggestionsDatabase = Room.inMemoryDatabaseBuilder(context, SupportSuggestionsDatabase::class.java).build()
     override val supportSuggestionsDatabase: SupportSuggestionsDatabase get() = supportSuggestions
@@ -156,6 +196,7 @@ class TestAppContainer(
         virtualSessions.close()
         eventRegistrations.close()
         eventSuggestions.close()
+        notifications.close()
         supportSuggestions.close()
         deleteTestKey()
         deleteTestKey(CALENDAR_TEST_KEY_ALIAS)
@@ -167,6 +208,7 @@ class TestAppContainer(
         deleteTestKey(VIRTUAL_SESSIONS_TEST_KEY_ALIAS)
         deleteTestKey(EVENT_REGISTRATIONS_TEST_KEY_ALIAS)
         deleteTestKey(EVENT_SUGGESTIONS_TEST_KEY_ALIAS)
+        deleteTestKey(NOTIFICATIONS_TEST_KEY_ALIAS)
         deleteTestKey(SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS)
     }
 
@@ -181,6 +223,7 @@ class TestAppContainer(
         const val VIRTUAL_SESSIONS_TEST_KEY_ALIAS = "sportapp.virtual_sessions.test"
         const val EVENT_REGISTRATIONS_TEST_KEY_ALIAS = "sportapp.event_registrations.test"
         const val EVENT_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.event_suggestions.test"
+        const val NOTIFICATIONS_TEST_KEY_ALIAS = "sportapp.notifications.test"
         const val SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.support_suggestions.test"
 
         fun deleteTestKey(alias: String = TEST_KEY_ALIAS) = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias)

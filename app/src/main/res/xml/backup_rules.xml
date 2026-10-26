@@ -7,7 +7,7 @@
     de sesión (HU004, ADR-026) ni los indicadores de HU034 (ADR-030 offline §1) ni la caché de
     entrenamientos sugeridos (HU028, ADR-041 §5) ni la del tablero de entrenamientos (HU033, ADR-043 §5)
     ni la de rutas sugeridas (HU026, ADR-041 §5) ni la de sesiones virtuales (HU040, ADR-046 §8)
-    ni la de acompañamiento y logística sugeridos (HU029, ADR-041 §5).
+    ni la de acompañamiento y logística sugeridos (HU029, ADR-041 §5) ni la bandeja de notificaciones (HU039, ADR-045).
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
@@ -55,4 +55,8 @@
     <exclude domain="database" path="sportapp_support_suggestions.db-shm" />
     <exclude domain="database" path="sportapp_support_suggestions.db-wal" />
     <exclude domain="database" path="sportapp_support_suggestions.db-journal" />
+    <exclude domain="database" path="sportapp_notifications.db" />
+    <exclude domain="database" path="sportapp_notifications.db-shm" />
+    <exclude domain="database" path="sportapp_notifications.db-wal" />
+    <exclude domain="database" path="sportapp_notifications.db-journal" />
 </full-backup-content>
