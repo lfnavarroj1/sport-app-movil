@@ -1,11 +1,14 @@
 package com.lfnj.sport_app.features.services
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -91,9 +94,10 @@ class SupportSuggestionsScreenTest {
         composeRule.onNodeWithTag("support_suggestion_a").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Proveedor: Carlos Rodríguez", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("Transporte · Presencial", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Tarifa informativa:", substring = true, useUnmergedTree = true).assertIsDisplayed()
+        // Ambas tarjetas muestran su tarifa y su próximo intervalo (CA3).
+        composeRule.onAllNodesWithText("Tarifa informativa:", substring = true, useUnmergedTree = true).assertCountEquals(2)
         composeRule.onNodeWithText("por servicio", substring = true, useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Próximo intervalo:", substring = true, useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onAllNodesWithTag("support_suggestion_next_interval", useUnmergedTree = true).assertCountEquals(2)
         composeRule.onNodeWithTag("support_suggestion_reason_EVENT_LOGISTICS", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("Disponible el día de tu evento", useUnmergedTree = true).assertIsDisplayed()
         // Sin proveedor resuelto se dice así, sin inventar un nombre.
