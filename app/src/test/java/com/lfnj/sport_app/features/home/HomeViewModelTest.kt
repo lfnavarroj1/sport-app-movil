@@ -177,7 +177,7 @@ class HomeViewModelTest {
         open.value = true
         advanceUntilIdle()
 
-        assertEquals(listOf("home", "training.session.record", "logout"), vm.uiState.value.ids())
+        assertEquals(listOf("home", "notifications", "training.session.record", "logout"), vm.uiState.value.ids())
         assertTrue(vm.uiState.value.openTrainingSession)
     }
 }
