@@ -18,7 +18,7 @@ class SportApp : Application(), Configuration.Provider {
     lateinit var container: AppContainer
         private set
 
-    /** Ámbito del proceso para la sincronización de HU032 y HU034, las cachés de HU035, HU028, HU033, HU026, HU040 y HU041 y la cola de revocación de HU004. */
+    /** Ámbito del proceso para la sincronización de HU032 y HU034, las cachés de HU035, HU028, HU033, HU026, HU040, HU041 y HU029 y la cola de revocación de HU004. */
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
@@ -35,6 +35,7 @@ class SportApp : Application(), Configuration.Provider {
         container.eventRegistrationsCacheJanitor.start(applicationScope)
         // HU027: caché cifrada de eventos sugeridos, eliminada al terminar la sesión.
         container.eventSuggestionsCacheJanitor.start(applicationScope)
+        container.supportSuggestionsCacheJanitor.start(applicationScope)
         // HU039: canales del sistema, bandeja cifrada eliminada al terminar la sesión y sincronización cada 15 min.
         container.androidNotificationAnnouncer.ensureChannels()
         container.notificationsCacheJanitor.start(applicationScope)
