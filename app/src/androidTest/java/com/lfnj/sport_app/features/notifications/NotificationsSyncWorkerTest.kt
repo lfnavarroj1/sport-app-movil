@@ -22,6 +22,7 @@ import com.lfnj.sport_app.core.security.KeystoreTokenCipher
 import com.lfnj.sport_app.core.session.SessionApi
 import com.lfnj.sport_app.core.session.SessionManager
 import com.lfnj.sport_app.core.session.revocation.RevocationWorker
+import com.lfnj.sport_app.features.notifications.data.NotificationAnnouncer
 import com.lfnj.sport_app.features.notifications.data.NotificationsApi
 import com.lfnj.sport_app.features.notifications.data.NotificationsRepository
 import com.lfnj.sport_app.features.notifications.data.local.NotificationsCodec
@@ -67,6 +68,9 @@ class NotificationsSyncWorkerTest {
     private lateinit var repository: NotificationsRepository
     private lateinit var announcer: AndroidNotificationAnnouncer
 
+    /** `notification_id` que el repositorio entregó al sistema, en orden: prueba directa de la deduplicación. */
+    private val announcedIds = java.util.Collections.synchronizedList(mutableListOf<String>())
+
     @Before
     fun setUp() {
         server.start()
@@ -81,7 +85,14 @@ class NotificationsSyncWorkerTest {
             retrofit.create(NotificationsApi::class.java),
             sessionManager,
             json,
-            announcer,
+            object : NotificationAnnouncer {
+                override fun announce(items: List<com.lfnj.sport_app.features.notifications.model.InboxNotification>) {
+                    announcedIds += items.map { it.notificationId }
+                    announcer.announce(items)
+                }
+
+                override fun dismiss(notificationId: String) = announcer.dismiss(notificationId)
+            },
         )
         WorkManagerTestInitHelper.initializeTestWorkManager(
             context,
@@ -118,6 +129,22 @@ class NotificationsSyncWorkerTest {
 
     private fun posted(tag: String) = systemNotifications.activeNotifications.filter { it.tag == tag && it.id == AndroidNotificationAnnouncer.NOTIFICATION_ID }
 
+    /**
+     * `notify` y `cancel` llegan al sistema de forma asíncrona: `activeNotifications` puede no
+     * reflejarlos aún al terminar el trabajo (intermitencia observada en G43 y G45). Se sondea hasta
+     * que haya [expected] notificaciones o venza [POST_TIMEOUT_MS] y se devuelve la última lectura;
+     * las aserciones no cambian.
+     */
+    private fun awaitPosted(tag: String, expected: Int): List<android.service.notification.StatusBarNotification> {
+        val deadline = System.currentTimeMillis() + POST_TIMEOUT_MS
+        var current = posted(tag)
+        while (current.size != expected && System.currentTimeMillis() < deadline) {
+            Thread.sleep(POLL_MS)
+            current = posted(tag)
+        }
+        return current
+    }
+
     @Test
     fun elTrabajoSincronizaLaBandejaYPublicaUnaNotificacionPorElementoNuevoEnSuCanal() {
         grantPostNotifications()
@@ -129,18 +156,21 @@ class NotificationsSyncWorkerTest {
         assertEquals(ListenableWorker.Result.success(), runBlocking { worker().doWork() })
 
         assertEquals("/v1/me/notifications", server.takeRequest(1, TimeUnit.SECONDS)?.requestUrl?.encodedPath)
-        val reminder = posted(REMINDER_ID).single()
+        val reminder = awaitPosted(REMINDER_ID, 1).single()
         assertEquals(NotificationChannels.EVENT_ALERTS, reminder.notification.channelId)
-        assertEquals(NotificationChannels.EVENT_UPDATES, posted(NOTIFICATION_ID).single().notification.channelId)
+        assertEquals(NotificationChannels.EVENT_UPDATES, awaitPosted(NOTIFICATION_ID, 1).single().notification.channelId)
         assertEquals(NotificationManager.IMPORTANCE_HIGH, systemNotifications.getNotificationChannel(NotificationChannels.EVENT_ALERTS).importance)
         assertEquals(NotificationManager.IMPORTANCE_DEFAULT, systemNotifications.getNotificationChannel(NotificationChannels.EVENT_UPDATES).importance)
         assertTrue(runBlocking { repository.observe(owner).first() }!!.items.size == 2)
 
         // Segunda corrida periódica con la misma bandeja: deduplicación local por notification_id.
         announcer.dismiss(REMINDER_ID)
+        assertTrue("el retiro llegó al sistema", awaitPosted(REMINDER_ID, 0).isEmpty())
         server.enqueue(json(page))
         assertEquals(ListenableWorker.Result.success(), runBlocking { worker().doWork() })
-        assertTrue("no se vuelve a anunciar", posted(REMINDER_ID).isEmpty())
+        // La segunda corrida no entrega nada al sistema: la deduplicación ocurre antes de `notify`.
+        assertEquals("no se vuelve a anunciar", listOf(REMINDER_ID, NOTIFICATION_ID), announcedIds.toList())
+        assertTrue("no se vuelve a publicar", posted(REMINDER_ID).isEmpty())
     }
 
     @Test
@@ -188,6 +218,8 @@ class NotificationsSyncWorkerTest {
         const val USER_ID = "7d8f0b8e-3c2a-4b8f-9a51-0c1d2e3f4a5b"
         const val NOTIFICATION_ID = "5b0e7c1a-2d3f-4a5b-8c6d-7e8f9a0b1c2d"
         const val REMINDER_ID = "4a9d6b09-1c2e-4f4a-9b5c-6d7e8f9a0b1c"
+        const val POST_TIMEOUT_MS = 5_000L
+        const val POLL_MS = 100L
 
         fun item(id: String, type: String, priority: String) =
             """{"notification_id":"$id","type":"$type","priority":"$priority","event_id":"683f4e38-6bb3-4c47-a6dc-9bb1588c67ef",""" +
