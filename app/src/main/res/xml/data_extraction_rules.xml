@@ -47,6 +47,10 @@
         <exclude domain="database" path="sportapp_event_registrations.db-shm" />
         <exclude domain="database" path="sportapp_event_registrations.db-wal" />
         <exclude domain="database" path="sportapp_event_registrations.db-journal" />
+        <exclude domain="database" path="sportapp_event_suggestions.db" />
+        <exclude domain="database" path="sportapp_event_suggestions.db-shm" />
+        <exclude domain="database" path="sportapp_event_suggestions.db-wal" />
+        <exclude domain="database" path="sportapp_event_suggestions.db-journal" />
         <exclude domain="database" path="sportapp_support_suggestions.db" />
         <exclude domain="database" path="sportapp_support_suggestions.db-shm" />
         <exclude domain="database" path="sportapp_support_suggestions.db-wal" />
@@ -90,6 +94,10 @@
         <exclude domain="database" path="sportapp_event_registrations.db-shm" />
         <exclude domain="database" path="sportapp_event_registrations.db-wal" />
         <exclude domain="database" path="sportapp_event_registrations.db-journal" />
+        <exclude domain="database" path="sportapp_event_suggestions.db" />
+        <exclude domain="database" path="sportapp_event_suggestions.db-shm" />
+        <exclude domain="database" path="sportapp_event_suggestions.db-wal" />
+        <exclude domain="database" path="sportapp_event_suggestions.db-journal" />
         <exclude domain="database" path="sportapp_support_suggestions.db" />
         <exclude domain="database" path="sportapp_support_suggestions.db-shm" />
         <exclude domain="database" path="sportapp_support_suggestions.db-wal" />

@@ -16,6 +16,7 @@ import com.lfnj.sport_app.di.AppContainer
 import com.lfnj.sport_app.features.calendar.data.local.CalendarDatabase
 import com.lfnj.sport_app.features.events.data.ConnectivityMonitor
 import com.lfnj.sport_app.features.events.data.local.EventRegistrationsDatabase
+import com.lfnj.sport_app.features.events.data.local.EventSuggestionsDatabase
 import com.lfnj.sport_app.features.recommendations.data.local.PlanSuggestionsDatabase
 import com.lfnj.sport_app.features.recommendations.data.local.RouteSuggestionsDatabase
 import com.lfnj.sport_app.features.services.data.local.SupportSuggestionsDatabase
@@ -129,6 +130,10 @@ class TestAppContainer(
     override val eventRegistrationsCipher: TokenCipher = KeystoreTokenCipher(EVENT_REGISTRATIONS_TEST_KEY_ALIAS)
     val online = MutableStateFlow(true)
     override val connectivityMonitor: ConnectivityMonitor = ConnectivityMonitor { online }
+    // HU027: caché de eventos sugeridos en memoria con su clave de prueba.
+    val eventSuggestions: EventSuggestionsDatabase = Room.inMemoryDatabaseBuilder(context, EventSuggestionsDatabase::class.java).build()
+    override val eventSuggestionsDatabase: EventSuggestionsDatabase get() = eventSuggestions
+    override val eventSuggestionsCipher: TokenCipher = KeystoreTokenCipher(EVENT_SUGGESTIONS_TEST_KEY_ALIAS)
 
     // HU040: caché de sesiones virtuales en memoria con su clave de prueba.
     val virtualSessions: VirtualSessionsDatabase = Room.inMemoryDatabaseBuilder(context, VirtualSessionsDatabase::class.java).build()
@@ -150,6 +155,7 @@ class TestAppContainer(
         routeSuggestions.close()
         virtualSessions.close()
         eventRegistrations.close()
+        eventSuggestions.close()
         supportSuggestions.close()
         deleteTestKey()
         deleteTestKey(CALENDAR_TEST_KEY_ALIAS)
@@ -160,6 +166,7 @@ class TestAppContainer(
         deleteTestKey(ROUTE_SUGGESTIONS_TEST_KEY_ALIAS)
         deleteTestKey(VIRTUAL_SESSIONS_TEST_KEY_ALIAS)
         deleteTestKey(EVENT_REGISTRATIONS_TEST_KEY_ALIAS)
+        deleteTestKey(EVENT_SUGGESTIONS_TEST_KEY_ALIAS)
         deleteTestKey(SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS)
     }
 
@@ -173,6 +180,7 @@ class TestAppContainer(
         const val ROUTE_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.route_suggestions.test"
         const val VIRTUAL_SESSIONS_TEST_KEY_ALIAS = "sportapp.virtual_sessions.test"
         const val EVENT_REGISTRATIONS_TEST_KEY_ALIAS = "sportapp.event_registrations.test"
+        const val EVENT_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.event_suggestions.test"
         const val SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.support_suggestions.test"
 
         fun deleteTestKey(alias: String = TEST_KEY_ALIAS) = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias)
