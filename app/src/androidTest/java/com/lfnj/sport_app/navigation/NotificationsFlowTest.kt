@@ -97,6 +97,11 @@ class NotificationsFlowTest {
         composeRule.waitUntilExactlyOneExists(hasText("Plan FREE activo."), 5_000)
     }
 
+    /** Las marcas de leída/no leída están dentro del nodo fusionado de la tarjeta. */
+    private fun waitForUnmerged(tag: String) = composeRule.waitUntil(5_000) {
+        composeRule.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().size == 1
+    }
+
     private fun openInbox() {
         composeRule.onNodeWithTag("open_menu").performClick()
         composeRule.onNodeWithTag("athlete_menu").performScrollToNode(hasTestTag("menu_notifications"))
@@ -113,8 +118,8 @@ class NotificationsFlowTest {
         login()
 
         openInbox()
-        composeRule.waitUntilExactlyOneExists(hasTestTag("notification_unread_$NOTIFICATION_ID"), 5_000)
-        composeRule.onNodeWithTag("notification_read_$READ_ID").assertIsDisplayed()
+        waitForUnmerged("notification_unread_$NOTIFICATION_ID")
+        waitForUnmerged("notification_read_$READ_ID")
         composeRule.onNodeWithTag("notifications_unread_count").assertIsDisplayed()
         val inbox = requested("GET", "/v1/me/notifications").single()
         assertEquals("20", inbox.requestUrl?.queryParameter("limit"))
@@ -129,7 +134,7 @@ class NotificationsFlowTest {
 
         // Atrás vuelve a la bandeja con la notificación ya leída desde la caché local.
         composeRule.runOnIdle { navController.popBackStack() }
-        composeRule.waitUntilExactlyOneExists(hasTestTag("notification_read_$NOTIFICATION_ID"), 5_000)
+        waitForUnmerged("notification_read_$NOTIFICATION_ID")
     }
 
     @Test
@@ -164,7 +169,11 @@ class NotificationsFlowTest {
         container.notificationLaunch.offer(NotificationLaunch.intent(context, EVENT_ID, NOTIFICATION_ID))
         start()
 
-        login()
+        // Al validar la sesión, el inicio abre de inmediato el detalle: no se espera a ver athlete_home.
+        composeRule.waitUntilExactlyOneExists(hasTestTag("login_email"), 5_000)
+        composeRule.onNodeWithTag("login_email").performTextInput("ana@example.com")
+        composeRule.onNodeWithTag("login_password").performTextInput("Secreta-123")
+        composeRule.onNodeWithTag("login_submit").performClick()
 
         composeRule.waitUntilExactlyOneExists(hasTestTag("event_detail_screen"), 5_000)
         assertEquals(null, container.notificationLaunch.pending.value)

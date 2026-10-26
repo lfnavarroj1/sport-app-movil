@@ -83,8 +83,8 @@ class NotificationsScreenTest {
     fun muestraLeidasYNoLeidasConSuEstadoAccesibleYAbreElEvento() {
         show(stateOf(snapshot(unread, read)))
 
-        composeRule.onNodeWithTag("notification_unread_$UNREAD_ID").assertIsDisplayed()
-        composeRule.onNodeWithTag("notification_read_$READ_ID").assertIsDisplayed()
+        composeRule.onNodeWithTag("notification_unread_$UNREAD_ID", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("notification_read_$READ_ID", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithText("1 sin leer").assertIsDisplayed()
         composeRule.onNodeWithText("Recordatorio: tu evento empieza en 24 horas").assertIsDisplayed()
         composeRule.onNodeWithTag("notification_$UNREAD_ID")
