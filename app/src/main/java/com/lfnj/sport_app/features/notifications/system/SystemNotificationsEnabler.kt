@@ -29,7 +29,7 @@ fun rememberSystemNotificationsEnabler(onResult: () -> Unit): (SystemNotificatio
     var asked by rememberSaveable { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { onResult() }
     return remember(context, launcher, asked) {
-        { status ->
+        { status: SystemNotificationsStatus ->
             if (status == SystemNotificationsStatus.PERMISSION_REQUIRED && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !asked) {
                 asked = true
                 launcher.launch(Manifest.permission.POST_NOTIFICATIONS)

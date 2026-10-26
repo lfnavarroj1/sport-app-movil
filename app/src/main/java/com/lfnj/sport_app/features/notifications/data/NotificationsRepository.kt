@@ -163,11 +163,12 @@ class NotificationsRepository(
         }
         return when (result) {
             is ApiResult.Success -> {
-                val read = try {
-                    result.value.toNotification().takeIf { it.notificationId == notificationId && !it.unread }
+                val confirmed = try {
+                    result.value.toNotification()
                 } catch (_: InvalidNotificationResponse) {
                     null
-                } ?: return MarkReadResult.InvalidResponse
+                }
+                val read = confirmed?.takeIf { it.notificationId == notificationId && !it.unread } ?: return MarkReadResult.InvalidResponse
                 mutex.withLock { readCache(owner)?.let { store(owner, it.withRead(read)) } }
                 runCatching { announcer.dismiss(notificationId) }
                 MarkReadResult.Marked(read)
