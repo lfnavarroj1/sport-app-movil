@@ -7,6 +7,7 @@ import com.lfnj.sport_app.core.config.AppConfig
 import com.lfnj.sport_app.core.security.EncryptedTokenStore
 import com.lfnj.sport_app.core.session.revocation.RevocationWorkerFactory
 import com.lfnj.sport_app.di.AppContainer
+import com.lfnj.sport_app.features.notifications.sync.NotificationsSyncWorkerFactory
 import com.lfnj.sport_app.features.training.metrics.sync.MetricsSyncWorkerFactory
 import com.lfnj.sport_app.features.training.session.sync.TrainingSyncWorkerFactory
 import kotlinx.coroutines.CoroutineScope
@@ -34,9 +35,13 @@ class SportApp : Application(), Configuration.Provider {
         container.eventRegistrationsCacheJanitor.start(applicationScope)
         // HU027: caché cifrada de eventos sugeridos, eliminada al terminar la sesión.
         container.eventSuggestionsCacheJanitor.start(applicationScope)
+        // HU039: canales del sistema, bandeja cifrada eliminada al terminar la sesión y sincronización cada 15 min.
+        container.androidNotificationAnnouncer.ensureChannels()
+        container.notificationsCacheJanitor.start(applicationScope)
+        container.inboxSyncCoordinator.start(applicationScope)
     }
 
-    /** WorkManager crea los trabajos de HU032, HU034 y HU004 con las dependencias del contenedor manual. */
+    /** WorkManager crea los trabajos de HU032, HU034, HU004 y HU039 con las dependencias del contenedor manual. */
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(
@@ -44,6 +49,7 @@ class SportApp : Application(), Configuration.Provider {
                     addFactory(TrainingSyncWorkerFactory { container.trainingSyncEngine })
                     addFactory(RevocationWorkerFactory { container.revocationQueue })
                     addFactory(MetricsSyncWorkerFactory { container.metricsSyncEngine })
+                    addFactory(NotificationsSyncWorkerFactory { container.notificationsSyncEngine })
                 }
             )
             .build()

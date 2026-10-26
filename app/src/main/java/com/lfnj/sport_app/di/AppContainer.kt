@@ -68,6 +68,23 @@ import com.lfnj.sport_app.features.training.session.data.local.TrainingRecordCod
 import com.lfnj.sport_app.features.training.session.sync.TrainingSyncCoordinator
 import com.lfnj.sport_app.features.training.session.sync.TrainingSyncEngine
 import com.lfnj.sport_app.features.training.session.sync.WorkManagerTrainingSyncScheduler
+import com.lfnj.sport_app.features.notifications.data.NotificationAnnouncer
+import com.lfnj.sport_app.features.notifications.data.NotificationsApi
+import com.lfnj.sport_app.features.notifications.data.NotificationsCacheJanitor
+import com.lfnj.sport_app.features.notifications.data.NotificationsRepository
+import com.lfnj.sport_app.features.notifications.data.local.NotificationsCodec
+import com.lfnj.sport_app.features.notifications.data.local.NotificationsDatabase
+import com.lfnj.sport_app.features.notifications.sync.InboxSyncCoordinator
+import com.lfnj.sport_app.features.notifications.sync.InboxSyncScheduler
+import com.lfnj.sport_app.features.notifications.sync.NotificationsSyncEngine
+import com.lfnj.sport_app.features.notifications.sync.WorkManagerInboxSyncScheduler
+import com.lfnj.sport_app.features.notifications.system.AndroidNotificationAnnouncer
+import com.lfnj.sport_app.features.notifications.system.NotificationLaunch
+import com.lfnj.sport_app.features.notifications.system.SystemNotificationsProbe
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 
 /** Inyección de dependencias manual: un contenedor por proceso, creado en [com.lfnj.sport_app.SportApp]. */
@@ -342,4 +359,51 @@ open class AppContainer(
     val eventRegistrationsCacheJanitor: EventRegistrationsCacheJanitor by lazy {
         EventRegistrationsCacheJanitor(sessionManager.currentUser, eventRegistrationRepository)
     }
+
+    // ------------------------------------------------------------------ HU039 (ADR-045)
+
+    protected open val notificationsDatabase: NotificationsDatabase by lazy { NotificationsDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de la bandeja de notificaciones, distinta de la de la sesión y de las demás cachés. */
+    protected open val notificationsCipher: TokenCipher by lazy { KeystoreTokenCipher(NotificationsCodec.KEY_ALIAS) }
+
+    /** Notificaciones del sistema en los canales `event_alerts` y `event_updates`. */
+    val androidNotificationAnnouncer: AndroidNotificationAnnouncer by lazy { AndroidNotificationAnnouncer(appContext) }
+
+    protected open val notificationAnnouncer: NotificationAnnouncer get() = androidNotificationAnnouncer
+
+    open val systemNotificationsProbe: SystemNotificationsProbe get() = androidNotificationAnnouncer
+
+    protected open val inboxSyncScheduler: InboxSyncScheduler by lazy { WorkManagerInboxSyncScheduler(appContext) }
+
+    open val notificationsRepository: NotificationsRepository by lazy {
+        NotificationsRepository(
+            dao = notificationsDatabase.notificationsCacheDao(),
+            codec = NotificationsCodec(notificationsCipher, BffMobileClient.json),
+            api = bffApi(NotificationsApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+            announcer = notificationAnnouncer,
+        )
+    }
+
+    open val notificationsSyncEngine: NotificationsSyncEngine by lazy { NotificationsSyncEngine(sessionManager, notificationsRepository) }
+
+    /** Toque de una notificación del sistema pendiente de abrir el detalle del evento (HU041). */
+    val notificationLaunch: NotificationLaunch by lazy { NotificationLaunch() }
+
+    /** Ámbito propio de la lectura enviada al abrir una notificación: no depende de la pantalla visible. */
+    private val notificationsScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /** Envía la lectura de una notificación tocada en el sistema; un fallo la deja sin leer en la bandeja. */
+    fun markNotificationReadInBackground(owner: String, notificationId: String) {
+        notificationsScope.launch { runCatching { notificationsRepository.markRead(owner, notificationId) } }
+    }
+
+    val notificationsCacheJanitor: NotificationsCacheJanitor by lazy {
+        NotificationsCacheJanitor(sessionManager.currentUser, notificationsRepository)
+    }
+
+    /** Sincronización periódica de la bandeja mientras haya un deportista autenticado. */
+    val inboxSyncCoordinator: InboxSyncCoordinator by lazy { InboxSyncCoordinator(sessionManager.currentUser, inboxSyncScheduler) }
 }

@@ -644,4 +644,56 @@
     <string name="registrations_open_event">Ver el evento</string>
     <string name="calendar_open_registrations">Mis inscripciones</string>
     <string name="calendar_open_event">Ver el detalle del evento</string>
+
+    <!-- HU039: bandeja de notificaciones de eventos (ADR-045) -->
+    <string name="menu_notifications">Notificaciones</string>
+    <string name="notifications_title">Notificaciones</string>
+    <string name="notifications_loading">Cargando tus notificaciones…</string>
+    <string name="notifications_refreshing">Actualizando las notificaciones</string>
+    <string name="notifications_synced_at">Actualizada: %1$s</string>
+    <string name="notifications_empty">Aún no tienes notificaciones de eventos.</string>
+    <string name="notifications_never_synced">Sin conexión. Aún no hay notificaciones guardadas en este dispositivo; conéctate para consultarlas.</string>
+    <string name="notifications_offline_with_cache">Sin conexión. Ves las últimas notificaciones sincronizadas.</string>
+    <string name="notifications_unavailable_with_cache">No pudimos actualizar las notificaciones. Ves las últimas sincronizadas.</string>
+    <string name="notifications_error_unavailable">No pudimos cargar tus notificaciones. Intenta de nuevo.</string>
+    <string name="notifications_error_storage">No pudimos guardar las notificaciones en este dispositivo. Intenta de nuevo.</string>
+    <string name="notifications_error_permission_required">Tu cuenta no puede consultar notificaciones desde la aplicación.</string>
+    <string name="notifications_load_more">Ver notificaciones anteriores</string>
+    <string name="notifications_loading_more">Cargando…</string>
+    <string name="notifications_open_event">Ver el evento</string>
+    <string name="notifications_state_unread">No leída</string>
+    <string name="notifications_state_read">Leída</string>
+    <string name="notifications_type_match">Evento para ti</string>
+    <string name="notifications_type_reminder">Recordatorio: tu evento empieza en 24 horas</string>
+    <string name="notifications_marking">Marcando como leída…</string>
+    <string name="notifications_mark_read_offline">Sin conexión: la notificación sigue sin leer.</string>
+    <string name="notifications_mark_read_not_found">Esa notificación ya no está disponible.</string>
+    <string name="notifications_mark_read_unavailable">No pudimos marcar la notificación como leída. Intenta de nuevo.</string>
+    <string name="notifications_system_disabled">Las notificaciones del sistema están desactivadas: solo verás los avisos en esta bandeja.</string>
+    <string name="notifications_allow">Permitir notificaciones</string>
+    <string name="notifications_open_settings">Abrir ajustes de notificaciones</string>
+    <plurals name="notifications_unread_count">
+        <item quantity="one">%1$d sin leer</item>
+        <item quantity="many">%1$d sin leer</item>
+        <item quantity="other">%1$d sin leer</item>
+    </plurals>
+    <string name="notifications_channel_alerts">Recordatorios de eventos</string>
+    <string name="notifications_channel_alerts_description">Avisos de prioridad alta, como el recordatorio 24 horas antes de un evento al que te inscribiste.</string>
+    <string name="notifications_channel_updates">Eventos para ti</string>
+    <string name="notifications_channel_updates_description">Eventos publicados que coinciden con tus deportes y tu ciudad.</string>
+    <string name="notifications_public_title">Tienes una notificación de SportApp</string>
+    <string name="notifications_preferences_action">Preferencias</string>
+    <string name="notifications_preferences_title">Preferencias de notificación</string>
+    <string name="notifications_preferences_loading">Cargando tus preferencias…</string>
+    <string name="notifications_preference_matches">Eventos que coinciden conmigo</string>
+    <string name="notifications_preference_matches_description">Eventos publicados de tus deportes en tu ciudad.</string>
+    <string name="notifications_preference_reminders">Recordatorios de mis eventos</string>
+    <string name="notifications_preference_reminders_description">Aviso 24 horas antes de los eventos a los que te inscribiste.</string>
+    <string name="notifications_preferences_save">Guardar preferencias</string>
+    <string name="notifications_preferences_saving">Guardando…</string>
+    <string name="notifications_preferences_saved">Preferencias guardadas.</string>
+    <string name="notifications_preferences_offline">Sin conexión. Conéctate para consultar o guardar tus preferencias.</string>
+    <string name="notifications_preferences_unavailable">No pudimos consultar o guardar tus preferencias. Intenta de nuevo.</string>
+    <string name="notifications_preferences_invalid">No pudimos guardar las preferencias. Revisa los valores e intenta de nuevo.</string>
+    <string name="notifications_preferences_conflict">Tus preferencias cambiaron en otro lugar. Te mostramos las vigentes; revisa y vuelve a guardar.</string>
 </resources>

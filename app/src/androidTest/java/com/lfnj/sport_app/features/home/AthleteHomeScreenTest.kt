@@ -52,6 +52,8 @@ class AthleteHomeScreenTest {
         composeRule.onNodeWithText("Plan FREE activo.").assertIsDisplayed()
         composeRule.onNodeWithTag("open_menu").performClick()
         composeRule.onNodeWithTag("menu_home").assertIsDisplayed()
+        // HU039: opción base habilitada, sin capacidad de plan.
+        composeRule.onNodeWithTag("menu_notifications").assertIsDisplayed().assertIsEnabled()
         // HU026 ya tiene destino en el móvil: la opción queda habilitada.
         composeRule.onNodeWithTag("menu_training.routes.suggest").assertIsDisplayed().assertIsEnabled()
         // HU027 ya tiene destino en el móvil: la opción queda habilitada.
@@ -72,6 +74,8 @@ class AthleteHomeScreenTest {
         composeRule.onNodeWithText("Estamos activando tu plan.", substring = true).assertIsDisplayed()
         composeRule.onNodeWithTag("open_menu").performClick()
         composeRule.onNodeWithTag("menu_events.suggest").assertDoesNotExist()
+        // HU039: la bandeja es opción base y sigue disponible durante el aprovisionamiento.
+        composeRule.onNodeWithTag("menu_notifications").assertIsDisplayed().assertIsEnabled()
     }
 
     @Test

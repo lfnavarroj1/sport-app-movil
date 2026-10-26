@@ -22,7 +22,7 @@ class NavigationRegistryTest {
         val menu = NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES))
 
         assertEquals(
-            listOf("HU003", "HU026", "HU027", "HU028", "HU029", "HU030", "HU031", "HU032", "HU033", "HU034", "HU035", "HU004"),
+            listOf("HU003", "HU039", "HU026", "HU027", "HU028", "HU029", "HU030", "HU031", "HU032", "HU033", "HU034", "HU035", "HU004"),
             huOf(menu),
         )
     }
@@ -55,12 +55,12 @@ class NavigationRegistryTest {
     fun `PROVISIONING no concede opciones del plan`() {
         val menu = NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES, SubscriptionStatus.PROVISIONING))
 
-        assertEquals(listOf("home", "logout"), menu.map { it.id })
+        assertEquals(listOf("home", "notifications", "logout"), menu.map { it.id })
     }
 
     @Test
     fun `sin capacidades cargadas solo quedan las opciones base`() {
-        assertEquals(listOf("home", "logout"), NavigationRegistry.athleteMenu(null).map { it.id })
+        assertEquals(listOf("home", "notifications", "logout"), NavigationRegistry.athleteMenu(null).map { it.id })
     }
 
     @Test
@@ -69,12 +69,12 @@ class NavigationRegistryTest {
             ActorType.ORGANIZER, SubscriptionStatus.ACTIVE, null, setOf("training.routes.recommend"), FREE_CAPABILITIES.toSet(),
         )
 
-        assertEquals(listOf("home", "logout"), NavigationRegistry.athleteMenu(organizer).map { it.id })
+        assertEquals(listOf("home", "notifications", "logout"), NavigationRegistry.athleteMenu(organizer).map { it.id })
     }
 
     @Test
     fun `capacidades desconocidas se ignoran`() {
-        assertEquals(listOf("home", "logout"), NavigationRegistry.athleteMenu(athlete(listOf("admin.everything"))).map { it.id })
+        assertEquals(listOf("home", "notifications", "logout"), NavigationRegistry.athleteMenu(athlete(listOf("admin.everything"))).map { it.id })
     }
 
     @Test
@@ -82,7 +82,7 @@ class NavigationRegistryTest {
         val menu = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES))
 
         assertEquals(
-            listOf(Destinations.ATHLETE_HOME, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.VIRTUAL_SESSIONS),
+            listOf(Destinations.ATHLETE_HOME, Destinations.NOTIFICATIONS, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.VIRTUAL_SESSIONS),
             menu.mapNotNull { it.route },
         )
     }
@@ -140,7 +140,7 @@ class NavigationRegistryTest {
         assertTrue(NavigationRegistry.athleteMenu(withoutCapability).none { it.hu == "HU032" })
         assertTrue(NavigationRegistry.athleteMenu(withoutCapability, openTrainingSession = true).any { it.hu == "HU032" })
         assertEquals(
-            listOf("home", "training.session.record", "logout"),
+            listOf("home", "notifications", "training.session.record", "logout"),
             NavigationRegistry.athleteMenu(null, openTrainingSession = true).map { it.id },
         )
     }
@@ -298,5 +298,32 @@ class NavigationRegistryTest {
     fun `la ruta concreta del detalle lleva el event_id`() {
         assertEquals("eventos/detalle/683f4e38-6bb3-4c47-a6dc-9bb1588c67ef", Destinations.eventDetail("683f4e38-6bb3-4c47-a6dc-9bb1588c67ef"))
         assertEquals("eventos/detalle/{event_id}", Destinations.EVENT_DETAIL)
+    }
+
+    // ------------------------------------------------------------- HU039
+
+    @Test
+    fun `HU039 Notificaciones es opcion base sin capacidad de plan`() {
+        val entry = NavigationRegistry.athlete.single { it.hu == "HU039" }
+
+        assertEquals("notifications", entry.id)
+        assertEquals(Destinations.NOTIFICATIONS, entry.route)
+        assertEquals("notifications", Destinations.NOTIFICATIONS)
+        assertEquals(null, entry.capability)
+        assertEquals(MenuGroup.MAIN, entry.group)
+        assertEquals(70, entry.order)
+        assertTrue(entry.enabled)
+        // Visible sin capacidades, con suscripción no activa y para cualquier plan.
+        assertTrue(NavigationRegistry.athleteMenu(null).any { it.hu == "HU039" })
+        assertTrue(NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES, SubscriptionStatus.PROVISIONING)).any { it.hu == "HU039" })
+        assertTrue(NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES)).any { it.hu == "HU039" })
+    }
+
+    @Test
+    fun `HU039 abre el detalle de HU041 y registra sus preferencias como destino contextual`() {
+        assertTrue("HU039" in NavigationRegistry.contextual.single { it.route == Destinations.EVENT_DETAIL }.origins)
+        val preferences = NavigationRegistry.contextual.single { it.hu == "HU039" }
+        assertEquals(Destinations.NOTIFICATION_PREFERENCES, preferences.route)
+        assertEquals(null, preferences.capability)
     }
 }

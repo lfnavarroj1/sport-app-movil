@@ -47,6 +47,12 @@ object Destinations {
     /** HU041: «Mis inscripciones» (`/eventos/inscripciones`), desde el calendario o el detalle. */
     const val MY_EVENT_REGISTRATIONS = "eventos/inscripciones"
 
+    /** HU039: bandeja de notificaciones de eventos (`notifications`), opción base del deportista. */
+    const val NOTIFICATIONS = "notifications"
+
+    /** HU039: preferencias de notificación, desde la bandeja. */
+    const val NOTIFICATION_PREFERENCES = "notifications/preferencias"
+
     /** Ruta concreta de [EVENT_DETAIL] para [eventId]. */
     fun eventDetail(eventId: String): String = "eventos/detalle/$eventId"
 }
