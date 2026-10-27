@@ -122,6 +122,11 @@ import com.lfnj.sport_app.features.nutrition.intake.sync.FoodIntakeCoordinator
 import com.lfnj.sport_app.features.nutrition.intake.sync.FoodIntakeSessionPolicy
 import com.lfnj.sport_app.features.nutrition.intake.sync.FoodIntakeSyncEngine
 import com.lfnj.sport_app.features.nutrition.intake.sync.WorkManagerFoodIntakeSyncScheduler
+import com.lfnj.sport_app.features.nutrition.routines.data.NutritionRoutinesApi
+import com.lfnj.sport_app.features.nutrition.routines.data.NutritionRoutinesCacheJanitor
+import com.lfnj.sport_app.features.nutrition.routines.data.NutritionRoutinesRepository
+import com.lfnj.sport_app.features.nutrition.routines.data.local.NutritionRoutinesCodec
+import com.lfnj.sport_app.features.nutrition.routines.data.local.NutritionRoutinesDatabase
 import com.lfnj.sport_app.features.sensors.ble.AndroidBleHeartRateSource
 import com.lfnj.sport_app.features.sensors.ble.HeartRateMonitorSource
 import com.lfnj.sport_app.features.sensors.ble.MonitorLink
@@ -433,6 +438,27 @@ open class AppContainer(
 
     val supportSuggestionsCacheJanitor: SupportSuggestionsCacheJanitor by lazy {
         SupportSuggestionsCacheJanitor(sessionManager.currentUser, supportSuggestionsRepository)
+    }
+
+    // ------------------------------------------------------------------ HU030 (ADR-041)
+
+    protected open val nutritionRoutinesDatabase: NutritionRoutinesDatabase by lazy { NutritionRoutinesDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de la caché de rutinas sugeridas, distinta de la de la sesión y de las demás cachés. */
+    protected open val nutritionRoutinesCipher: TokenCipher by lazy { KeystoreTokenCipher(NutritionRoutinesCodec.KEY_ALIAS) }
+
+    open val nutritionRoutinesRepository: NutritionRoutinesRepository by lazy {
+        NutritionRoutinesRepository(
+            dao = nutritionRoutinesDatabase.nutritionRoutinesCacheDao(),
+            codec = NutritionRoutinesCodec(nutritionRoutinesCipher, BffMobileClient.json),
+            api = bffApi(NutritionRoutinesApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    val nutritionRoutinesCacheJanitor: NutritionRoutinesCacheJanitor by lazy {
+        NutritionRoutinesCacheJanitor(sessionManager.currentUser, nutritionRoutinesRepository)
     }
 
     // ------------------------------------------------------------------ HU039 (ADR-045)

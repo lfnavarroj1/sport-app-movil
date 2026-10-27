@@ -20,6 +20,7 @@ import com.lfnj.sport_app.features.events.data.local.EventSuggestionsDatabase
 import com.lfnj.sport_app.features.health.data.local.HealthReportsDatabase
 import com.lfnj.sport_app.features.recommendations.data.local.PlanSuggestionsDatabase
 import com.lfnj.sport_app.features.recommendations.data.local.RouteSuggestionsDatabase
+import com.lfnj.sport_app.features.nutrition.routines.data.local.NutritionRoutinesDatabase
 import com.lfnj.sport_app.features.services.data.local.SupportSuggestionsDatabase
 import com.lfnj.sport_app.features.services.data.local.VirtualSessionsDatabase
 import com.lfnj.sport_app.features.training.dashboard.data.local.TrainingDashboardDatabase
@@ -219,6 +220,10 @@ class TestAppContainer(
     val supportSuggestions: SupportSuggestionsDatabase = Room.inMemoryDatabaseBuilder(context, SupportSuggestionsDatabase::class.java).build()
     override val supportSuggestionsDatabase: SupportSuggestionsDatabase get() = supportSuggestions
     override val supportSuggestionsCipher: TokenCipher = KeystoreTokenCipher(SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS)
+    // HU030: caché de rutinas de alimentación sugeridas en memoria con su clave de prueba.
+    val nutritionRoutines: NutritionRoutinesDatabase = Room.inMemoryDatabaseBuilder(context, NutritionRoutinesDatabase::class.java).build()
+    override val nutritionRoutinesDatabase: NutritionRoutinesDatabase get() = nutritionRoutines
+    override val nutritionRoutinesCipher: TokenCipher = KeystoreTokenCipher(NUTRITION_ROUTINES_TEST_KEY_ALIAS)
     // HU042: reportes de salud en memoria con su clave de prueba y sincronización controlada por la prueba.
     val healthReports: HealthReportsDatabase = Room.inMemoryDatabaseBuilder(context, HealthReportsDatabase::class.java).build()
     val healthScheduler = RecordingScheduler()
@@ -273,6 +278,7 @@ class TestAppContainer(
         eventSuggestions.close()
         notifications.close()
         supportSuggestions.close()
+        nutritionRoutines.close()
         healthReports.close()
         sessionReminders.close()
         foodIntakes.close()
@@ -289,6 +295,7 @@ class TestAppContainer(
         deleteTestKey(EVENT_SUGGESTIONS_TEST_KEY_ALIAS)
         deleteTestKey(NOTIFICATIONS_TEST_KEY_ALIAS)
         deleteTestKey(SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS)
+        deleteTestKey(NUTRITION_ROUTINES_TEST_KEY_ALIAS)
         deleteTestKey(HEALTH_REPORTS_TEST_KEY_ALIAS)
         deleteTestKey(SESSION_REMINDERS_TEST_KEY_ALIAS)
         deleteTestKey(FOOD_INTAKES_TEST_KEY_ALIAS)
@@ -308,6 +315,7 @@ class TestAppContainer(
         const val EVENT_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.event_suggestions.test"
         const val NOTIFICATIONS_TEST_KEY_ALIAS = "sportapp.notifications.test"
         const val SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.support_suggestions.test"
+        const val NUTRITION_ROUTINES_TEST_KEY_ALIAS = "sportapp.nutrition_routines.test"
         const val HEALTH_REPORTS_TEST_KEY_ALIAS = "sportapp.health-reports.test"
         const val SESSION_REMINDERS_TEST_KEY_ALIAS = "sportapp.session_reminders.test"
         const val FOOD_INTAKES_TEST_KEY_ALIAS = "sportapp.food-intakes.test"

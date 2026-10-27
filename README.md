@@ -1,3 +1,4 @@
+| E2E HU030 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu030IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo con hábitos> -Pandroid.testInstrumentationRunnerArguments.e2eNoHabitsEmail=<correo sin hábitos> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña> -Pandroid.testInstrumentationRunnerArguments.e2eRoutineSuffix=<sufijo>` — antes, por `bff-web` (`localhost:18080`, con `Origin` permitido): el primer deportista registra sus hábitos alimenticios (HU009) con patrón omnívoro y alergia `MILK`; el segundo no los registra; un profesional publica con `POST /v1/nutrition-routine-templates` «E2E HU030 Compatible <sufijo>» (omnívora, sin alérgenos) y «E2E HU030 Leche <sufijo>» (omnívora, con `MILK`). Datos sintéticos. |
 # sport-app-movil
 
 Aplicación Android/Kotlin de SportApp. Una sola aplicación organizada por *features* MVVM que
@@ -30,7 +31,7 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041, HU029, HU038, HU037, HU043 y HU004
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041, HU029, HU030, HU038, HU037, HU043 y HU004
 ├── MainActivity.kt        única Activity; aloja la navegación Compose y el banner global de recordatorios (HU038)
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -53,6 +54,9 @@ app/src/main/java/com/lfnj/sport_app/
 │   │   ├── data/          API, repositorio y Room (catálogo y consumos cifrados)
 │   │   ├── model/         catálogo, unidades, comidas, validadores y estados de sincronización
 │   │   └── sync/          cola durable con WorkManager, fábrica propia y coordinación con la sesión
+│   ├── nutrition/routines/ rutinas de alimentación sugeridas (HU030): pantalla de lista y detalle y ViewModel,
+│   │   ├── data/          API, repositorio, limpieza al cerrar sesión y caché Room cifrada
+│   │   └── model/         rutinas, comidas, motivos, contexto faltante, avisos y antigüedad
 │   ├── nutrition/reminders/ recordatorios durante la sesión (HU038): pantalla, ViewModel y banner global,
 │   │   ├── data/          API, repositorio, limpieza al cerrar sesión y Room (configuración y entregas cifradas)
 │   │   ├── engine/        cálculo de ocurrencias, motor local, notificación local y centro de banners
@@ -259,6 +263,28 @@ app/src/main/java/com/lfnj/sport_app/
   reemplaza (un servicio despublicado desaparece), sin red se muestra con `last_synced_at` y se marca
   desactualizada a las 24 h. Al terminar la sesión se elimina como en HU035.
 
+### Rutinas de alimentación sugeridas (HU030, ADR-041)
+
+- La opción `FREE` 150 «Rutinas de alimentación» (capacidad `nutrition.routines.suggest`; sin ella la
+  opción no aparece y la guarda devuelve al inicio) abre `alimentacion/rutinas` y consulta
+  `GET /v1/me/suggestions/nutrition-routines?limit=20` (copia 0.21.0). El cliente no envía restricciones
+  ni alergias: `bff-mobile` las obtiene de Usuarios (HU009) y Entrenamientos excluye las rutinas
+  incompatibles. Cada rutina muestra autor (`author_name`; «no disponible» si Usuarios no respondió),
+  objetivo, patrón, vigencia (`duration_days`), comidas por día y motivo (`RESTRICTION_COMPATIBLE`,
+  `GOAL_MATCH`, `SPORT_MATCH`), en el orden del BFF. El detalle añade deporte, alérgenos que contiene,
+  descripción y el día tipo; los `food_code` se nombran con el catálogo de HU043 ya guardado en el
+  dispositivo (solo lectura, sin consultar `/v1/food-catalog`) o se muestran tal cual. Es informativo:
+  no asigna la rutina ni incluye compra, pago o envío (CA5).
+- `personalized: false` o el aviso `RESTRICTIONS_NOT_VERIFIED` muestran que no se verificaron
+  restricciones ni alergias y explican cada `missing_context` (`nutrition_habits`, `sports`,
+  `primary_goal`) o que Usuarios no respondió (CA3). El texto fijo «no reemplaza una valoración médica o
+  nutricional» (`NOT_MEDICAL_ADVICE`) aparece siempre. `503`/`504` muestran error y reintento sin borrar
+  la caché; `403 capability_required` y `permission_required` ocultan los datos guardados.
+- Lectura offline first sin WorkManager: `sportapp_nutrition_routines.db` (una fila por deportista),
+  payload AES-GCM con la clave `sportapp.nutrition_routines.v1`, excluida del respaldo; cada `200` la
+  reemplaza (una rutina retirada o ya incompatible desaparece), sin red se muestra con `last_synced_at`
+  y se marca desactualizada a las 24 h. Al terminar la sesión se elimina como en HU035.
+
 ### Recordatorios durante la sesión (HU038, ADR-045)
 
 - La opción `INTERMEDIATE` 230 «Recordatorios durante sesión» (capacidad `nutrition.session.reminders`;
@@ -463,6 +489,14 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   esquemas en la copia 0.18.0. Room, Keystore, reinicio, esquema, respaldo, limpieza, pantalla y recorrido
   se prueban en el dispositivo (`features/services/Support*` y `navigation/SupportSuggestionsFlowTest`);
   `e2e/Hu029IntegratedE2eTest` usa la composición local.
+- HU030: `NutritionRoutinesModelsTest` (guarda, partición, códigos, aviso de restricciones y `STALE`),
+  `NutritionRoutinesRepositoryTest` (MockWebServer: `200` en el orden del BFF, sin hábitos, Usuarios
+  caído, rutina excluida, vacía, códigos futuros, `403`, `422`, `503`/`504`, `401`, sin red, respuesta
+  inválida, cifrado, partición y limpieza) y `NutritionRoutinesViewModelTest` (incluidos los nombres del
+  catálogo local de HU043) en la JVM; `NutritionRoutinesContractTest` verifica la operación, sus esquemas
+  y catálogos en la copia 0.21.0. Room, Keystore, reinicio, esquema, respaldo, limpieza, pantalla y
+  recorrido se prueban en el dispositivo (`features/nutrition/routines/` y
+  `navigation/NutritionRoutinesFlowTest`); `e2e/Hu030IntegratedE2eTest` usa la composición local.
 - HU038: `ReminderScheduleTest` (ocurrencias con tiempo simulado, regla de 60 min, rangos),
   `SessionReminderEngineTest` (70 min, < 3 s, reinicio sin duplicados, notificaciones deshabilitadas, tipo
   deshabilitado, sin ruleset, capacidad), `SessionRemindersRepositoryTest` (MockWebServer: `200`, `403`,
