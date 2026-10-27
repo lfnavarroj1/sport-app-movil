@@ -79,17 +79,19 @@ class HealthReportsSyncEngine(
                 continue
             }
             dao.markAttempt(report.reportId, clock.millis())
+            // Se vuelve a leer para no pisar el contador de intentos al escribir el resultado.
+            val attempted = dao.report(owner, report.reportId) ?: continue
             val outcome = sessionManager.authorized { auth -> apiCall(json) { api.report(auth, report.idempotencyKey, body) } }
             when (outcome) {
                 AuthorizedResult.SignedOut -> return SyncRun.SUSPENDED
                 AuthorizedResult.RenewalUnavailable -> return SyncRun.RETRY
                 is AuthorizedResult.Completed -> when (val result = outcome.result) {
-                    is ApiResult.Success -> confirm(owner, report, body, result.value)
+                    is ApiResult.Success -> confirm(owner, attempted, body, result.value)
                     ApiResult.NoConnection, ApiResult.Timeout -> return SyncRun.RETRY
                     ApiResult.NotConfigured -> return SyncRun.SUSPENDED
-                    ApiResult.InvalidResponse -> dao.replaceReport(report.failed(HealthSyncFailure.INVALID_RESPONSE.name))
+                    ApiResult.InvalidResponse -> dao.replaceReport(attempted.failed(HealthSyncFailure.INVALID_RESPONSE.name))
                     is ApiResult.HttpFailure ->
-                        if (result.status in RETRYABLE_STATUSES) return SyncRun.RETRY else reject(report, result)
+                        if (result.status in RETRYABLE_STATUSES) return SyncRun.RETRY else reject(attempted, result)
                 }
             }
         }
@@ -121,7 +123,7 @@ class HealthReportsSyncEngine(
         }
         transactions.run {
             // Solo se confirma si sigue en la partición (no se retiró ni se limpió durante el envío).
-            if (dao.report(owner, report.reportId) != null) dao.replaceReport(report.synced(codec.encode(body, reportedAt)))
+            dao.report(owner, report.reportId)?.let { current -> dao.replaceReport(current.synced(codec.encode(body, reportedAt))) }
         }
     }
 

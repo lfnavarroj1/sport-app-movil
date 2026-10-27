@@ -30,10 +30,13 @@ import com.lfnj.sport_app.features.health.model.HealthReportDetails
 import com.lfnj.sport_app.features.health.model.HealthReportType
 import com.lfnj.sport_app.features.health.model.HealthSeverity
 import com.lfnj.sport_app.features.health.model.HealthSyncState
+import com.lfnj.sport_app.features.health.model.LocalHealthReport
 import com.lfnj.sport_app.features.health.sync.HealthReportsSyncEngine
 import com.lfnj.sport_app.features.training.session.data.TrainingSyncScheduler
 import com.lfnj.sport_app.features.training.session.sync.SyncRun
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -164,7 +167,77 @@ class Hu042IntegratedE2eTest {
         }
     }
 
+    /** Ejecuta un comando de shell del dispositivo con los permisos de la instrumentación y espera su fin. */
+    private fun shell(command: String) {
+        InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command).use { fd ->
+            java.io.FileInputStream(fd.fileDescriptor).use { it.readBytes() }
+        }
+    }
+
+    private fun report(owner: String, reportId: String): LocalHealthReport? =
+        runBlocking { container.healthReportsRepository.observe(owner).first().firstOrNull { it.reportId == reportId } }
+
+    /**
+     * Caso offline real (CA5): sin Wi-Fi ni datos, la app captura el reporte por la interfaz, lo deja
+     * `PENDING_SYNC` y WorkManager no lo envía; al restaurar la red, el trabajo durable real lo
+     * sincroniza una sola vez con el backend (`201` `OPEN`). La red se restaura siempre.
+     */
+    @Test
+    fun sinRedRealElReporteQuedaPendienteYAlVolverLaRedWorkManagerLoConfirmaUnaVez() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            login()
+            val owner = HealthOwner.keyOf(checkNotNull(container.sessionManager.currentUser.value).userId)
+            val before = runBlocking { container.healthReportsRepository.observe(owner).first().map { it.reportId }.toSet() }
+            lateinit var reportId: String
+            try {
+                shell("svc wifi disable")
+                shell("svc data disable")
+                runBlocking { withTimeout(TIMEOUT) { container.connectivityMonitor.online().first { !it } } }
+
+                composeRule.onNodeWithTag("open_menu").performClick()
+                composeRule.onNodeWithTag("menu_health").performClick()
+                composeRule.waitUntilExactlyOneExists(hasTestTag("health_offline"), TIMEOUT)
+                composeRule.onNodeWithTag("health_type_INJURY").performScrollTo().performClick()
+                composeRule.onNodeWithTag("health_area_ANKLE_FOOT").performScrollTo().performClick()
+                composeRule.onNodeWithTag("health_severity_MODERATE").performScrollTo().performClick()
+                composeRule.onNodeWithTag("health_consent").performScrollTo().performClick()
+                composeRule.onNodeWithTag("health_submit").performScrollTo().performClick()
+
+                reportId = runBlocking {
+                    withTimeout(TIMEOUT) {
+                        container.healthReportsRepository.observe(owner).first { list -> list.any { it.reportId !in before } }
+                            .single { it.reportId !in before }.reportId
+                    }
+                }
+                composeRule.waitUntilExactlyOneExists(hasTestTag("health_state_$reportId") and hasText("Pendiente de sincronizar"), TIMEOUT)
+                // Sin red, el trabajo durable no se ejecuta: sigue pendiente y nunca se muestra confirmado.
+                runBlocking { delay(OFFLINE_HOLD) }
+                assertEquals(HealthSyncState.PENDING_SYNC, report(owner, reportId)?.state)
+            } finally {
+                shell("svc wifi enable")
+                shell("svc data enable")
+            }
+
+            runBlocking {
+                withTimeout(SYNC_TIMEOUT) {
+                    container.healthReportsRepository.observe(owner).first { list -> list.any { it.reportId == reportId && it.state == HealthSyncState.SYNCED } }
+                }
+            }
+            val confirmed = checkNotNull(report(owner, reportId))
+            assertNotNull("El backend devolvió reported_at", confirmed.reportedAt)
+            // Una sola sincronización: un único intento registrado para ese report_id.
+            val attempts = runBlocking {
+                val database = HealthReportsDatabase.create(context)
+                try { checkNotNull(database.healthReportsDao().report(owner, reportId)).attempts } finally { database.close() }
+            }
+            assertEquals(1, attempts)
+            composeRule.waitUntilExactlyOneExists(hasTestTag("health_state_$reportId") and hasText("Confirmado"), TIMEOUT)
+        }
+    }
+
     private companion object {
+        const val OFFLINE_HOLD = 10_000L
+        const val SYNC_TIMEOUT = 120_000L
         const val TIMEOUT = 20_000L
         const val UNREACHABLE_BFF = "http://127.0.0.1:9/"
     }
