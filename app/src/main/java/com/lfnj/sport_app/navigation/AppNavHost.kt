@@ -69,6 +69,11 @@ import com.lfnj.sport_app.features.recommendations.RouteSuggestionsScreen
 import com.lfnj.sport_app.features.recommendations.RouteSuggestionsViewModel
 import com.lfnj.sport_app.features.recommendations.model.RouteSuggestionsAccess
 import com.lfnj.sport_app.features.recommendations.model.RouteSuggestionsOwner
+import com.lfnj.sport_app.features.sensors.DevicesScreen
+import com.lfnj.sport_app.features.sensors.DevicesViewModel
+import com.lfnj.sport_app.features.sensors.model.DevicesAccess
+import com.lfnj.sport_app.features.sensors.openBluetoothSettings
+import com.lfnj.sport_app.features.sensors.rememberBluetoothPermissionRequester
 import com.lfnj.sport_app.features.services.SupportSuggestionsScreen
 import com.lfnj.sport_app.features.services.SupportSuggestionsViewModel
 import com.lfnj.sport_app.features.services.VirtualSessionsScreen
@@ -879,6 +884,60 @@ fun AppNavHost(
                         onDiscard = viewModel::discardChanges,
                         onRetry = viewModel::retry,
                         onEnableSystemNotifications = { enableSystemNotifications(state.systemNotifications) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.DEVICES) {
+            // HU037: misma guarda que athlete_home y, además, la capacidad devices.measurement.connect vigente.
+            val user = remember { sessionManager.currentUser.value }
+            val allowed = remember { DevicesAccess.canUse(sessionManager.access.value) }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                !allowed -> LaunchedEffect(Unit) {
+                    navController.navigate(Destinations.ATHLETE_HOME) {
+                        popUpTo(Destinations.DEVICES) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                else -> {
+                    val viewModel: DevicesViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer {
+                                DevicesViewModel(user, container.devicesRepository, container.devicesRepository, container.monitorLink, container.measurementUploader.status)
+                            }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    val context = LocalContext.current
+                    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshAvailability() }
+                    val requestPermissions = rememberBluetoothPermissionRequester(onResult = viewModel::refreshAvailability)
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    DevicesScreen(
+                        state = state,
+                        onRequestPermissions = requestPermissions,
+                        onOpenBluetoothSettings = { openBluetoothSettings(context) },
+                        onSearch = viewModel::search,
+                        onStopSearch = viewModel::stopSearch,
+                        onSelect = viewModel::select,
+                        onNameChange = viewModel::onNameChange,
+                        onConfirmLink = viewModel::confirmLink,
+                        onCancelLink = viewModel::cancelLink,
+                        onAskRevoke = viewModel::askRevoke,
+                        onConfirmRevoke = viewModel::confirmRevoke,
+                        onCancelRevoke = viewModel::cancelRevoke,
+                        onRetry = viewModel::refresh,
                         onBack = { navController.popBackStack() },
                     )
                 }

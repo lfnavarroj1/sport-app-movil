@@ -9,6 +9,7 @@ import com.lfnj.sport_app.features.calendar.model.CALENDAR_CAPABILITY
 import com.lfnj.sport_app.features.events.model.EVENTS_SUGGEST_CAPABILITY
 import com.lfnj.sport_app.features.nutrition.reminders.model.SESSION_REMINDERS_CAPABILITY
 import com.lfnj.sport_app.features.recommendations.model.TRAINING_PLANS_SUGGEST_CAPABILITY
+import com.lfnj.sport_app.features.sensors.model.DEVICES_CAPABILITY
 import com.lfnj.sport_app.features.recommendations.model.TRAINING_ROUTES_SUGGEST_CAPABILITY
 import com.lfnj.sport_app.features.services.model.SERVICES_SUPPORT_SUGGEST_CAPABILITY
 import com.lfnj.sport_app.features.services.model.VIRTUAL_SESSIONS_CAPABILITY
@@ -90,7 +91,7 @@ object NavigationRegistry {
         capability(TRAINING_METRICS_CAPABILITY, R.string.menu_athlete_metrics, MenuGroup.TRAINING, 190, "HU034", Destinations.TRAINING_METRICS),
         capability(CALENDAR_CAPABILITY, R.string.menu_athlete_calendar, MenuGroup.CALENDAR, 200, "HU035", Destinations.CALENDAR),
         capability("training.realtime.monitor", R.string.menu_athlete_realtime, MenuGroup.TRAINING, 210, "HU036"),
-        capability("devices.measurement.connect", R.string.menu_athlete_devices, MenuGroup.DEVICES, 220, "HU037"),
+        capability(DEVICES_CAPABILITY, R.string.menu_athlete_devices, MenuGroup.DEVICES, 220, "HU037", Destinations.DEVICES),
         capability(SESSION_REMINDERS_CAPABILITY, R.string.menu_athlete_reminders, MenuGroup.NUTRITION, 230, "HU038", Destinations.SESSION_REMINDERS),
         capability(VIRTUAL_SESSIONS_CAPABILITY, R.string.menu_athlete_virtual_sessions, MenuGroup.SERVICES, 250, "HU040", Destinations.VIRTUAL_SESSIONS),
         MenuEntry("logout", R.string.menu_logout, MenuGroup.ACCOUNT, 900, "HU004"),

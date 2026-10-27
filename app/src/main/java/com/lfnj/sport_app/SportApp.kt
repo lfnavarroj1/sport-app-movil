@@ -50,6 +50,8 @@ class SportApp : Application(), Configuration.Provider {
         container.androidReminderNotifier.ensureChannel()
         container.sessionRemindersJanitor.start(applicationScope)
         container.activeSessionTracker.start(applicationScope)
+        // HU037: vinculaciones y muestras cifradas, eliminadas al terminar la sesión.
+        container.sensorsJanitor.start(applicationScope)
         // HU043: cola cifrada de consumos; se detiene al cerrar sesión y se reanuda para el mismo deportista.
         container.foodIntakeCoordinator.start(applicationScope)
         registerActivityLifecycleCallbacks(ForegroundRetry { container.activeSessionTracker.onAppForeground() })

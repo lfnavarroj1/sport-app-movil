@@ -122,6 +122,17 @@ import com.lfnj.sport_app.features.nutrition.intake.sync.FoodIntakeCoordinator
 import com.lfnj.sport_app.features.nutrition.intake.sync.FoodIntakeSessionPolicy
 import com.lfnj.sport_app.features.nutrition.intake.sync.FoodIntakeSyncEngine
 import com.lfnj.sport_app.features.nutrition.intake.sync.WorkManagerFoodIntakeSyncScheduler
+import com.lfnj.sport_app.features.sensors.ble.AndroidBleHeartRateSource
+import com.lfnj.sport_app.features.sensors.ble.HeartRateMonitorSource
+import com.lfnj.sport_app.features.sensors.ble.MonitorLink
+import com.lfnj.sport_app.features.sensors.data.DevicesApi
+import com.lfnj.sport_app.features.sensors.data.DevicesRepository
+import com.lfnj.sport_app.features.sensors.data.SensorSamples
+import com.lfnj.sport_app.features.sensors.data.SensorsJanitor
+import com.lfnj.sport_app.features.sensors.data.local.SensorsCodec
+import com.lfnj.sport_app.features.sensors.data.local.SensorsDatabase
+import com.lfnj.sport_app.features.sensors.sync.MeasurementStreamTask
+import com.lfnj.sport_app.features.sensors.sync.MeasurementUploader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -578,8 +589,49 @@ open class AppContainer(
         ActiveSessionTracker(sessionManager.currentUser, activeSessionSource, activeSessionPointer, activeSessionLauncher)
     }
 
-    /** Tareas que acompañan la sesión activa en el servicio en primer plano. */
-    open val activeSessionTasks: List<ActiveSessionTask> get() = listOf(sessionReminderEngine)
+    /** Tareas que acompañan la sesión activa en el servicio en primer plano: recordatorios (HU038) y mediciones (HU037). */
+    open val activeSessionTasks: List<ActiveSessionTask> get() = listOf(sessionReminderEngine, measurementStreamTask)
+
+    // ------------------------------------------------------------------ HU037 (ADR-044)
+
+    protected open val sensorsDatabase: SensorsDatabase by lazy { SensorsDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de las vinculaciones y muestras, distinta de la de la sesión y de las demás bases. */
+    protected open val sensorsCipher: TokenCipher by lazy { KeystoreTokenCipher(SensorsCodec.KEY_ALIAS) }
+
+    private val sensorsCodec by lazy { SensorsCodec(sensorsCipher, BffMobileClient.json) }
+
+    private val devicesApi by lazy { bffApi(DevicesApi::class.java) }
+
+    /** Monitor real por Bluetooth LE; solo las pruebas instrumentadas lo sustituyen por una fuente simulada marcada. */
+    protected open val heartRateMonitorSource: HeartRateMonitorSource by lazy { AndroidBleHeartRateSource(appContext) }
+
+    /** Conexión GATT compartida entre la pantalla y la ingestión de la sesión activa. */
+    val monitorLink: MonitorLink by lazy { MonitorLink(heartRateMonitorSource, CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
+
+    open val devicesRepository: DevicesRepository by lazy {
+        DevicesRepository(
+            dao = sensorsDatabase.sensorsDao(),
+            codec = sensorsCodec,
+            api = devicesApi,
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    private val sensorSamples by lazy { SensorSamples(sensorsDatabase.sensorsDao(), sensorsCodec) }
+
+    val measurementUploader: MeasurementUploader by lazy {
+        MeasurementUploader(sensorSamples, devicesRepository, devicesApi, sessionManager, BffMobileClient.json)
+    }
+
+    /** Lectura de `0x2A37` y lotes cada 5 s mientras la sesión de HU032 está activa. */
+    val measurementStreamTask: MeasurementStreamTask by lazy {
+        MeasurementStreamTask(devicesRepository, monitorLink::observe, sensorSamples, measurementUploader)
+    }
+
+    /** Borra vinculaciones y muestras al terminar la sesión o cambiar de deportista. */
+    val sensorsJanitor: SensorsJanitor by lazy { SensorsJanitor(sessionManager.currentUser, devicesRepository) }
 
     // ------------------------------------------------------------------ HU043 (ADR-037)
 
