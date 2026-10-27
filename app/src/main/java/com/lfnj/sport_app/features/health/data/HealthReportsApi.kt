@@ -44,14 +44,16 @@ data class ReportHealthRequestDto(
     override fun toString(): String = "ReportHealthRequestDto(<oculto>)"
 
     /** `null` si el cuerpo guardado ya no corresponde a los catálogos del cliente. */
-    fun toDetails(): HealthReportDetails? = HealthReportDetails(
-        type = HealthReportType.fromWire(type) ?: return null,
-        bodyArea = BodyArea.fromWire(bodyArea) ?: return null,
-        severity = HealthSeverity.fromWire(severity) ?: return null,
-        occurredAt = runCatching { Instant.parse(occurredAt) }.getOrNull() ?: return null,
-        sessionId = sessionId,
-        expectedRecoveryDays = expectedRecoveryDays,
-    )
+    fun toDetails(): HealthReportDetails? {
+        return HealthReportDetails(
+            type = HealthReportType.fromWire(type) ?: return null,
+            bodyArea = BodyArea.fromWire(bodyArea) ?: return null,
+            severity = HealthSeverity.fromWire(severity) ?: return null,
+            occurredAt = runCatching { Instant.parse(occurredAt) }.getOrNull() ?: return null,
+            sessionId = sessionId,
+            expectedRecoveryDays = expectedRecoveryDays,
+        )
+    }
 }
 
 /** `HealthReportResponse`: reporte confirmado `OPEN`, versión 1, sin diagnóstico ni recomendación. */

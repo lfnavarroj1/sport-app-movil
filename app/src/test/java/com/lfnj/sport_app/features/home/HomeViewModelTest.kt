@@ -42,7 +42,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         assertFalse(vm.uiState.value.loadingAccess)
-        assertEquals(13, vm.uiState.value.menu.size)
+        assertEquals(14, vm.uiState.value.menu.size)
     }
 
     @Test
@@ -57,7 +57,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         assertEquals(null, vm.uiState.value.accessFailure)
-        assertEquals(13, vm.uiState.value.menu.size)
+        assertEquals(14, vm.uiState.value.menu.size)
     }
 
     @Test

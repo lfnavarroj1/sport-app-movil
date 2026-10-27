@@ -151,7 +151,7 @@ class HealthReportsSyncEngineTest {
             assertEquals(SyncRun.RETRY, h.engine.run(h.owner))
             assertEquals(HealthSyncState.PENDING_SYNC, h.local().single().state)
         }
-        h.server.shutdown()
+        h.server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
         assertEquals(SyncRun.RETRY, h.engine.run(h.owner))
         assertEquals(HealthSyncState.PENDING_SYNC, h.local().single().state)
     }
