@@ -94,7 +94,29 @@ import com.lfnj.sport_app.features.notifications.sync.WorkManagerInboxSyncSchedu
 import com.lfnj.sport_app.features.notifications.system.AndroidNotificationAnnouncer
 import com.lfnj.sport_app.features.notifications.system.NotificationLaunch
 import com.lfnj.sport_app.features.notifications.system.SystemNotificationsProbe
+import com.lfnj.sport_app.features.nutrition.reminders.data.SessionRemindersApi
+import com.lfnj.sport_app.features.nutrition.reminders.data.SessionRemindersJanitor
+import com.lfnj.sport_app.features.nutrition.reminders.data.SessionRemindersRepository
+import com.lfnj.sport_app.features.nutrition.reminders.data.local.SessionRemindersCodec
+import com.lfnj.sport_app.features.nutrition.reminders.data.local.SessionRemindersDatabase
+import com.lfnj.sport_app.features.nutrition.reminders.engine.AndroidReminderNotifier
+import com.lfnj.sport_app.features.nutrition.reminders.engine.ReminderBannerCenter
+import com.lfnj.sport_app.features.nutrition.reminders.engine.ReminderNotifier
+import com.lfnj.sport_app.features.nutrition.reminders.engine.SessionReminderEngine
+import com.lfnj.sport_app.features.nutrition.reminders.model.SessionRemindersAccess
+import com.lfnj.sport_app.features.training.session.data.SystemTrainingClock
+import com.lfnj.sport_app.features.training.session.data.TrainingClock
+import com.lfnj.sport_app.features.training.session.foreground.ActiveSessionPointer
+import com.lfnj.sport_app.features.training.session.foreground.ActiveSessionServiceLauncher
+import com.lfnj.sport_app.features.training.session.foreground.ActiveSessionSource
+import com.lfnj.sport_app.features.training.session.foreground.ActiveSessionTask
+import com.lfnj.sport_app.features.training.session.foreground.ActiveSessionTracker
+import com.lfnj.sport_app.features.training.session.foreground.AndroidActiveSessionServiceLauncher
+import com.lfnj.sport_app.features.training.session.foreground.SharedPreferencesActiveSessionPointer
+import com.lfnj.sport_app.features.training.session.model.LocalTrainingSession
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -485,4 +507,69 @@ open class AppContainer(
     val healthReportsCoordinator: HealthReportsCoordinator by lazy {
         HealthReportsCoordinator(sessionManager.currentUser, healthReportsRepository::hasPending, healthReportsScheduler, healthReportsSessionPolicy)
     }
+
+    // ------------------------------------------------------------------ HU038 (ADR-045)
+
+    protected open val sessionRemindersDatabase: SessionRemindersDatabase by lazy { SessionRemindersDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de los recordatorios en sesión, distinta de la de la sesión y de las demás bases. */
+    protected open val sessionRemindersCipher: TokenCipher by lazy { KeystoreTokenCipher(SessionRemindersCodec.KEY_ALIAS) }
+
+    open val sessionRemindersRepository: SessionRemindersRepository by lazy {
+        SessionRemindersRepository(
+            dao = sessionRemindersDatabase.sessionRemindersDao(),
+            codec = SessionRemindersCodec(sessionRemindersCipher, BffMobileClient.json),
+            api = bffApi(SessionRemindersApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    val sessionRemindersJanitor: SessionRemindersJanitor by lazy {
+        SessionRemindersJanitor(sessionManager.currentUser, sessionRemindersRepository)
+    }
+
+    /** Notificaciones locales en el canal `session_reminders`; el permiso lo solicita la bandeja (HU039). */
+    val androidReminderNotifier: AndroidReminderNotifier by lazy { AndroidReminderNotifier(appContext) }
+
+    open val reminderNotifier: ReminderNotifier get() = androidReminderNotifier
+
+    /** Banner global de los recordatorios, sobre cualquier pantalla. */
+    val reminderBanners: ReminderBannerCenter by lazy { ReminderBannerCenter() }
+
+    /** Reloj del motor: el de HU032 (monotónico y de pared). Solo las pruebas instrumentadas lo aceleran. */
+    protected open val reminderClock: TrainingClock get() = SystemTrainingClock
+
+    open val sessionReminderEngine: SessionReminderEngine by lazy {
+        SessionReminderEngine(
+            configs = sessionRemindersRepository::observe,
+            allowed = sessionManager.access.map(SessionRemindersAccess::allowsLocalEvaluation),
+            deliveries = sessionRemindersRepository,
+            notifier = reminderNotifier,
+            banners = reminderBanners,
+            clock = reminderClock,
+            refresh = { owner -> sessionRemindersRepository.refresh(owner) },
+        )
+    }
+
+    // Servicio en primer plano de la sesión de HU032 (creado por HU038; reutilizable por HU036/HU037).
+
+    protected open val activeSessionPointer: ActiveSessionPointer by lazy { SharedPreferencesActiveSessionPointer(appContext) }
+
+    protected open val activeSessionLauncher: ActiveSessionServiceLauncher by lazy { AndroidActiveSessionServiceLauncher(appContext) }
+
+    /** Lectura de HU032 sin modificar su repositorio ni su almacenamiento. */
+    private val activeSessionSource: ActiveSessionSource by lazy {
+        object : ActiveSessionSource {
+            override fun observe(owner: String): Flow<List<LocalTrainingSession>> = trainingSessionRepository.observe(owner)
+            override fun monotonicStartMillis(sessionId: String): Long? = trainingSessionRepository.monotonicStartMillis(sessionId)
+        }
+    }
+
+    val activeSessionTracker: ActiveSessionTracker by lazy {
+        ActiveSessionTracker(sessionManager.currentUser, activeSessionSource, activeSessionPointer, activeSessionLauncher)
+    }
+
+    /** Tareas que acompañan la sesión activa en el servicio en primer plano. */
+    open val activeSessionTasks: List<ActiveSessionTask> get() = listOf(sessionReminderEngine)
 }

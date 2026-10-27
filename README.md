@@ -30,8 +30,8 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041, HU029 y HU004
-├── MainActivity.kt        única Activity; aloja la navegación Compose
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041, HU029, HU038 y HU004
+├── MainActivity.kt        única Activity; aloja la navegación Compose y el banner global de recordatorios (HU038)
 ├── di/                    AppContainer (DI manual)
 ├── core/
 │   ├── config/            AppConfig por variante (URL del BFF, ambiente, versión de contrato)
@@ -49,6 +49,10 @@ app/src/main/java/com/lfnj/sport_app/
 │   │   ├── data/          API, repositorio, conectividad, limpieza al cerrar sesión y caché Room cifrada
 │   │   └── model/         detalle, inscripción confirmada, orden y antigüedad de la lista
 │   ├── home/              inicio del deportista con menú por capacidades (HU003)
+│   ├── nutrition/reminders/ recordatorios durante la sesión (HU038): pantalla, ViewModel y banner global,
+│   │   ├── data/          API, repositorio, limpieza al cerrar sesión y Room (configuración y entregas cifradas)
+│   │   ├── engine/        cálculo de ocurrencias, motor local, notificación local y centro de banners
+│   │   └── model/         reglas, preferencias, configuración confirmada y capacidad
 │   ├── recommendations/   entrenamientos sugeridos (HU028) y rutas sugeridas (HU026): pantallas de lista y detalle, ViewModels,
 │   │   ├── data/          API, repositorios, limpieza al cerrar sesión y cachés Room cifradas (una por HU)
 │   │   └── model/         plantillas y rutas, motivos, contexto faltante, antigüedad y URI `geo:`
@@ -65,6 +69,7 @@ app/src/main/java/com/lfnj/sport_app/
 │   ├── training/session/  registrar entrenamiento offline first (HU032): pantalla, ViewModel,
 │   │   ├── data/          API, repositorio y Room (payload cifrado con Keystore)
 │   │   ├── model/         deportes, estados de sincronización y causas de rechazo
+│   │   ├── foreground/    servicio en primer plano de la sesión activa (creado por HU038, reutilizable)
 │   │   └── sync/          motor de sincronización, WorkManager y coordinación con la sesión
 │   └── status/            pantalla técnica de estado del BFF
 └── ui/theme/              tema Material 3 de marca (ADR-012)
@@ -245,6 +250,32 @@ app/src/main/java/com/lfnj/sport_app/
   reemplaza (un servicio despublicado desaparece), sin red se muestra con `last_synced_at` y se marca
   desactualizada a las 24 h. Al terminar la sesión se elimina como en HU035.
 
+### Recordatorios durante la sesión (HU038, ADR-045)
+
+- La opción `INTERMEDIATE` 230 «Recordatorios durante sesión» (capacidad `nutrition.session.reminders`;
+  sin ella la opción no aparece y la guarda devuelve al inicio) abre `entrenamientos/recordatorios`,
+  descarga `GET /v1/session-reminder-rules` y `GET /v1/me/session-reminder-preferences` (copia 0.18.0) y
+  permite ajustar hidratación (10–60 min) y alimentación (30–120 min) dentro de los rangos del ruleset;
+  guardar usa `PUT` con `expected_version` y exige red (no hay cola offline). `409 version_conflict`
+  recarga las vigentes; `422` conserva el borrador. Mensajes y aviso se muestran sin modificar.
+- Sin ruleset descargado nunca hay recordatorios y la pantalla declara «información insuficiente» (CA5).
+  La configuración confirmada se guarda en `sportapp_session_reminders.db` cifrada con
+  `sportapp.session_reminders.v1` (excluida del respaldo) y se elimina al terminar la sesión.
+- Durante una sesión `ACTIVE` de HU032 corre `ActiveSessionService` (primer plano, tipo `specialUse`,
+  canal `training_session` con cronómetro): `health` exigiría permisos de sensores fuera del alcance;
+  publicar en Google Play exigiría justificar el tipo en la consola (el APK se distribuye por GitHub
+  Release). El servicio toma un `PARTIAL_WAKE_LOCK` con tiempo máximo de 10 min, renovado cada 5 min solo
+  mientras la sesión sigue activa y liberado al terminar, al detener el servicio y en `onDestroy`
+  (`WAKE_LOCK` llega fusionado desde WorkManager). Si Android no permite iniciarlo en segundo plano, se
+  reintenta al volver la aplicación al primer plano; un puntero (`sportapp_active_session.xml`, solo
+  huella y `session_id`, excluido del respaldo) permite continuar tras un reinicio del sistema.
+- El motor evalúa sin red, cada segundo como máximo, `HYDRATION` cada intervalo desde el inicio y
+  `NUTRITION` solo en ocurrencias posteriores a 60 min; reclama `(session_id, type, n)` en el registro
+  local antes de presentarla, por lo que un reinicio nunca la repite, y tras un reinicio solo presenta la
+  vigente. Presenta notificación local (canal `session_reminders`) y banner global; sin permiso o con las
+  notificaciones desactivadas solo banner, y lo declara (CA4). El permiso `POST_NOTIFICATIONS` lo
+  solicita el mecanismo de HU039. `delivered_at` queda solo en el dispositivo.
+
 ### Inscripción a un evento publicado (HU041, ADR-032)
 
 - No hay opción de menú: el detalle `eventos/detalle/{event_id}` se abre desde la tarjeta de un evento
@@ -297,6 +328,7 @@ formulario y no captura datos; un `422 unsupported_consent_version` deja el repo
 | E2E HU026 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu026IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña> -Pandroid.testInstrumentationRunnerArguments.e2eRouteSuffix=<sufijo>` — antes, por `bff-web` (`localhost:18080`, con `Origin` permitido): deportista con su ciudad (`PUT /v1/me/demographic-profile`) y un deporte (`PUT /v1/me/sport-habits`), ambos con `Idempotency-Key`, y organizador que publica con `POST /v1/routes` «E2E HU026 Ciudad <sufijo>» (ciudad del deportista, más larga), «E2E HU026 Corta <sufijo>» (otra ciudad, más corta) y «E2E HU026 Retirada <sufijo>», que retira con `POST /v1/routes/{route_id}/retire`. Datos sintéticos. |
 | E2E HU027 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu027IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña> -Pandroid.testInstrumentationRunnerArguments.e2eFeeEventId=<event_id> -Pandroid.testInstrumentationRunnerArguments.e2eRegisterEventId=<event_id> -Pandroid.testInstrumentationRunnerArguments.e2eIncompleteAthleteEmail=<correo>` — antes, por `bff-web` (`localhost:18080`, con `Origin` permitido): deportista con una ciudad propia (`PUT /v1/me/demographic-profile`) y el deporte `running` (`PUT /v1/me/sport-habits`); otro deportista sin perfil deportivo; y organizador que crea y publica (`POST /v1/events`, `POST /v1/events/{event_id}/publish`) dos eventos en esa ciudad con disciplinas alias de `running` («Atletismo» con tarifa `PUT /v1/events/{event_id}/fee` `45000.00 COP`, y «Media Maratón» sin tarifa ni inscripciones, que la prueba inscribe desde el detalle de HU041). Datos sintéticos. |
 | E2E HU029 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu029IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo con inscripción> -Pandroid.testInstrumentationRunnerArguments.e2eUnregisteredEmail=<correo sin inscripciones> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña> -Pandroid.testInstrumentationRunnerArguments.e2eServiceSuffix=<sufijo>` — antes: un organizador publica un evento dentro de 31 días y el primer deportista se inscribe (HU041); un profesional publica por `bff-web` «E2E HU029 Transporte <sufijo>» (`TRANSPORT`) con un intervalo disponible ese día y «E2E HU029 Entrenamiento <sufijo>» (`COACHING`) con un intervalo en 31 días. El segundo deportista no tiene inscripciones. Datos sintéticos. |
+| E2E HU038 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu038IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eIntermediateEmail=<correo INTERMEDIATE> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña>` — deportista `INTERMEDIATE` sintético con `nutrition.session.reminders`; la sesión de HU032 es real y solo el reloj del motor se acelera ×60 en la prueba. |
 | APK de depuración | `./gradlew :app:assembleDebug` |
 | Candidato de release sin firmar | `./gradlew :app:assembleRelease :app:bundleRelease` |
 
@@ -373,6 +405,15 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   esquemas en la copia 0.18.0. Room, Keystore, reinicio, esquema, respaldo, limpieza, pantalla y recorrido
   se prueban en el dispositivo (`features/services/Support*` y `navigation/SupportSuggestionsFlowTest`);
   `e2e/Hu029IntegratedE2eTest` usa la composición local.
+- HU038: `ReminderScheduleTest` (ocurrencias con tiempo simulado, regla de 60 min, rangos),
+  `SessionReminderEngineTest` (70 min, < 3 s, reinicio sin duplicados, notificaciones deshabilitadas, tipo
+  deshabilitado, sin ruleset, capacidad), `SessionRemindersRepositoryTest` (MockWebServer: `200`, `403`,
+  `409`, `422`, `503`/`504`, sin red, cifrado y limpieza), `SessionRemindersViewModelTest`,
+  `ActiveSessionTrackerTest` y `ActiveSessionRunnerTest` (wake lock) en la JVM;
+  `SessionRemindersContractTest` verifica las tres operaciones y sus esquemas en la copia 0.18.0. En el
+  dispositivo: Room y Keystore, pantalla y banner, `ActiveSessionServiceTest` (servicio real con sesión de
+  70 min acelerada, reinicio, solo banner y liberación del wake lock) y
+  `navigation/SessionRemindersFlowTest`; `e2e/Hu038IntegratedE2eTest` usa la composición local.
 - HU033: `TrainingDashboardModelsTest`, `TrainingDashboardRepositoryTest` (MockWebServer: `200`,
   vacío, fuente caída, `403`, `422`, `503`/`504`, sin red, respuesta inválida, partición y limpieza) y
   `TrainingDashboardViewModelTest` en la JVM; `TrainingDashboardContractTest` verifica la operación y
