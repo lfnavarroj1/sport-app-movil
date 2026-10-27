@@ -37,6 +37,9 @@ object Destinations {
     /** HU029: servicios de acompañamiento y logística sugeridos (`/servicios/acompanamiento`). */
     const val SUPPORT_SUGGESTIONS = "servicios/acompanamiento"
 
+    /** HU030: rutinas de alimentación sugeridas al deportista (`/alimentacion/rutinas`, ADR-041). */
+    const val NUTRITION_ROUTINES = "alimentacion/rutinas"
+
     /** HU038: recordatorios de hidratación y alimentación durante la sesión (`/entrenamientos/recordatorios`). */
     const val SESSION_REMINDERS = "entrenamientos/recordatorios"
 

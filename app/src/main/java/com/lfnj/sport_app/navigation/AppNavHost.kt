@@ -57,6 +57,10 @@ import com.lfnj.sport_app.features.nutrition.intake.FoodIntakeScreen
 import com.lfnj.sport_app.features.nutrition.intake.FoodIntakeViewModel
 import com.lfnj.sport_app.features.nutrition.intake.FoodLabels
 import com.lfnj.sport_app.features.nutrition.intake.model.FoodOwner
+import com.lfnj.sport_app.features.nutrition.routines.NutritionRoutinesScreen
+import com.lfnj.sport_app.features.nutrition.routines.NutritionRoutinesViewModel
+import com.lfnj.sport_app.features.nutrition.routines.model.NutritionRoutinesAccess
+import com.lfnj.sport_app.features.nutrition.routines.model.NutritionRoutinesOwner
 import com.lfnj.sport_app.features.nutrition.reminders.SessionRemindersScreen
 import com.lfnj.sport_app.features.nutrition.reminders.SessionRemindersViewModel
 import com.lfnj.sport_app.features.nutrition.reminders.model.SessionRemindersAccess
@@ -656,6 +660,53 @@ fun AppNavHost(
                         }
                     }
                     SupportSuggestionsScreen(
+                        state = state,
+                        onOpenDetail = viewModel::openDetail,
+                        onCloseDetail = viewModel::closeDetail,
+                        onRetry = viewModel::retry,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.NUTRITION_ROUTINES) {
+            // HU030: misma guarda que athlete_home y, además, la capacidad nutrition.routines.suggest vigente.
+            val user = remember { sessionManager.currentUser.value }
+            val allowed = remember { NutritionRoutinesAccess.canView(sessionManager.access.value) }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                !allowed -> LaunchedEffect(Unit) {
+                    navController.navigate(Destinations.ATHLETE_HOME) {
+                        popUpTo(Destinations.NUTRITION_ROUTINES) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                else -> {
+                    val viewModel: NutritionRoutinesViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer {
+                                NutritionRoutinesViewModel(
+                                    owner = NutritionRoutinesOwner.keyOf(user.userId),
+                                    gateway = container.nutritionRoutinesRepository,
+                                    // Solo lectura del catálogo de HU043 ya guardado: nombra los food_code sin consultar al BFF.
+                                    foodCatalog = container.foodIntakeRepository.observe(FoodOwner.keyOf(user.userId)).map { it.catalog },
+                                )
+                            }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    NutritionRoutinesScreen(
                         state = state,
                         onOpenDetail = viewModel::openDetail,
                         onCloseDetail = viewModel::closeDetail,

@@ -57,6 +57,10 @@
         <exclude domain="database" path="sportapp_support_suggestions.db-shm" />
         <exclude domain="database" path="sportapp_support_suggestions.db-wal" />
         <exclude domain="database" path="sportapp_support_suggestions.db-journal" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db-shm" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db-wal" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db-journal" />
         <exclude domain="database" path="sportapp_notifications.db" />
         <exclude domain="database" path="sportapp_notifications.db-shm" />
         <exclude domain="database" path="sportapp_notifications.db-wal" />
@@ -121,6 +125,10 @@
         <exclude domain="database" path="sportapp_support_suggestions.db-shm" />
         <exclude domain="database" path="sportapp_support_suggestions.db-wal" />
         <exclude domain="database" path="sportapp_support_suggestions.db-journal" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db-shm" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db-wal" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db-journal" />
         <exclude domain="database" path="sportapp_notifications.db" />
         <exclude domain="database" path="sportapp_notifications.db-shm" />
         <exclude domain="database" path="sportapp_notifications.db-wal" />
