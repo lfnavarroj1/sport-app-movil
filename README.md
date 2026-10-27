@@ -277,6 +277,12 @@ Se sobrescriben sin tocar el código con `-Psportapp.bffMobileBaseUrl.debug=<url
 físico con la composición local: `adb reverse tcp:18081 tcp:18081` y
 `-Psportapp.bffMobileBaseUrl.debug=http://localhost:18081/`.
 
+HU042 añade `HEALTH_DATA_CONSENT_VERSION`, la versión del consentimiento de datos de salud que el
+móvil envía en `consent.version` (ADR-034/ADR-037): `-Psportapp.healthDataConsentVersion.debug`
+(por defecto `local-dev`, el valor del overlay local del backend) y
+`-Psportapp.healthDataConsentVersion.release` (por defecto vacía). Vacía, «Mi salud» deshabilita el
+formulario y no captura datos; un `422 unsupported_consent_version` deja el reporte `SYNC_FAILED`.
+
 ## Comandos
 
 | Objetivo | Comando |
@@ -388,6 +394,15 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   reinicio, esquema, respaldo, limpieza, pantalla y recorrido hasta el detalle de HU041 se prueban en el dispositivo
   (`features/events/EventSuggestions*` y `navigation/EventSuggestionsFlowTest`); el E2E es
   `e2e/Hu027IntegratedE2eTest`.
+- HU042: `HealthReportModelsTest` (catálogos de ADR-037, fecha, días de recuperación, sesiones
+  confirmadas), `HealthReportsRepositoryTest` (cola cifrada, identificadores, consentimiento ausente,
+  partición, retiro y limpieza al cerrar sesión), `HealthReportsSyncEngineTest` (MockWebServer: `201`,
+  reintento con la misma clave, `409 report_id_reused`, `422`/`404`/`403`, `502`/`503`/`504`, sin red,
+  vencimiento a 30 días, otra partición, reinicio del proceso), `HealthReportsCoordinatorTest` y
+  `HealthReportViewModelTest` en la JVM; `HealthReportsContractTest` verifica la operación en la copia
+  0.21.0. Room, Keystore, reinicio, esquema, respaldo, WorkManager, pantalla y recorrido se prueban en
+  el dispositivo (`features/health/` y `navigation/HealthReportFlowTest`); el E2E es
+  `e2e/Hu042IntegratedE2eTest`.
 - HU004: `RevocationQueueTest` cubre la cola con MockWebServer (204, 422, 503/504, sin red,
   vencimiento, clave estable) y `SessionContractTest`, `POST /v1/sessions/revoke`; Room, Keystore,
   la separación del almacén de sesión, el reinicio del proceso, el esquema, el respaldo y

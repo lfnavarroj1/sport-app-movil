@@ -59,6 +59,10 @@
         <exclude domain="database" path="sportapp_notifications.db-shm" />
         <exclude domain="database" path="sportapp_notifications.db-wal" />
         <exclude domain="database" path="sportapp_notifications.db-journal" />
+        <exclude domain="database" path="sportapp_health_reports.db" />
+        <exclude domain="database" path="sportapp_health_reports.db-shm" />
+        <exclude domain="database" path="sportapp_health_reports.db-wal" />
+        <exclude domain="database" path="sportapp_health_reports.db-journal" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
@@ -110,5 +114,9 @@
         <exclude domain="database" path="sportapp_notifications.db-shm" />
         <exclude domain="database" path="sportapp_notifications.db-wal" />
         <exclude domain="database" path="sportapp_notifications.db-journal" />
+        <exclude domain="database" path="sportapp_health_reports.db" />
+        <exclude domain="database" path="sportapp_health_reports.db-shm" />
+        <exclude domain="database" path="sportapp_health_reports.db-wal" />
+        <exclude domain="database" path="sportapp_health_reports.db-journal" />
     </device-transfer>
 </data-extraction-rules>

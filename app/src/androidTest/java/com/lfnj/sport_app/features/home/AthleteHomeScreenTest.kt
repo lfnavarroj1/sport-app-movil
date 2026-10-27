@@ -54,6 +54,8 @@ class AthleteHomeScreenTest {
         composeRule.onNodeWithTag("menu_home").assertIsDisplayed()
         // HU039: opción base habilitada, sin capacidad de plan.
         composeRule.onNodeWithTag("menu_notifications").assertIsDisplayed().assertIsEnabled()
+        // HU042: «Mi salud» es opción base habilitada, sin capacidad de plan.
+        composeRule.onNodeWithTag("menu_health").assertIsDisplayed().assertIsEnabled()
         // HU026 ya tiene destino en el móvil: la opción queda habilitada.
         composeRule.onNodeWithTag("menu_training.routes.suggest").assertIsDisplayed().assertIsEnabled()
         // HU027 ya tiene destino en el móvil: la opción queda habilitada.
@@ -76,6 +78,8 @@ class AthleteHomeScreenTest {
         composeRule.onNodeWithTag("menu_events.suggest").assertDoesNotExist()
         // HU039: la bandeja es opción base y sigue disponible durante el aprovisionamiento.
         composeRule.onNodeWithTag("menu_notifications").assertIsDisplayed().assertIsEnabled()
+        // HU042: «Mi salud» también es opción base.
+        composeRule.onNodeWithTag("menu_health").assertIsDisplayed().assertIsEnabled()
     }
 
     @Test

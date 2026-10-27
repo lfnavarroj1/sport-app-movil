@@ -73,6 +73,14 @@ import com.lfnj.sport_app.features.training.session.data.local.TrainingRecordCod
 import com.lfnj.sport_app.features.training.session.sync.TrainingSyncCoordinator
 import com.lfnj.sport_app.features.training.session.sync.TrainingSyncEngine
 import com.lfnj.sport_app.features.training.session.sync.WorkManagerTrainingSyncScheduler
+import com.lfnj.sport_app.features.health.data.HealthReportsApi
+import com.lfnj.sport_app.features.health.data.HealthReportsRepository
+import com.lfnj.sport_app.features.health.data.local.HealthReportsCodec
+import com.lfnj.sport_app.features.health.data.local.HealthReportsDatabase
+import com.lfnj.sport_app.features.health.sync.HealthReportsCoordinator
+import com.lfnj.sport_app.features.health.sync.HealthReportsSessionPolicy
+import com.lfnj.sport_app.features.health.sync.HealthReportsSyncEngine
+import com.lfnj.sport_app.features.health.sync.WorkManagerHealthReportsSyncScheduler
 import com.lfnj.sport_app.features.notifications.data.NotificationAnnouncer
 import com.lfnj.sport_app.features.notifications.data.NotificationsApi
 import com.lfnj.sport_app.features.notifications.data.NotificationsCacheJanitor
@@ -432,4 +440,49 @@ open class AppContainer(
 
     /** Sincronización periódica de la bandeja mientras haya un deportista autenticado. */
     val inboxSyncCoordinator: InboxSyncCoordinator by lazy { InboxSyncCoordinator(sessionManager.currentUser, inboxSyncScheduler) }
+
+    // ------------------------------------------------------------------ HU042 (ADR-037)
+
+    protected open val healthReportsDatabase: HealthReportsDatabase by lazy { HealthReportsDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de los reportes de salud, distinta de la de la sesión y de las demás bases. */
+    protected open val healthReportsCipher: TokenCipher by lazy { KeystoreTokenCipher(HealthReportsCodec.KEY_ALIAS) }
+
+    protected open val healthReportsScheduler: TrainingSyncScheduler by lazy { WorkManagerHealthReportsSyncScheduler(appContext) }
+
+    private val healthReportsCodec by lazy { HealthReportsCodec(healthReportsCipher, BffMobileClient.json) }
+
+    open val healthReportsRepository: HealthReportsRepository by lazy {
+        HealthReportsRepository(
+            dao = healthReportsDatabase.healthReportsDao(),
+            transactions = healthReportsDatabase.transactions,
+            codec = healthReportsCodec,
+            scheduler = healthReportsScheduler,
+            consentVersion = config.healthDataConsentVersion,
+        )
+    }
+
+    open val healthReportsSyncEngine: HealthReportsSyncEngine by lazy {
+        HealthReportsSyncEngine(
+            dao = healthReportsDatabase.healthReportsDao(),
+            transactions = healthReportsDatabase.transactions,
+            codec = healthReportsCodec,
+            api = bffApi(HealthReportsApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    /**
+     * Al terminar la sesión: borra los reportes ya resueltos y conserva cifrados los pendientes para
+     * el mismo deportista (ADR-029 offline §4; confirmado por el responsable el 2026-10-26).
+     */
+    protected open val healthReportsSessionPolicy: HealthReportsSessionPolicy by lazy {
+        HealthReportsSessionPolicy { owner -> healthReportsRepository.clearSettled(owner) }
+    }
+
+    /** Detiene la cola de HU042 al cerrar sesión y la reanuda solo para el mismo deportista. */
+    val healthReportsCoordinator: HealthReportsCoordinator by lazy {
+        HealthReportsCoordinator(sessionManager.currentUser, healthReportsRepository::hasPending, healthReportsScheduler, healthReportsSessionPolicy)
+    }
 }

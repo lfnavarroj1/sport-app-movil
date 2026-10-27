@@ -72,6 +72,8 @@ object NavigationRegistry {
 
     val athlete: List<MenuEntry> = listOf(
         MenuEntry("home", R.string.menu_home, MenuGroup.MAIN, 10, "HU003", route = Destinations.ATHLETE_HOME),
+        // HU042: opción base «Mi salud» sin capacidad de plan (planes/05, orden 50; ADR-037).
+        MenuEntry("health", R.string.menu_health, MenuGroup.MAIN, 50, "HU042", route = Destinations.HEALTH),
         // HU039: opción base sin capacidad de plan (ADR-045 §11; orden 70 ratificado por el responsable).
         MenuEntry("notifications", R.string.menu_notifications, MenuGroup.MAIN, 70, "HU039", route = Destinations.NOTIFICATIONS),
         capability(TRAINING_ROUTES_SUGGEST_CAPABILITY, R.string.menu_athlete_routes, MenuGroup.TRAINING, 110, "HU026", Destinations.ROUTE_SUGGESTIONS),
