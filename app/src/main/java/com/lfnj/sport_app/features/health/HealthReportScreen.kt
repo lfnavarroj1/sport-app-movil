@@ -385,8 +385,13 @@ private fun ReportCard(report: LocalHealthReport, busy: Boolean, onDismiss: (Str
                 HealthSyncState.SYNCED -> R.string.health_state_synced to MaterialTheme.colorScheme.tertiary
                 HealthSyncState.SYNC_FAILED -> R.string.health_state_failed to MaterialTheme.colorScheme.error
             }
-            Column(Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
-                Text(stringResource(label), color = color, style = MaterialTheme.typography.labelLarge, modifier = Modifier.testTag("health_state_${report.reportId}"))
+            // Estado, fecha de registro y causa se anuncian juntos; la etiqueta queda en el nodo fusionado.
+            Column(
+                Modifier
+                    .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+                    .testTag("health_state_${report.reportId}"),
+            ) {
+                Text(stringResource(label), color = color, style = MaterialTheme.typography.labelLarge)
                 report.reportedAt?.let { Text(stringResource(R.string.health_reported_at, formatInstant(it, zone)), style = MaterialTheme.typography.bodySmall) }
                 if (report.state == HealthSyncState.SYNC_FAILED) {
                     Text(failureText(report), style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("health_failure_${report.reportId}"))

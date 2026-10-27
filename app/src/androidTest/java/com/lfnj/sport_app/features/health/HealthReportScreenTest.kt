@@ -152,7 +152,8 @@ class HealthReportScreenTest {
         composeRule.onNodeWithTag("health_report_advice_r-p").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("health_state_r-s").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Confirmado").assertIsDisplayed()
-        composeRule.onNodeWithTag("health_failure_r-f").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("health_state_r-f").performScrollTo()
+        composeRule.onNodeWithTag("health_failure_r-f", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("La sesión asociada no existe o no es tuya. Crea el reporte de nuevo sin esa sesión.").assertIsDisplayed()
         composeRule.onNodeWithTag("health_dismiss_r-f").performScrollTo().performClick()
         assertTrue("dismiss:r-f" in events)
@@ -163,7 +164,8 @@ class HealthReportScreenTest {
         show(base().copy(reports = listOf(report("r-u", HealthSyncState.SYNC_FAILED, HealthSyncFailure.UNREADABLE, details = null))))
 
         composeRule.onNodeWithText("No se pudo leer este reporte guardado.").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithTag("health_failure_r-u").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("health_state_r-u").performScrollTo()
+        composeRule.onNodeWithTag("health_failure_r-u", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test
