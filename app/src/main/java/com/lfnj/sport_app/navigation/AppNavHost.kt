@@ -48,6 +48,10 @@ import com.lfnj.sport_app.features.notifications.NotificationsInboxScreen
 import com.lfnj.sport_app.features.notifications.NotificationsInboxViewModel
 import com.lfnj.sport_app.features.notifications.model.NotificationsOwner
 import com.lfnj.sport_app.features.notifications.system.rememberSystemNotificationsEnabler
+import com.lfnj.sport_app.features.nutrition.intake.FoodIntakeScreen
+import com.lfnj.sport_app.features.nutrition.intake.FoodIntakeViewModel
+import com.lfnj.sport_app.features.nutrition.intake.FoodLabels
+import com.lfnj.sport_app.features.nutrition.intake.model.FoodOwner
 import com.lfnj.sport_app.features.nutrition.reminders.SessionRemindersScreen
 import com.lfnj.sport_app.features.nutrition.reminders.SessionRemindersViewModel
 import com.lfnj.sport_app.features.nutrition.reminders.model.SessionRemindersAccess
@@ -731,6 +735,54 @@ fun AppNavHost(
                         onEventRemindersChange = viewModel::setEventReminders,
                         onSave = viewModel::save,
                         onRetry = viewModel::retry,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.NUTRITION) {
+            // HU043: misma guarda que athlete_home; «Mi alimentación» es opción base, sin capacidad de plan (ADR-037).
+            val user = remember { sessionManager.currentUser.value }
+            val resources = LocalContext.current.resources
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                else -> {
+                    val viewModel: FoodIntakeViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer {
+                                FoodIntakeViewModel(
+                                    owner = FoodOwner.keyOf(user.userId),
+                                    gateway = container.foodIntakeRepository,
+                                    online = container.connectivityMonitor.online(),
+                                    labelOf = { food -> FoodLabels.resourceOf(food.labelKey)?.let(resources::getString) ?: food.foodCode },
+                                )
+                            }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    FoodIntakeScreen(
+                        state = state,
+                        onSelectMeal = viewModel::selectMeal,
+                        onConsumedAtChange = viewModel::setConsumedAt,
+                        onQueryChange = viewModel::onQueryChange,
+                        onAddFood = viewModel::addFood,
+                        onRemoveLine = viewModel::removeLine,
+                        onQuantityChange = viewModel::onQuantityChange,
+                        onSelectUnit = viewModel::selectUnit,
+                        onSubmit = viewModel::submit,
+                        onRetry = viewModel::refresh,
+                        onDismiss = viewModel::dismiss,
                         onBack = { navController.popBackStack() },
                     )
                 }

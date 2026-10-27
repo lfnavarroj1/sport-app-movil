@@ -30,7 +30,7 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041, HU029, HU038 y HU004
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041, HU029, HU038, HU043 y HU004
 ├── MainActivity.kt        única Activity; aloja la navegación Compose y el banner global de recordatorios (HU038)
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -49,6 +49,10 @@ app/src/main/java/com/lfnj/sport_app/
 │   │   ├── data/          API, repositorio, conectividad, limpieza al cerrar sesión y caché Room cifrada
 │   │   └── model/         detalle, inscripción confirmada, orden y antigüedad de la lista
 │   ├── home/              inicio del deportista con menú por capacidades (HU003)
+│   ├── nutrition/intake/  «Mi alimentación» (HU043): pantalla, ViewModel y nombres del catálogo,
+│   │   ├── data/          API, repositorio y Room (catálogo y consumos cifrados)
+│   │   ├── model/         catálogo, unidades, comidas, validadores y estados de sincronización
+│   │   └── sync/          cola durable con WorkManager, fábrica propia y coordinación con la sesión
 │   ├── nutrition/reminders/ recordatorios durante la sesión (HU038): pantalla, ViewModel y banner global,
 │   │   ├── data/          API, repositorio, limpieza al cerrar sesión y Room (configuración y entregas cifradas)
 │   │   ├── engine/        cálculo de ocurrencias, motor local, notificación local y centro de banners
@@ -276,6 +280,27 @@ app/src/main/java/com/lfnj/sport_app/
   notificaciones desactivadas solo banner, y lo declara (CA4). El permiso `POST_NOTIFICATIONS` lo
   solicita el mecanismo de HU039. `delivered_at` queda solo en el dispositivo.
 
+### Registro de consumo de alimentos (HU043, ADR-037)
+
+- La opción base 60 «Mi alimentación» (sin capacidad de plan, visible con cualquier plan y durante el
+  aprovisionamiento) abre `nutrition`. La pantalla descarga `GET /v1/food-catalog` (copia 0.21.0) con
+  `If-None-Match`; un `304` renueva `last_synced_at` sin reescribir alimentos. El catálogo se guarda
+  en `sportapp_food_intakes.db` cifrado con `sportapp.food-intakes.v1` (excluida del respaldo) y pasa a
+  `STALE` a las 24 h. Sin catálogo en caché la pantalla pide conexión y no ofrece alimentos (CA5).
+- El formulario elige comida, momento (≤ 5 min en el futuro, ≤ 30 días), alimentos del buscador local
+  (solo la caché; sin texto libre), cantidad como texto decimal con un decimal entre 0,1 y 5000 (se acepta
+  coma y se normaliza a `150.0`) y una de las `allowed_units` del alimento; 1–20 alimentos. Sin
+  calorías, nutrientes ni juicios nutricionales. Los nombres salen del `label_key` con los textos de la
+  web (`public/i18n/es.json`, frontend `develop` 7e40434); una clave desconocida muestra el `food_code`.
+- Registrar guarda primero el consumo cifrado como `PENDING_SYNC` con `intake_id` e `Idempotency-Key`
+  (UUID) y programa un trabajo único por deportista con red y reintento exponencial (`food-intakes-sync`).
+  `POST /v1/me/food-intakes` solo se reintenta ante red, `502`, `503` y `504`; un `201` que no
+  corresponde a lo enviado o cualquier `4xx` deja `SYNC_FAILED` con causa explicable (catálogo cambiado,
+  validación, permiso, conflicto `intake_id_reused`), y un pendiente con más de 30 días vence. La lista
+  muestra los consumos de hoy y cualquier pendiente o fallido; solo un fallido puede retirarse.
+- Al terminar la sesión se detiene la cola, se borran la caché del catálogo y los consumos resueltos, y
+  los pendientes quedan cifrados para el mismo deportista (ADR-029 offline §4, misma decisión de HU042).
+
 ### Inscripción a un evento publicado (HU041, ADR-032)
 
 - No hay opción de menú: el detalle `eventos/detalle/{event_id}` se abre desde la tarjeta de un evento
@@ -323,6 +348,7 @@ físico con la composición local: `adb reverse tcp:18081 tcp:18081` y
 | E2E HU027 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu027IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña> -Pandroid.testInstrumentationRunnerArguments.e2eFeeEventId=<event_id> -Pandroid.testInstrumentationRunnerArguments.e2eRegisterEventId=<event_id> -Pandroid.testInstrumentationRunnerArguments.e2eIncompleteAthleteEmail=<correo>` — antes, por `bff-web` (`localhost:18080`, con `Origin` permitido): deportista con una ciudad propia (`PUT /v1/me/demographic-profile`) y el deporte `running` (`PUT /v1/me/sport-habits`); otro deportista sin perfil deportivo; y organizador que crea y publica (`POST /v1/events`, `POST /v1/events/{event_id}/publish`) dos eventos en esa ciudad con disciplinas alias de `running` («Atletismo» con tarifa `PUT /v1/events/{event_id}/fee` `45000.00 COP`, y «Media Maratón» sin tarifa ni inscripciones, que la prueba inscribe desde el detalle de HU041). Datos sintéticos. |
 | E2E HU029 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu029IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo con inscripción> -Pandroid.testInstrumentationRunnerArguments.e2eUnregisteredEmail=<correo sin inscripciones> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña> -Pandroid.testInstrumentationRunnerArguments.e2eServiceSuffix=<sufijo>` — antes: un organizador publica un evento dentro de 31 días y el primer deportista se inscribe (HU041); un profesional publica por `bff-web` «E2E HU029 Transporte <sufijo>» (`TRANSPORT`) con un intervalo disponible ese día y «E2E HU029 Entrenamiento <sufijo>» (`COACHING`) con un intervalo en 31 días. El segundo deportista no tiene inscripciones. Datos sintéticos. |
 | E2E HU038 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu038IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eIntermediateEmail=<correo INTERMEDIATE> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña>` — deportista `INTERMEDIATE` sintético con `nutrition.session.reminders`; la sesión de HU032 es real y solo el reloj del motor se acelera ×60 en la prueba. |
+| E2E HU043 contra la composición local (teléfono con `adb reverse tcp:18081 tcp:18081`) | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.lfnj.sport_app.e2e.Hu043IntegratedE2eTest -Pandroid.testInstrumentationRunnerArguments.e2eAthleteEmail=<correo> -Pandroid.testInstrumentationRunnerArguments.e2ePassword=<contraseña>` — deportista sintético; la composición local debe servir `bff-mobile` ≥ 0.19.0 y `training-management` 0.16.0 (migraciones 0012). |
 | APK de depuración | `./gradlew :app:assembleDebug` |
 | Candidato de release sin firmar | `./gradlew :app:assembleRelease :app:bundleRelease` |
 
@@ -408,6 +434,14 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   dispositivo: Room y Keystore, pantalla y banner, `ActiveSessionServiceTest` (servicio real con sesión de
   70 min acelerada, reinicio, solo banner y liberación del wake lock) y
   `navigation/SessionRemindersFlowTest`; `e2e/Hu038IntegratedE2eTest` usa la composición local.
+- HU043: `FoodIntakeModelsTest` (cantidad decimal, fechas, unidades permitidas, `STALE`, buscador),
+  `FoodIntakeRepositoryTest` (MockWebServer: `ETag`/`304`, sin red con y sin caché, `403`, `503`,
+  encolado cifrado, alimentos ausentes, limpieza), `FoodIntakeSyncEngineTest` (`201` versión 1, respuesta
+  perdida, `502`/`503`/`504`, `409`, `422`, orden, vencimiento, partición) y `FoodIntakeViewModelTest` en
+  la JVM; `FoodIntakeContractTest` verifica las dos operaciones y sus esquemas en la copia 0.21.0. En el
+  dispositivo: Room y Keystore, reinicio, vencimiento, limpieza, esquema y respaldo
+  (`FoodIntakeLocalStorageTest`), `FoodIntakeWorkerTest` (incluida la no captura entre fábricas),
+  pantalla y `navigation/FoodIntakeFlowTest`; `e2e/Hu043IntegratedE2eTest` usa la composición local.
 - HU033: `TrainingDashboardModelsTest`, `TrainingDashboardRepositoryTest` (MockWebServer: `200`,
   vacío, fuente caída, `403`, `422`, `503`/`504`, sin red, respuesta inválida, partición y limpieza) y
   `TrainingDashboardViewModelTest` en la JVM; `TrainingDashboardContractTest` verifica la operación y

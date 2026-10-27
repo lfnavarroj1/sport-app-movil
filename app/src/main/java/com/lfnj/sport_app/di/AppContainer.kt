@@ -106,6 +106,14 @@ import com.lfnj.sport_app.features.training.session.foreground.ActiveSessionTrac
 import com.lfnj.sport_app.features.training.session.foreground.AndroidActiveSessionServiceLauncher
 import com.lfnj.sport_app.features.training.session.foreground.SharedPreferencesActiveSessionPointer
 import com.lfnj.sport_app.features.training.session.model.LocalTrainingSession
+import com.lfnj.sport_app.features.nutrition.intake.data.FoodIntakeApi
+import com.lfnj.sport_app.features.nutrition.intake.data.FoodIntakeRepository
+import com.lfnj.sport_app.features.nutrition.intake.data.local.FoodIntakeCodec
+import com.lfnj.sport_app.features.nutrition.intake.data.local.FoodIntakeDatabase
+import com.lfnj.sport_app.features.nutrition.intake.sync.FoodIntakeCoordinator
+import com.lfnj.sport_app.features.nutrition.intake.sync.FoodIntakeSessionPolicy
+import com.lfnj.sport_app.features.nutrition.intake.sync.FoodIntakeSyncEngine
+import com.lfnj.sport_app.features.nutrition.intake.sync.WorkManagerFoodIntakeSyncScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -519,4 +527,53 @@ open class AppContainer(
 
     /** Tareas que acompañan la sesión activa en el servicio en primer plano. */
     open val activeSessionTasks: List<ActiveSessionTask> get() = listOf(sessionReminderEngine)
+
+    // ------------------------------------------------------------------ HU043 (ADR-037)
+
+    protected open val foodIntakeDatabase: FoodIntakeDatabase by lazy { FoodIntakeDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia del catálogo y los consumos, distinta de la de la sesión y de las demás bases. */
+    protected open val foodIntakeCipher: TokenCipher by lazy { KeystoreTokenCipher(FoodIntakeCodec.KEY_ALIAS) }
+
+    protected open val foodIntakeScheduler: TrainingSyncScheduler by lazy { WorkManagerFoodIntakeSyncScheduler(appContext) }
+
+    private val foodIntakeCodec by lazy { FoodIntakeCodec(foodIntakeCipher, BffMobileClient.json) }
+
+    private val foodIntakeApi by lazy { bffApi(FoodIntakeApi::class.java) }
+
+    open val foodIntakeRepository: FoodIntakeRepository by lazy {
+        FoodIntakeRepository(
+            dao = foodIntakeDatabase.foodIntakeDao(),
+            transactions = foodIntakeDatabase.transactions,
+            codec = foodIntakeCodec,
+            api = foodIntakeApi,
+            sessionManager = sessionManager,
+            scheduler = foodIntakeScheduler,
+            json = BffMobileClient.json,
+        )
+    }
+
+    open val foodIntakeSyncEngine: FoodIntakeSyncEngine by lazy {
+        FoodIntakeSyncEngine(
+            dao = foodIntakeDatabase.foodIntakeDao(),
+            transactions = foodIntakeDatabase.transactions,
+            codec = foodIntakeCodec,
+            api = foodIntakeApi,
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    /**
+     * Al terminar la sesión: borra la caché del catálogo y los consumos ya resueltos, y conserva
+     * cifrados los pendientes para el mismo deportista (ADR-029 offline §4, la misma decisión de HU042).
+     */
+    protected open val foodIntakeSessionPolicy: FoodIntakeSessionPolicy by lazy {
+        FoodIntakeSessionPolicy { owner -> foodIntakeRepository.clearOnSessionEnd(owner) }
+    }
+
+    /** Detiene la cola de HU043 al cerrar sesión y la reanuda solo para el mismo deportista. */
+    val foodIntakeCoordinator: FoodIntakeCoordinator by lazy {
+        FoodIntakeCoordinator(sessionManager.currentUser, foodIntakeRepository::hasPending, foodIntakeScheduler, foodIntakeSessionPolicy)
+    }
 }
