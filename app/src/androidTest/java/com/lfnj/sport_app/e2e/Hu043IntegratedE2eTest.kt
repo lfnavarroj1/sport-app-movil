@@ -28,12 +28,15 @@ import com.lfnj.sport_app.features.nutrition.intake.data.local.FoodIntakeDatabas
 import com.lfnj.sport_app.features.nutrition.intake.model.FoodOwner
 import com.lfnj.sport_app.features.nutrition.intake.model.FoodSyncState
 import com.lfnj.sport_app.features.nutrition.intake.model.FoodUnit
+import com.lfnj.sport_app.features.nutrition.intake.model.LocalFoodIntake
 import com.lfnj.sport_app.features.nutrition.intake.model.MealType
 import com.lfnj.sport_app.features.nutrition.intake.sync.FoodIntakeSyncEngine
 import com.lfnj.sport_app.features.training.session.data.TrainingSyncScheduler
 import com.lfnj.sport_app.features.training.session.sync.SyncRun
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -185,7 +188,84 @@ class Hu043IntegratedE2eTest {
         }
     }
 
+    /** Ejecuta un comando de shell del dispositivo con los permisos de la instrumentación y espera su fin. */
+    private fun shell(command: String) {
+        InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command).use { fd ->
+            java.io.FileInputStream(fd.fileDescriptor).use { it.readBytes() }
+        }
+    }
+
+    private fun intake(owner: String, intakeId: String): LocalFoodIntake? =
+        runBlocking { container.foodIntakeRepository.observe(owner).first().intakes.firstOrNull { it.intakeId == intakeId } }
+
+    /**
+     * Caso offline real (CA5): con el catálogo ya en caché, sin Wi-Fi ni datos la app registra el
+     * consumo por la interfaz, lo deja `PENDING_SYNC` y WorkManager no lo envía; al restaurar la red,
+     * el trabajo durable real lo sincroniza una sola vez (`201` versión 1, un único intento). La red
+     * se restaura siempre.
+     */
+    @Test
+    fun sinRedRealElConsumoQuedaPendienteYAlVolverLaRedWorkManagerLoConfirmaUnaVez() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            login()
+            val owner = FoodOwner.keyOf(checkNotNull(container.sessionManager.currentUser.value).userId)
+            // Catálogo real en caché antes de cortar la red.
+            openNutrition()
+            composeRule.waitUntilExactlyOneExists(hasTestTag("food_search"), TIMEOUT)
+            composeRule.onNodeWithTag("food_back").performClick()
+            composeRule.waitUntilExactlyOneExists(hasTestTag("athlete_home"), TIMEOUT)
+            val before = runBlocking { container.foodIntakeRepository.observe(owner).first().intakes.map { it.intakeId }.toSet() }
+            lateinit var intakeId: String
+            try {
+                shell("svc wifi disable")
+                shell("svc data disable")
+                runBlocking { withTimeout(TIMEOUT) { container.connectivityMonitor.online().first { !it } } }
+
+                openNutrition()
+                composeRule.waitUntilExactlyOneExists(hasTestTag("food_offline"), TIMEOUT)
+                composeRule.onNodeWithTag("food_meal_HYDRATION").performScrollTo().performClick()
+                composeRule.onNodeWithTag("food_search").performScrollTo().performTextInput("agua")
+                composeRule.waitUntilExactlyOneExists(hasTestTag("food_add_WATER"), TIMEOUT)
+                composeRule.onNodeWithTag("food_add_WATER").performScrollTo().performClick()
+                composeRule.onNodeWithTag("food_quantity_0").performScrollTo().performTextInput("300")
+                composeRule.onNodeWithTag("food_submit").performScrollTo().performClick()
+
+                intakeId = runBlocking {
+                    withTimeout(TIMEOUT) {
+                        container.foodIntakeRepository.observe(owner).first { local -> local.intakes.any { it.intakeId !in before } }
+                            .intakes.single { it.intakeId !in before }.intakeId
+                    }
+                }
+                composeRule.waitUntilExactlyOneExists(hasTestTag("food_state_$intakeId") and hasText("Pendiente de sincronizar"), TIMEOUT)
+                // Sin red, el trabajo durable no se ejecuta: sigue pendiente y nunca se muestra confirmado.
+                runBlocking { delay(OFFLINE_HOLD) }
+                assertEquals(FoodSyncState.PENDING_SYNC, intake(owner, intakeId)?.state)
+            } finally {
+                shell("svc wifi enable")
+                shell("svc data enable")
+            }
+
+            runBlocking {
+                withTimeout(SYNC_TIMEOUT) {
+                    container.foodIntakeRepository.observe(owner).first { local -> local.intakes.any { it.intakeId == intakeId && it.state == FoodSyncState.SYNCED } }
+                }
+            }
+            val confirmed = checkNotNull(intake(owner, intakeId))
+            assertNotNull("El backend devolvió registered_at", confirmed.registeredAt)
+            assertEquals(listOf("300.0"), confirmed.details?.items?.map { it.quantity })
+            // Una sola sincronización: un único intento registrado para ese intake_id.
+            val attempts = runBlocking {
+                val database = FoodIntakeDatabase.create(context)
+                try { checkNotNull(database.foodIntakeDao().intake(owner, intakeId)).attempts } finally { database.close() }
+            }
+            assertEquals(1, attempts)
+            composeRule.waitUntilExactlyOneExists(hasTestTag("food_state_$intakeId") and hasText("Confirmado"), TIMEOUT)
+        }
+    }
+
     private companion object {
+        const val OFFLINE_HOLD = 10_000L
+        const val SYNC_TIMEOUT = 120_000L
         const val TIMEOUT = 20_000L
         const val UNREACHABLE_BFF = "http://127.0.0.1:9/"
     }
