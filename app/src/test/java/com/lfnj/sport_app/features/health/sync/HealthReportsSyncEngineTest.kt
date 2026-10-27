@@ -70,6 +70,7 @@ class HealthReportsSyncEngineTest {
         assertEquals(HealthSyncState.SYNCED, local.state)
         assertEquals(Instant.parse("2026-10-24T18:35:02Z"), local.reportedAt)
         assertEquals(0, h.dao.countPending(h.owner))
+        assertEquals("El contador de intentos sobrevive a la confirmación", 1, h.dao.reports.getValue(id).attempts)
     }
 
     @Test
@@ -135,6 +136,7 @@ class HealthReportsSyncEngineTest {
             assertEquals(expected.name, entity.failureReason)
             assertEquals(HealthReportEntity.SYNC_FAILED, entity.syncState)
         }
+        assertTrue("Cada rechazo conserva su intento", h.dao.reports.values.all { it.attempts == 1 })
         val validation = h.dao.reports.values.single { it.failureReason == HealthSyncFailure.VALIDATION.name }
         assertEquals("body_area", validation.failureField)
         assertEquals("unknown_value", validation.failureIssue)
