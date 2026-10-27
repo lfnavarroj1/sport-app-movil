@@ -219,7 +219,9 @@ class Hu043IntegratedE2eTest {
             try {
                 shell("svc wifi disable")
                 shell("svc data disable")
-                runBlocking { withTimeout(TIMEOUT) { container.connectivityMonitor.online().first { !it } } }
+                // Cada sondeo abre una suscripción nueva, que lee el estado vigente del sistema: el flujo ya
+                // abierto puede no volver a emitir si `onLost` llega antes de que cambie la red activa.
+                runBlocking { withTimeout(TIMEOUT) { while (container.connectivityMonitor.online().first()) delay(500) } }
 
                 openNutrition()
                 composeRule.waitUntilExactlyOneExists(hasTestTag("food_offline"), TIMEOUT)
