@@ -70,13 +70,13 @@ class SessionRemindersScreenTest {
     @Test
     fun normalMuestraMensajesAprobadosIntervalosRangosYAviso() {
         show(loaded())
+        composeRule.onNodeWithTag("reminders_synced_at").assertIsDisplayed()
         composeRule.onNodeWithTag("reminders_message_hydration").assertTextContains(HYDRATION_MESSAGE)
         composeRule.onNodeWithTag("reminders_interval_hydration").assertTextContains("Cada 15 minutos")
         composeRule.onNodeWithTag("reminders_message_nutrition").performScrollTo().assertTextContains(NUTRITION_MESSAGE)
         composeRule.onNodeWithText("Solo en sesiones de más de 60 minutos.").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Permitido: de 10 a 60 minutos (recomendado 15).").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("reminders_disclaimer").performScrollTo().assertTextContains(DISCLAIMER)
-        composeRule.onNodeWithTag("reminders_synced_at").assertIsDisplayed()
         composeRule.onNodeWithTag("reminders_save").performScrollTo().assertIsNotEnabled()
     }
 
