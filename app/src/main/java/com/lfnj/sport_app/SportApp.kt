@@ -1,6 +1,8 @@
 package com.lfnj.sport_app
 
+import android.app.Activity
 import android.app.Application
+import android.os.Bundle
 import androidx.work.Configuration
 import androidx.work.DelegatingWorkerFactory
 import com.lfnj.sport_app.core.config.AppConfig
@@ -40,6 +42,22 @@ class SportApp : Application(), Configuration.Provider {
         container.androidNotificationAnnouncer.ensureChannels()
         container.notificationsCacheJanitor.start(applicationScope)
         container.inboxSyncCoordinator.start(applicationScope)
+        // HU038: canal de recordatorios, limpieza al terminar la sesión y servicio en primer plano de la sesión activa.
+        container.androidReminderNotifier.ensureChannel()
+        container.sessionRemindersJanitor.start(applicationScope)
+        container.activeSessionTracker.start(applicationScope)
+        registerActivityLifecycleCallbacks(ForegroundRetry { container.activeSessionTracker.onAppForeground() })
+    }
+
+    /** HU038: Android solo permite iniciar el servicio en primer plano con la aplicación visible. */
+    private class ForegroundRetry(private val onStarted: () -> Unit) : ActivityLifecycleCallbacks {
+        override fun onActivityStarted(activity: Activity) = onStarted()
+        override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+        override fun onActivityResumed(activity: Activity) = Unit
+        override fun onActivityPaused(activity: Activity) = Unit
+        override fun onActivityStopped(activity: Activity) = Unit
+        override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+        override fun onActivityDestroyed(activity: Activity) = Unit
     }
 
     /** WorkManager crea los trabajos de HU032, HU034, HU004 y HU039 con las dependencias del contenedor manual. */
