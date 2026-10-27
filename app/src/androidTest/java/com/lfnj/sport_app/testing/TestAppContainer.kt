@@ -31,6 +31,11 @@ import com.lfnj.sport_app.features.notifications.model.InboxNotification
 import com.lfnj.sport_app.features.notifications.model.SystemNotificationsStatus
 import com.lfnj.sport_app.features.notifications.sync.InboxSyncScheduler
 import com.lfnj.sport_app.features.notifications.system.SystemNotificationsProbe
+import com.lfnj.sport_app.features.nutrition.reminders.data.local.SessionRemindersDatabase
+import com.lfnj.sport_app.features.nutrition.reminders.engine.ReminderNotifier
+import com.lfnj.sport_app.features.nutrition.reminders.model.SessionReminder
+import com.lfnj.sport_app.features.training.session.data.TrainingClock
+import com.lfnj.sport_app.features.training.session.foreground.ActiveSessionPointer
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.security.KeyStore
 
@@ -92,8 +97,31 @@ class RecordingInboxSyncScheduler : InboxSyncScheduler {
     }
 }
 
+/** HU038: notificaciones locales registradas en lugar de publicarlas en el teléfono. */
+class RecordingReminderNotifier(var status: SystemNotificationsStatus = SystemNotificationsStatus.ENABLED) : ReminderNotifier {
+    val posted = java.util.Collections.synchronizedList(mutableListOf<SessionReminder>())
+    override fun status(): SystemNotificationsStatus = status
+    override fun notify(reminder: SessionReminder): Boolean {
+        if (status != SystemNotificationsStatus.ENABLED) return false
+        posted += reminder
+        return true
+    }
+}
+
+/** HU038: puntero de la sesión activa en memoria, para no tocar las preferencias de la aplicación instalada. */
+class InMemoryActiveSessionPointer : ActiveSessionPointer {
+    @Volatile var value: Pair<String, String>? = null
+    override fun read() = value
+    override fun write(owner: String, sessionId: String) {
+        value = owner to sessionId
+    }
+    override fun clear() {
+        value = null
+    }
+}
+
 /**
- * Contenedor real con bases de HU026, HU028, HU029, HU039, HU040, HU032, HU033, HU034, HU035, HU041 y la cola de revocación de HU004 en memoria, claves de
+ * Contenedor real con bases de HU026, HU028, HU029, HU038, HU039, HU040, HU032, HU033, HU034, HU035, HU041 y la cola de revocación de HU004 en memoria, claves de
  * Keystore de prueba y sincronización controlada por la prueba (sin WorkManager), para no tocar los
  * datos de la aplicación instalada.
  */
@@ -185,6 +213,19 @@ class TestAppContainer(
     override val supportSuggestionsDatabase: SupportSuggestionsDatabase get() = supportSuggestions
     override val supportSuggestionsCipher: TokenCipher = KeystoreTokenCipher(SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS)
 
+    // HU038: recordatorios en memoria con su clave de prueba, notificaciones registradas, puntero en memoria
+    // y reloj del motor ajustable (solo pruebas: permite recorrer una sesión de 70 min acelerada).
+    val sessionReminders: SessionRemindersDatabase = Room.inMemoryDatabaseBuilder(context, SessionRemindersDatabase::class.java).build()
+    override val sessionRemindersDatabase: SessionRemindersDatabase get() = sessionReminders
+    public override val sessionRemindersCipher: TokenCipher = KeystoreTokenCipher(SESSION_REMINDERS_TEST_KEY_ALIAS)
+    val recordingReminderNotifier = RecordingReminderNotifier()
+    var useSystemReminderNotifier = false
+    override val reminderNotifier: ReminderNotifier get() = if (useSystemReminderNotifier) androidReminderNotifier else recordingReminderNotifier
+    var reminderClockOverride: TrainingClock? = null
+    override val reminderClock: TrainingClock get() = reminderClockOverride ?: super.reminderClock
+    val pointer = InMemoryActiveSessionPointer()
+    override val activeSessionPointer: ActiveSessionPointer get() = pointer
+
     fun close() {
         database.close()
         calendar.close()
@@ -198,6 +239,7 @@ class TestAppContainer(
         eventSuggestions.close()
         notifications.close()
         supportSuggestions.close()
+        sessionReminders.close()
         deleteTestKey()
         deleteTestKey(CALENDAR_TEST_KEY_ALIAS)
         deleteTestKey(REVOCATION_TEST_KEY_ALIAS)
@@ -210,6 +252,7 @@ class TestAppContainer(
         deleteTestKey(EVENT_SUGGESTIONS_TEST_KEY_ALIAS)
         deleteTestKey(NOTIFICATIONS_TEST_KEY_ALIAS)
         deleteTestKey(SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS)
+        deleteTestKey(SESSION_REMINDERS_TEST_KEY_ALIAS)
     }
 
     companion object {
@@ -225,6 +268,7 @@ class TestAppContainer(
         const val EVENT_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.event_suggestions.test"
         const val NOTIFICATIONS_TEST_KEY_ALIAS = "sportapp.notifications.test"
         const val SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.support_suggestions.test"
+        const val SESSION_REMINDERS_TEST_KEY_ALIAS = "sportapp.session_reminders.test"
 
         fun deleteTestKey(alias: String = TEST_KEY_ALIAS) = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias)
     }

@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- HU039: notificaciones del sistema de la bandeja de eventos; se solicita en tiempo de ejecución (Android 13+). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- HU038: servicio en primer plano de la sesión de entrenamiento en curso (tipo specialUse, ADR-045 §6). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
         android:name=".SportApp"
@@ -29,6 +32,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            HU038: sesión de entrenamiento en curso (HU032) con su notificación persistente y el motor local
+            de recordatorios; reutilizable por HU036/HU037. specialUse: el tipo health exigiría permisos de
+            sensores fuera del alcance. Una publicación en Google Play exigiría justificarlo en la consola.
+        -->
+        <service
+            android:name=".features.training.session.foreground.ActiveSessionService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Cronómetro de la sesión de entrenamiento iniciada por el deportista y recordatorios locales de hidratación y alimentación mientras dura la sesión." />
+        </service>
 
         <!-- WorkManager se inicializa bajo demanda con la fábrica de SportApp (HU032). -->
         <provider

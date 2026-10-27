@@ -5,10 +5,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.lfnj.sport_app.features.nutrition.reminders.ReminderBannerHost
 import com.lfnj.sport_app.navigation.AppNavHost
 import com.lfnj.sport_app.ui.theme.SportappTheme
 
@@ -23,7 +26,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             SportappTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    AppNavHost(container = container, modifier = Modifier.padding(innerPadding))
+                    // HU038: el banner de recordatorios de la sesión activa se superpone a cualquier pantalla.
+                    Box(Modifier.padding(innerPadding)) {
+                        AppNavHost(container = container)
+                        ReminderBannerHost(container.reminderBanners, Modifier.align(Alignment.TopCenter))
+                    }
                 }
             }
         }

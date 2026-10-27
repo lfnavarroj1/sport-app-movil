@@ -37,6 +37,9 @@ object Destinations {
     /** HU029: servicios de acompañamiento y logística sugeridos (`/servicios/acompanamiento`). */
     const val SUPPORT_SUGGESTIONS = "servicios/acompanamiento"
 
+    /** HU038: recordatorios de hidratación y alimentación durante la sesión (`/entrenamientos/recordatorios`). */
+    const val SESSION_REMINDERS = "entrenamientos/recordatorios"
+
     /** Argumento de [EVENT_DETAIL]: `event_id` (UUID) del evento publicado. */
     const val EVENT_ID_ARG = "event_id"
 

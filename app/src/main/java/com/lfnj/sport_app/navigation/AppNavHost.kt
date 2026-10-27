@@ -48,6 +48,9 @@ import com.lfnj.sport_app.features.notifications.NotificationsInboxScreen
 import com.lfnj.sport_app.features.notifications.NotificationsInboxViewModel
 import com.lfnj.sport_app.features.notifications.model.NotificationsOwner
 import com.lfnj.sport_app.features.notifications.system.rememberSystemNotificationsEnabler
+import com.lfnj.sport_app.features.nutrition.reminders.SessionRemindersScreen
+import com.lfnj.sport_app.features.nutrition.reminders.SessionRemindersViewModel
+import com.lfnj.sport_app.features.nutrition.reminders.model.SessionRemindersAccess
 import com.lfnj.sport_app.features.recommendations.PlanSuggestionsScreen
 import com.lfnj.sport_app.features.recommendations.PlanSuggestionsViewModel
 import com.lfnj.sport_app.features.recommendations.model.PlanSuggestionsAccess
@@ -728,6 +731,54 @@ fun AppNavHost(
                         onEventRemindersChange = viewModel::setEventReminders,
                         onSave = viewModel::save,
                         onRetry = viewModel::retry,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.SESSION_REMINDERS) {
+            // HU038: misma guarda que athlete_home y, además, la capacidad nutrition.session.reminders vigente.
+            val user = remember { sessionManager.currentUser.value }
+            val allowed = remember { SessionRemindersAccess.canUse(sessionManager.access.value) }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                !allowed -> LaunchedEffect(Unit) {
+                    navController.navigate(Destinations.ATHLETE_HOME) {
+                        popUpTo(Destinations.SESSION_REMINDERS) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                else -> {
+                    val viewModel: SessionRemindersViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer {
+                                SessionRemindersViewModel(TrainingOwner.keyOf(user.userId), container.sessionRemindersRepository, container.reminderNotifier)
+                            }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshSystemStatus() }
+                    // El permiso POST_NOTIFICATIONS lo solicita el mecanismo de HU039, sin modificarlo.
+                    val enableSystemNotifications = rememberSystemNotificationsEnabler(onResult = viewModel::refreshSystemStatus)
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    SessionRemindersScreen(
+                        state = state,
+                        onToggle = viewModel::setEnabled,
+                        onChangeInterval = viewModel::changeInterval,
+                        onSave = viewModel::save,
+                        onDiscard = viewModel::discardChanges,
+                        onRetry = viewModel::retry,
+                        onEnableSystemNotifications = { enableSystemNotifications(state.systemNotifications) },
                         onBack = { navController.popBackStack() },
                     )
                 }
