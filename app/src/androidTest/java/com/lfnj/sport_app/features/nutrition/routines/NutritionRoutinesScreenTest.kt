@@ -1,10 +1,12 @@
 package com.lfnj.sport_app.features.nutrition.routines
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -87,7 +89,8 @@ class NutritionRoutinesScreenTest {
         composeRule.onNodeWithText("Por Marta Ruiz", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Rendimiento · Vegetariano · 14 días", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("2 comidas al día", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithTag("nutrition_routine_reason_RESTRICTION_COMPATIBLE", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        // Las dos rutinas son compatibles: el motivo aparece en ambas tarjetas.
+        composeRule.onAllNodesWithTag("nutrition_routine_reason_RESTRICTION_COMPATIBLE", useUnmergedTree = true).assertCountEquals(2)
         composeRule.onNodeWithText("Coincide con tu objetivo", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         // Sin autor resuelto se dice así, sin inventar un nombre; los plurales respetan la cantidad.
         composeRule.onNodeWithTag("nutrition_routine_b").performScrollTo()
