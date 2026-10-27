@@ -80,17 +80,19 @@ class FoodIntakeSyncEngine(
                 continue
             }
             dao.markAttempt(intake.intakeId, clock.millis())
-            val outcome = sessionManager.authorized { auth -> apiCall(json) { api.register(auth, intake.idempotencyKey, body) } }
+            // Las transiciones parten del registro vigente para conservar el contador de intentos.
+            val attempted = dao.intake(owner, intake.intakeId) ?: continue
+            val outcome = sessionManager.authorized { auth -> apiCall(json) { api.register(auth, attempted.idempotencyKey, body) } }
             when (outcome) {
                 AuthorizedResult.SignedOut -> return SyncRun.SUSPENDED
                 AuthorizedResult.RenewalUnavailable -> return SyncRun.RETRY
                 is AuthorizedResult.Completed -> when (val result = outcome.result) {
-                    is ApiResult.Success -> confirm(owner, intake, body, result.value)
+                    is ApiResult.Success -> confirm(owner, attempted, body, result.value)
                     ApiResult.NoConnection, ApiResult.Timeout -> return SyncRun.RETRY
                     ApiResult.NotConfigured -> return SyncRun.SUSPENDED
-                    ApiResult.InvalidResponse -> dao.replaceIntake(intake.failed(FoodSyncFailure.INVALID_RESPONSE.name))
+                    ApiResult.InvalidResponse -> dao.replaceIntake(attempted.failed(FoodSyncFailure.INVALID_RESPONSE.name))
                     is ApiResult.HttpFailure ->
-                        if (result.status in RETRYABLE_STATUSES) return SyncRun.RETRY else reject(intake, result)
+                        if (result.status in RETRYABLE_STATUSES) return SyncRun.RETRY else reject(attempted, result)
                 }
             }
         }

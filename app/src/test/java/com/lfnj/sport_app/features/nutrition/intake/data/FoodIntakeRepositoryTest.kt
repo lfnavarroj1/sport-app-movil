@@ -62,7 +62,7 @@ class FoodIntakeRepositoryTest {
 
     @Test
     fun `CA5 sin red se conserva la cache y sin cache no hay alimentos`() = runTest {
-        h.server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        h.server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
         assertEquals(CatalogRefresh.NoConnection, h.repository.refreshCatalog(h.owner))
         assertNull(h.local().catalog)
         assertEquals(
@@ -72,7 +72,7 @@ class FoodIntakeRepositoryTest {
         assertTrue(h.dao.intakes.isEmpty())
 
         h.cacheCatalog()
-        h.server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        h.server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
         assertEquals(CatalogRefresh.NoConnection, h.repository.refreshCatalog(h.owner))
         assertEquals(4, h.local().catalog?.items?.size)
     }

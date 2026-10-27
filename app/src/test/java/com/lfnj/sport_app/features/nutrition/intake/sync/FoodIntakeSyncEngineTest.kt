@@ -170,7 +170,7 @@ class FoodIntakeSyncEngineTest {
     @Test
     fun `sin red se reintenta y el consumo sigue pendiente`() = runTest {
         h.capture()
-        h.server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        h.server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
 
         assertEquals(SyncRun.RETRY, h.engine.run(h.owner))
         assertEquals(FoodSyncState.PENDING_SYNC, h.local().intakes.single().state)
