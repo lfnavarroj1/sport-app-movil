@@ -39,6 +39,11 @@ import com.lfnj.sport_app.features.nutrition.reminders.engine.ReminderNotifier
 import com.lfnj.sport_app.features.nutrition.reminders.model.SessionReminder
 import com.lfnj.sport_app.features.training.session.data.TrainingClock
 import com.lfnj.sport_app.features.training.session.foreground.ActiveSessionPointer
+import com.lfnj.sport_app.features.sensors.ble.HeartRateMonitorSource
+import com.lfnj.sport_app.features.sensors.data.DevicesApi
+import com.lfnj.sport_app.features.sensors.data.SensorSamples
+import com.lfnj.sport_app.features.sensors.data.local.SensorsCodec
+import com.lfnj.sport_app.features.sensors.data.local.SensorsDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.security.KeyStore
 
@@ -124,7 +129,7 @@ class InMemoryActiveSessionPointer : ActiveSessionPointer {
 }
 
 /**
- * Contenedor real con bases de HU026, HU028, HU029, HU038, HU039, HU040, HU042, HU043, HU032, HU033, HU034, HU035, HU041 y la cola de revocación de HU004 en memoria, claves de
+ * Contenedor real con bases de HU026, HU028, HU029, HU038, HU039, HU040, HU042, HU043, HU032, HU033, HU034, HU035, HU041, HU037 (con fuente BLE simulada marcada) y la cola de revocación de HU004 en memoria, claves de
  * Keystore de prueba y sincronización controlada por la prueba (sin WorkManager), para no tocar los
  * datos de la aplicación instalada.
  */
@@ -246,6 +251,20 @@ class TestAppContainer(
     override val foodIntakeCipher: TokenCipher = KeystoreTokenCipher(FOOD_INTAKES_TEST_KEY_ALIAS)
     override val foodIntakeScheduler: TrainingSyncScheduler get() = foodScheduler
 
+    // HU037: vinculaciones y muestras en memoria con su clave de prueba y una fuente BLE SIMULADA marcada
+    // (simulated = true, ADR-044 §4, R-20): las pruebas nunca usan Bluetooth real.
+    val sensors: SensorsDatabase = Room.inMemoryDatabaseBuilder(context, SensorsDatabase::class.java).build()
+    override val sensorsDatabase: SensorsDatabase get() = sensors
+    public override val sensorsCipher: TokenCipher = KeystoreTokenCipher(SENSORS_TEST_KEY_ALIAS)
+    val heartRateSource = SimulatedHeartRateSource()
+    override val heartRateMonitorSource: HeartRateMonitorSource get() = heartRateSource
+
+    /** Muestras cifradas de HU037 sobre la misma base y clave que usa el contenedor. */
+    val sensorSamplesForTest: SensorSamples by lazy { SensorSamples(sensors.sensorsDao(), SensorsCodec(sensorsCipher, BffMobileClient.json)) }
+
+    /** Cliente `bff-mobile` de HU037 para que el E2E reenvíe un lote ya enviado (idempotencia natural). */
+    val devicesApiForTest: DevicesApi? by lazy { bffApi(DevicesApi::class.java) }
+
     fun close() {
         database.close()
         calendar.close()
@@ -263,6 +282,7 @@ class TestAppContainer(
         healthReports.close()
         sessionReminders.close()
         foodIntakes.close()
+        sensors.close()
         deleteTestKey()
         deleteTestKey(CALENDAR_TEST_KEY_ALIAS)
         deleteTestKey(REVOCATION_TEST_KEY_ALIAS)
@@ -279,6 +299,7 @@ class TestAppContainer(
         deleteTestKey(HEALTH_REPORTS_TEST_KEY_ALIAS)
         deleteTestKey(SESSION_REMINDERS_TEST_KEY_ALIAS)
         deleteTestKey(FOOD_INTAKES_TEST_KEY_ALIAS)
+        deleteTestKey(SENSORS_TEST_KEY_ALIAS)
     }
 
     companion object {
@@ -298,6 +319,7 @@ class TestAppContainer(
         const val HEALTH_REPORTS_TEST_KEY_ALIAS = "sportapp.health-reports.test"
         const val SESSION_REMINDERS_TEST_KEY_ALIAS = "sportapp.session_reminders.test"
         const val FOOD_INTAKES_TEST_KEY_ALIAS = "sportapp.food-intakes.test"
+        const val SENSORS_TEST_KEY_ALIAS = "sportapp.sensors.test"
 
         fun deleteTestKey(alias: String = TEST_KEY_ALIAS) = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias)
     }

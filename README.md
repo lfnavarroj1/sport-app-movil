@@ -31,7 +31,7 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041, HU029, HU030, HU038, HU043 y HU004
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041, HU029, HU030, HU038, HU037, HU043 y HU004
 ├── MainActivity.kt        única Activity; aloja la navegación Compose y el banner global de recordatorios (HU038)
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -61,6 +61,11 @@ app/src/main/java/com/lfnj/sport_app/
 │   │   ├── data/          API, repositorio, limpieza al cerrar sesión y Room (configuración y entregas cifradas)
 │   │   ├── engine/        cálculo de ocurrencias, motor local, notificación local y centro de banners
 │   │   └── model/         reglas, preferencias, configuración confirmada y capacidad
+│   ├── sensors/           dispositivos de medición (HU037): pantalla, ViewModel y permisos Bluetooth,
+│   │   ├── ble/           escaneo `0x180D`, conexión GATT, lectura de `0x2A37`/batería y conexión compartida
+│   │   ├── data/          API, repositorio, limpieza al cerrar sesión y Room (vinculaciones y muestras cifradas)
+│   │   ├── model/         dispositivo, identidad lógica (hash), estados de conexión e ingestión
+│   │   └── sync/          tarea del servicio en primer plano: muestras de 1 Hz y lotes cada 5 s
 │   ├── recommendations/   entrenamientos sugeridos (HU028) y rutas sugeridas (HU026): pantallas de lista y detalle, ViewModels,
 │   │   ├── data/          API, repositorios, limpieza al cerrar sesión y cachés Room cifradas (una por HU)
 │   │   └── model/         plantillas y rutas, motivos, contexto faltante, antigüedad y URI `geo:`
@@ -326,6 +331,33 @@ app/src/main/java/com/lfnj/sport_app/
   muestra los consumos de hoy y cualquier pendiente o fallido; solo un fallido puede retirarse.
 - Al terminar la sesión se detiene la cola, se borran la caché del catálogo y los consumos resueltos, y
   los pendientes quedan cifrados para el mismo deportista (ADR-029 offline §4, misma decisión de HU042).
+
+### Dispositivos de medición (HU037, ADR-044)
+
+- La opción `INTERMEDIATE` 220 «Dispositivos de medición» (capacidad `devices.measurement.connect`; sin
+  ella no aparece y la guarda devuelve al inicio) abre `dispositivos`. Solo se admite un monitor de
+  frecuencia cardiaca Bluetooth LE con el *Heart Rate Service* estándar (`0x180D`/`0x2A37`): cualquier
+  banda o reloj que transmita la frecuencia cardiaca por BLE; sin SDK de fabricante ni otros sensores.
+- Android 12+: `BLUETOOTH_SCAN` (`neverForLocation`) y `BLUETOOTH_CONNECT` se piden al buscar. En
+  Android 9–11 la pantalla declara que requiere Android 12 y no pide ubicación (decisión pendiente del
+  responsable, aislada en `BluetoothPermissions`). Sin permiso, sin Bluetooth o sin monitores
+  compatibles se explica la causa y no se vincula; antes de vincular se verifica por GATT que el
+  dispositivo expone `0x180D` (CA2) y la pantalla declara qué se captura.
+- Vincular (`POST /v1/me/devices` con `Idempotency-Key`), consultar (`GET`) y revocar (`DELETE`) usan la
+  copia 0.21.0 y exigen red (no se encolan). `device_id` = SHA-256 de la dirección BLE en mayúsculas +
+  `user_id`; la dirección solo se guarda cifrada (`sportapp_sensors.db`, clave `sportapp.sensors.v1`,
+  excluida del respaldo) para reconectar, y se borra con todo lo demás al terminar la sesión.
+- Durante una sesión `ACTIVE` de HU032, `MeasurementStreamTask` corre dentro de `ActiveSessionService`
+  (junto a los recordatorios de HU038): guarda cifrada una muestra por segundo de `0x2A37` y cada 5 s
+  envía las ≤ 60 más antiguas a `POST /v1/training-sessions/{session_id}/measurements`. Solo un `200`
+  las resuelve (aceptadas, `duplicates` o `rejected[]`); sin respuesta se reenvían en el siguiente ciclo
+  (idempotencia natural). `409 device_revoked` marca el dispositivo revocado y detiene el envío;
+  `409 training_session_already_finished` descarta; las muestras vencen a los 15 min y con la sesión.
+  La desconexión se detecta localmente y se reintenta cada 5 s; no se muestra una lectura anterior como
+  actual. La evaluación de riesgo de la respuesta pertenece a HU036 y no se presenta.
+- El emulador no tiene BLE (R-20): las pruebas instrumentadas usan una fuente simulada marcada
+  (`SimulatedHeartRateSource`, aviso visible en pantalla); la evidencia con monitor o reloj físico la
+  documenta el responsable.
 
 ### Inscripción a un evento publicado (HU041, ADR-032)
 

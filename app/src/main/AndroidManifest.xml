@@ -8,6 +8,17 @@
     <!-- HU038: servicio en primer plano de la sesión de entrenamiento en curso (tipo specialUse, ADR-045 §6). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!--
+        HU037: monitor de frecuencia cardiaca Bluetooth LE (ADR-044 §2). Android 12+: buscar sin derivar
+        ubicación y conectar; se solicitan en tiempo de ejecución al buscar. Android 9–11 no se admite
+        mientras no se definan sus permisos (sin ubicación).
+    -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="31" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
 
     <application
         android:name=".SportApp"
@@ -35,8 +46,9 @@
 
         <!--
             HU038: sesión de entrenamiento en curso (HU032) con su notificación persistente y el motor local
-            de recordatorios; reutilizable por HU036/HU037. specialUse: el tipo health exigiría permisos de
-            sensores fuera del alcance. Una publicación en Google Play exigiría justificarlo en la consola.
+            de recordatorios; HU037 añade la lectura del monitor de frecuencia cardiaca BLE; reutilizable por
+            HU036. specialUse: el tipo health exigiría permisos de sensores fuera del alcance. Una publicación
+            en Google Play exigiría justificarlo en la consola.
         -->
         <service
             android:name=".features.training.session.foreground.ActiveSessionService"
@@ -44,7 +56,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Cronómetro de la sesión de entrenamiento iniciada por el deportista y recordatorios locales de hidratación y alimentación mientras dura la sesión." />
+                android:value="Cronómetro de la sesión de entrenamiento iniciada por el deportista, recordatorios locales de hidratación y alimentación y, si vinculó un monitor de frecuencia cardiaca Bluetooth, lectura y envío de su frecuencia cardiaca mientras dura la sesión." />
         </service>
 
         <!-- WorkManager se inicializa bajo demanda con la fábrica de SportApp (HU032). -->

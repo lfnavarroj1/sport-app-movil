@@ -82,7 +82,7 @@ class NavigationRegistryTest {
         val menu = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES))
 
         assertEquals(
-            listOf(Destinations.ATHLETE_HOME, Destinations.HEALTH, Destinations.NUTRITION, Destinations.NOTIFICATIONS, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.SUPPORT_SUGGESTIONS, Destinations.NUTRITION_ROUTINES, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.SESSION_REMINDERS, Destinations.VIRTUAL_SESSIONS),
+            listOf(Destinations.ATHLETE_HOME, Destinations.HEALTH, Destinations.NUTRITION, Destinations.NOTIFICATIONS, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.SUPPORT_SUGGESTIONS, Destinations.NUTRITION_ROUTINES, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.DEVICES, Destinations.SESSION_REMINDERS, Destinations.VIRTUAL_SESSIONS),
             menu.mapNotNull { it.route },
         )
     }
@@ -409,6 +409,24 @@ class NavigationRegistryTest {
         assertTrue(entry.enabled)
         assertTrue(NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES)).none { it.hu == "HU038" })
         assertTrue(NavigationRegistry.athleteMenu(athlete(INTERMEDIATE_CAPABILITIES, SubscriptionStatus.PROVISIONING)).none { it.hu == "HU038" })
+    }
+
+    // ------------------------------------------------------------- HU037
+
+    @Test
+    fun `HU037 Dispositivos de medicion queda habilitada solo con la capacidad INTERMEDIATE`() {
+        val entry = NavigationRegistry.athleteMenu(athlete(INTERMEDIATE_CAPABILITIES)).single { it.hu == "HU037" }
+
+        assertEquals(Destinations.DEVICES, entry.route)
+        assertEquals("dispositivos", Destinations.DEVICES)
+        assertEquals("devices.measurement.connect", entry.id)
+        assertEquals("devices.measurement.connect", entry.capability)
+        assertEquals(MenuGroup.DEVICES, entry.group)
+        assertEquals(220, entry.order)
+        assertTrue(entry.enabled)
+        assertTrue(NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES)).none { it.hu == "HU037" })
+        assertTrue(NavigationRegistry.athleteMenu(athlete(INTERMEDIATE_CAPABILITIES, SubscriptionStatus.PROVISIONING)).none { it.hu == "HU037" })
+        assertTrue(NavigationRegistry.athleteMenu(null).none { it.hu == "HU037" })
     }
 
     // ------------------------------------------------------------- HU043

@@ -113,6 +113,8 @@ class ActiveSessionServiceTest {
     fun sesionDe70MinutosAceleradaPresentaCuatroHidratacionesSinDuplicadosYLiberaElWakeLock() {
         val sessionId = startSession()
         composeRule.waitUntil(10_000) { serviceRunning() }
+        // El servicio toma el wake lock en su corrutina, poco después de arrancar: se espera a que lo adquiera.
+        composeRule.waitUntil(10_000) { wakeLockHeld() }
         assertTrue("el servicio mantiene el wake lock durante la sesión", wakeLockHeld())
 
         waitForAccelerated(70)

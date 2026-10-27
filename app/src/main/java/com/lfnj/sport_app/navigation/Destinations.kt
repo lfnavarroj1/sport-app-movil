@@ -64,6 +64,9 @@ object Destinations {
     /** HU042: «Mi salud» (`health`), opción base del deportista: reportar y ver los reportes del dispositivo. */
     const val HEALTH = "health"
 
+    /** HU037: dispositivos de medición (`/dispositivos`, opción 220 `devices.measurement.connect`). */
+    const val DEVICES = "dispositivos"
+
     /** HU043: «Mi alimentación» (`nutrition`), opción base del deportista: registrar consumos. */
     const val NUTRITION = "nutrition"
 
