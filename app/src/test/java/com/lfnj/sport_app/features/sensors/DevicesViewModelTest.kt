@@ -455,6 +455,8 @@ class DevicesViewModelTest {
         val vm = viewModel()
         vm.search()
         advanceUntilIdle()
+        // advanceUntilIdle no ejecuta lo pendiente solo en backgroundScope (la conexión compartida de MonitorLink).
+        runCurrent()
 
         val state = vm.uiState.value
         assertEquals(device, state.connected)
