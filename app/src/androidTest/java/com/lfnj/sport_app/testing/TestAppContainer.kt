@@ -32,6 +32,7 @@ import com.lfnj.sport_app.features.notifications.model.InboxNotification
 import com.lfnj.sport_app.features.notifications.model.SystemNotificationsStatus
 import com.lfnj.sport_app.features.notifications.sync.InboxSyncScheduler
 import com.lfnj.sport_app.features.notifications.system.SystemNotificationsProbe
+import com.lfnj.sport_app.features.nutrition.intake.data.local.FoodIntakeDatabase
 import com.lfnj.sport_app.features.nutrition.reminders.data.local.SessionRemindersDatabase
 import com.lfnj.sport_app.features.nutrition.reminders.engine.ReminderNotifier
 import com.lfnj.sport_app.features.nutrition.reminders.model.SessionReminder
@@ -122,7 +123,7 @@ class InMemoryActiveSessionPointer : ActiveSessionPointer {
 }
 
 /**
- * Contenedor real con bases de HU026, HU028, HU029, HU038, HU039, HU040, HU042, HU032, HU033, HU034, HU035, HU041 y la cola de revocación de HU004 en memoria, claves de
+ * Contenedor real con bases de HU026, HU028, HU029, HU038, HU039, HU040, HU042, HU043, HU032, HU033, HU034, HU035, HU041 y la cola de revocación de HU004 en memoria, claves de
  * Keystore de prueba y sincronización controlada por la prueba (sin WorkManager), para no tocar los
  * datos de la aplicación instalada.
  */
@@ -233,6 +234,13 @@ class TestAppContainer(
     val pointer = InMemoryActiveSessionPointer()
     override val activeSessionPointer: ActiveSessionPointer get() = pointer
 
+    // HU043: catálogo y consumos en memoria con su clave de prueba; la prueba ejecuta el motor.
+    val foodIntakes: FoodIntakeDatabase = Room.inMemoryDatabaseBuilder(context, FoodIntakeDatabase::class.java).build()
+    val foodScheduler = RecordingScheduler()
+    override val foodIntakeDatabase: FoodIntakeDatabase get() = foodIntakes
+    override val foodIntakeCipher: TokenCipher = KeystoreTokenCipher(FOOD_INTAKES_TEST_KEY_ALIAS)
+    override val foodIntakeScheduler: TrainingSyncScheduler get() = foodScheduler
+
     fun close() {
         database.close()
         calendar.close()
@@ -248,6 +256,7 @@ class TestAppContainer(
         supportSuggestions.close()
         healthReports.close()
         sessionReminders.close()
+        foodIntakes.close()
         deleteTestKey()
         deleteTestKey(CALENDAR_TEST_KEY_ALIAS)
         deleteTestKey(REVOCATION_TEST_KEY_ALIAS)
@@ -262,6 +271,7 @@ class TestAppContainer(
         deleteTestKey(SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS)
         deleteTestKey(HEALTH_REPORTS_TEST_KEY_ALIAS)
         deleteTestKey(SESSION_REMINDERS_TEST_KEY_ALIAS)
+        deleteTestKey(FOOD_INTAKES_TEST_KEY_ALIAS)
     }
 
     companion object {
@@ -279,6 +289,7 @@ class TestAppContainer(
         const val SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.support_suggestions.test"
         const val HEALTH_REPORTS_TEST_KEY_ALIAS = "sportapp.health-reports.test"
         const val SESSION_REMINDERS_TEST_KEY_ALIAS = "sportapp.session_reminders.test"
+        const val FOOD_INTAKES_TEST_KEY_ALIAS = "sportapp.food-intakes.test"
 
         fun deleteTestKey(alias: String = TEST_KEY_ALIAS) = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias)
     }

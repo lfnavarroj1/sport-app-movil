@@ -6,8 +6,9 @@
     sesión (HU004, ADR-026), los indicadores de HU034 (ADR-030), la caché de entrenamientos sugeridos
     (HU028, ADR-041 §5), la del tablero de entrenamientos (HU033, ADR-043 §5) y la de rutas sugeridas
     (HU026, ADR-041 §5), la de sesiones virtuales (HU040, ADR-046 §8), la de acompañamiento y
-    logística sugeridos (HU029, ADR-041 §5), la bandeja de notificaciones (HU039, ADR-045) y los
-    recordatorios durante la sesión con el puntero de la sesión activa (HU038, ADR-045) se excluyen de ambas.
+    logística sugeridos (HU029, ADR-041 §5), la bandeja de notificaciones (HU039, ADR-045), los
+    recordatorios durante la sesión con el puntero de la sesión activa (HU038, ADR-045) y el catálogo
+    de alimentos con los consumos (HU043, ADR-037) se excluyen de ambas.
 -->
 <data-extraction-rules>
     <cloud-backup>
@@ -69,6 +70,10 @@
         <exclude domain="database" path="sportapp_session_reminders.db-shm" />
         <exclude domain="database" path="sportapp_session_reminders.db-wal" />
         <exclude domain="database" path="sportapp_session_reminders.db-journal" />
+        <exclude domain="database" path="sportapp_food_intakes.db" />
+        <exclude domain="database" path="sportapp_food_intakes.db-shm" />
+        <exclude domain="database" path="sportapp_food_intakes.db-wal" />
+        <exclude domain="database" path="sportapp_food_intakes.db-journal" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
@@ -129,5 +134,9 @@
         <exclude domain="database" path="sportapp_session_reminders.db-shm" />
         <exclude domain="database" path="sportapp_session_reminders.db-wal" />
         <exclude domain="database" path="sportapp_session_reminders.db-journal" />
+        <exclude domain="database" path="sportapp_food_intakes.db" />
+        <exclude domain="database" path="sportapp_food_intakes.db-shm" />
+        <exclude domain="database" path="sportapp_food_intakes.db-wal" />
+        <exclude domain="database" path="sportapp_food_intakes.db-journal" />
     </device-transfer>
 </data-extraction-rules>
