@@ -103,12 +103,13 @@ class FoodIntakeFlowTest {
         // Sin red: se registra igual con el catálogo en caché y queda pendiente (CA5).
         container.online.value = false
         composeRule.waitUntilExactlyOneExists(hasTestTag("food_offline"), 5_000)
-        composeRule.onNodeWithTag("food_meal_HYDRATION").performClick()
-        composeRule.onNodeWithTag("food_search").performTextInput("agua")
+        composeRule.onNodeWithTag("food_meal_HYDRATION").performScrollTo().performClick()
+        composeRule.onNodeWithTag("food_search").performScrollTo().performTextInput("agua")
         composeRule.waitUntilExactlyOneExists(hasTestTag("food_add_WATER"), 5_000)
-        composeRule.onNodeWithTag("food_add_WATER").performClick()
-        composeRule.onNodeWithTag("food_quantity_0").performTextInput("500")
-        composeRule.onNodeWithTag("food_unit_0_ML").assertIsDisplayed()
+        composeRule.onNodeWithTag("food_add_WATER").performScrollTo().performClick()
+        composeRule.waitUntilExactlyOneExists(hasTestTag("food_quantity_0"), 5_000)
+        composeRule.onNodeWithTag("food_quantity_0").performScrollTo().performTextInput("500")
+        composeRule.onNodeWithTag("food_unit_0_ML").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("food_submit").performScrollTo().performClick()
         composeRule.waitUntilExactlyOneExists(hasTestTag("food_submit_notice"), 5_000)
         assertEquals(listOf(owner), container.foodScheduler.scheduled)

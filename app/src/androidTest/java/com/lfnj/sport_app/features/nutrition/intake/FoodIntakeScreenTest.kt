@@ -86,7 +86,7 @@ class FoodIntakeScreenTest {
         composeRule.onNodeWithTag("food_search").assertDoesNotExist()
         composeRule.onNodeWithTag("food_submit").assertDoesNotExist()
         composeRule.onNodeWithTag("food_catalog_notice").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion))
-        composeRule.onNodeWithTag("food_retry").performClick()
+        composeRule.onNodeWithTag("food_retry").performScrollTo().performClick()
         assertEquals(listOf("retry"), events)
     }
 
@@ -95,7 +95,7 @@ class FoodIntakeScreenTest {
         show(FoodIntakeUiState(loading = false, online = false, catalog = catalog(), consumedAt = now))
 
         composeRule.onNodeWithTag("food_offline").assertIsDisplayed()
-        composeRule.onNodeWithTag("food_meal_HYDRATION").performClick()
+        composeRule.onNodeWithTag("food_meal_HYDRATION").performScrollTo().performClick()
         composeRule.onNodeWithTag("food_submit").performScrollTo().performClick()
         assertEquals(listOf("meal:HYDRATION", "submit"), events)
     }
@@ -104,7 +104,7 @@ class FoodIntakeScreenTest {
     fun ca6UnCatalogoDeMasDe24HorasSeMuestraDesactualizado() {
         show(FoodIntakeUiState(loading = false, catalog = catalog(now.minusSeconds(90_000)), catalogStale = true, consumedAt = now))
 
-        composeRule.onNodeWithTag("food_catalog_stale").assertIsDisplayed()
+        composeRule.onNodeWithTag("food_catalog_stale").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Catálogo desactualizado", substring = true).assertIsDisplayed()
     }
 
@@ -113,8 +113,8 @@ class FoodIntakeScreenTest {
         val c = catalog()
         show(FoodIntakeUiState(loading = false, catalog = c, consumedAt = now, query = "a", results = c.items.filter { it.foodCode == "WATER" }))
 
-        composeRule.onNodeWithText("Agua").assertIsDisplayed()
-        composeRule.onNode(hasContentDescription("Agregar Agua")).performClick()
+        composeRule.onNodeWithText("Agua").performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasContentDescription("Agregar Agua")).performScrollTo().performClick()
         assertEquals(listOf("add:WATER"), events)
     }
 
@@ -122,7 +122,7 @@ class FoodIntakeScreenTest {
     fun unaBusquedaSinCoincidenciasNoAdmiteTextoLibre() {
         show(FoodIntakeUiState(loading = false, catalog = catalog(), consumedAt = now, query = "pizza", results = emptyList()))
 
-        composeRule.onNodeWithTag("food_search_empty").assertIsDisplayed()
+        composeRule.onNodeWithTag("food_search_empty").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -130,13 +130,13 @@ class FoodIntakeScreenTest {
         val line = FoodDraftLine("MILK", "food.milk", listOf(FoodUnit.ML, FoodUnit.CUP), FoodUnit.ML, quantity = "6000", error = QuantityError.OUT_OF_RANGE)
         show(FoodIntakeUiState(loading = false, catalog = catalog(), consumedAt = now, lines = listOf(line)))
 
-        composeRule.onNodeWithText("Leche").assertIsDisplayed()
-        composeRule.onNodeWithTag("food_unit_0_ML").assertIsDisplayed()
-        composeRule.onNodeWithTag("food_unit_0_CUP").assertIsDisplayed()
+        composeRule.onNodeWithText("Leche").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("food_unit_0_ML").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("food_unit_0_CUP").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("food_unit_0_G").assertDoesNotExist()
-        composeRule.onNodeWithTag("food_quantity_error_0", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithTag("food_unit_0_CUP").performClick()
-        composeRule.onNodeWithTag("food_remove_0").performClick()
+        composeRule.onNodeWithTag("food_quantity_error_0", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("food_unit_0_CUP").performScrollTo().performClick()
+        composeRule.onNodeWithTag("food_remove_0").performScrollTo().performClick()
         assertEquals(listOf("unit:0=CUP", "remove:0"), events)
     }
 
