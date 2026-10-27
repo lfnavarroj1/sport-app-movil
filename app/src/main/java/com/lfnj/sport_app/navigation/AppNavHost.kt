@@ -36,7 +36,12 @@ import com.lfnj.sport_app.features.events.MyRegistrationsViewModel
 import com.lfnj.sport_app.features.events.model.EventRegistrationsOwner
 import com.lfnj.sport_app.features.home.AthleteHomeScreen
 import com.lfnj.sport_app.features.home.HomeViewModel
+import com.lfnj.sport_app.features.health.HealthReportScreen
+import com.lfnj.sport_app.features.health.HealthReportViewModel
+import com.lfnj.sport_app.features.health.model.HealthOwner
+import com.lfnj.sport_app.features.health.recentConfirmedSessions
 import com.lfnj.sport_app.features.identity.login.LoginNotice
+import kotlinx.coroutines.flow.map
 import com.lfnj.sport_app.features.identity.login.LoginScreen
 import com.lfnj.sport_app.features.identity.login.LoginViewModel
 import com.lfnj.sport_app.features.identity.start.SessionStartScreen
@@ -735,6 +740,49 @@ fun AppNavHost(
                         onEventRemindersChange = viewModel::setEventReminders,
                         onSave = viewModel::save,
                         onRetry = viewModel::retry,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.HEALTH) {
+            // HU042: misma guarda que athlete_home; «Mi salud» es opción base, sin capacidad de plan (ADR-037).
+            val user = remember { sessionManager.currentUser.value }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                else -> {
+                    val viewModel: HealthReportViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer {
+                                HealthReportViewModel(
+                                    owner = HealthOwner.keyOf(user.userId),
+                                    gateway = container.healthReportsRepository,
+                                    // Sesiones de HU032 en solo lectura.
+                                    sessions = container.trainingSessionRepository
+                                        .observe(TrainingOwner.keyOf(user.userId))
+                                        .map { it.recentConfirmedSessions() },
+                                    online = container.connectivityMonitor.online(),
+                                )
+                            }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    HealthReportScreen(
+                        state = state,
+                        onSelectType = viewModel::selectType,
+                        onSelectBodyArea = viewModel::selectBodyArea,
+                        onSelectSeverity = viewModel::selectSeverity,
+                        onOccurredAtChange = viewModel::setOccurredAt,
+                        onSelectSession = viewModel::selectSession,
+                        onRecoveryDaysChange = viewModel::onRecoveryDaysChange,
+                        onConsentChange = viewModel::setConsent,
+                        onSubmit = viewModel::submit,
+                        onDismiss = viewModel::dismiss,
                         onBack = { navController.popBackStack() },
                     )
                 }

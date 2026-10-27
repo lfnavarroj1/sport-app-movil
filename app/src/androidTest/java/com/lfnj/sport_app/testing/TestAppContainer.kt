@@ -17,6 +17,7 @@ import com.lfnj.sport_app.features.calendar.data.local.CalendarDatabase
 import com.lfnj.sport_app.features.events.data.ConnectivityMonitor
 import com.lfnj.sport_app.features.events.data.local.EventRegistrationsDatabase
 import com.lfnj.sport_app.features.events.data.local.EventSuggestionsDatabase
+import com.lfnj.sport_app.features.health.data.local.HealthReportsDatabase
 import com.lfnj.sport_app.features.recommendations.data.local.PlanSuggestionsDatabase
 import com.lfnj.sport_app.features.recommendations.data.local.RouteSuggestionsDatabase
 import com.lfnj.sport_app.features.services.data.local.SupportSuggestionsDatabase
@@ -122,7 +123,7 @@ class InMemoryActiveSessionPointer : ActiveSessionPointer {
 }
 
 /**
- * Contenedor real con bases de HU026, HU028, HU029, HU038, HU039, HU040, HU043, HU032, HU033, HU034, HU035, HU041 y la cola de revocación de HU004 en memoria, claves de
+ * Contenedor real con bases de HU026, HU028, HU029, HU038, HU039, HU040, HU042, HU043, HU032, HU033, HU034, HU035, HU041 y la cola de revocación de HU004 en memoria, claves de
  * Keystore de prueba y sincronización controlada por la prueba (sin WorkManager), para no tocar los
  * datos de la aplicación instalada.
  */
@@ -213,6 +214,12 @@ class TestAppContainer(
     val supportSuggestions: SupportSuggestionsDatabase = Room.inMemoryDatabaseBuilder(context, SupportSuggestionsDatabase::class.java).build()
     override val supportSuggestionsDatabase: SupportSuggestionsDatabase get() = supportSuggestions
     override val supportSuggestionsCipher: TokenCipher = KeystoreTokenCipher(SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS)
+    // HU042: reportes de salud en memoria con su clave de prueba y sincronización controlada por la prueba.
+    val healthReports: HealthReportsDatabase = Room.inMemoryDatabaseBuilder(context, HealthReportsDatabase::class.java).build()
+    val healthScheduler = RecordingScheduler()
+    override val healthReportsDatabase: HealthReportsDatabase get() = healthReports
+    override val healthReportsCipher: TokenCipher = KeystoreTokenCipher(HEALTH_REPORTS_TEST_KEY_ALIAS)
+    override val healthReportsScheduler: TrainingSyncScheduler get() = healthScheduler
 
     // HU038: recordatorios en memoria con su clave de prueba, notificaciones registradas, puntero en memoria
     // y reloj del motor ajustable (solo pruebas: permite recorrer una sesión de 70 min acelerada).
@@ -247,6 +254,7 @@ class TestAppContainer(
         eventSuggestions.close()
         notifications.close()
         supportSuggestions.close()
+        healthReports.close()
         sessionReminders.close()
         foodIntakes.close()
         deleteTestKey()
@@ -261,6 +269,7 @@ class TestAppContainer(
         deleteTestKey(EVENT_SUGGESTIONS_TEST_KEY_ALIAS)
         deleteTestKey(NOTIFICATIONS_TEST_KEY_ALIAS)
         deleteTestKey(SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS)
+        deleteTestKey(HEALTH_REPORTS_TEST_KEY_ALIAS)
         deleteTestKey(SESSION_REMINDERS_TEST_KEY_ALIAS)
         deleteTestKey(FOOD_INTAKES_TEST_KEY_ALIAS)
     }
@@ -278,6 +287,7 @@ class TestAppContainer(
         const val EVENT_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.event_suggestions.test"
         const val NOTIFICATIONS_TEST_KEY_ALIAS = "sportapp.notifications.test"
         const val SUPPORT_SUGGESTIONS_TEST_KEY_ALIAS = "sportapp.support_suggestions.test"
+        const val HEALTH_REPORTS_TEST_KEY_ALIAS = "sportapp.health-reports.test"
         const val SESSION_REMINDERS_TEST_KEY_ALIAS = "sportapp.session_reminders.test"
         const val FOOD_INTAKES_TEST_KEY_ALIAS = "sportapp.food-intakes.test"
 

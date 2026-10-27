@@ -20,6 +20,8 @@ import com.lfnj.sport_app.core.network.BffMobileClient
 import com.lfnj.sport_app.core.security.KeystoreTokenCipher
 import com.lfnj.sport_app.core.session.SessionApi
 import com.lfnj.sport_app.core.session.SessionManager
+import com.lfnj.sport_app.features.health.sync.HealthReportsSyncWorker
+import com.lfnj.sport_app.features.health.sync.HealthReportsSyncWorkerFactory
 import com.lfnj.sport_app.features.notifications.sync.NotificationsSyncWorkerFactory
 import com.lfnj.sport_app.features.nutrition.intake.data.FoodIntakeApi
 import com.lfnj.sport_app.features.nutrition.intake.data.FoodIntakeDraftItem
@@ -151,7 +153,7 @@ class FoodIntakeWorkerTest {
         assertTrue(workManager.getWorkInfosForUniqueWork(name).get().all { it.state == WorkInfo.State.CANCELLED })
     }
 
-    /** IMPACTO_COMPARTIDO: la fábrica de HU043 no captura los trabajos de HU032 ni HU034, y las de HU034 y HU039 no capturan el de HU043. */
+    /** IMPACTO_COMPARTIDO: la fábrica de HU043 no captura los trabajos de HU032, HU034 ni HU042, y las de HU034, HU039 y HU042 no capturan el de HU043. */
     @Test
     fun lasFabricasNoCapturanTrabajosAjenos() {
         var params: WorkerParameters? = null
@@ -164,12 +166,13 @@ class FoodIntakeWorkerTest {
         val parameters = checkNotNull(params)
         val factory = FoodIntakeSyncWorkerFactory { error("no debe crear el motor") }
 
-        listOf(TrainingSyncWorker::class.java.name, MetricsSyncWorker::class.java.name).forEach { name ->
+        listOf(TrainingSyncWorker::class.java.name, MetricsSyncWorker::class.java.name, HealthReportsSyncWorker::class.java.name).forEach { name ->
             assertNull(name, factory.createWorker(context, name, parameters))
         }
         listOf(
             MetricsSyncWorkerFactory { error("no debe crear el motor") },
             NotificationsSyncWorkerFactory { error("no debe crear el motor") },
+            HealthReportsSyncWorkerFactory { error("no debe crear el motor") },
         ).forEach { other -> assertNull(other.createWorker(context, FoodIntakeSyncWorker::class.java.name, parameters)) }
     }
 }

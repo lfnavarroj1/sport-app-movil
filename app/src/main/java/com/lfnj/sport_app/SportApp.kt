@@ -9,6 +9,7 @@ import com.lfnj.sport_app.core.config.AppConfig
 import com.lfnj.sport_app.core.security.EncryptedTokenStore
 import com.lfnj.sport_app.core.session.revocation.RevocationWorkerFactory
 import com.lfnj.sport_app.di.AppContainer
+import com.lfnj.sport_app.features.health.sync.HealthReportsSyncWorkerFactory
 import com.lfnj.sport_app.features.notifications.sync.NotificationsSyncWorkerFactory
 import com.lfnj.sport_app.features.nutrition.intake.sync.FoodIntakeSyncWorkerFactory
 import com.lfnj.sport_app.features.training.metrics.sync.MetricsSyncWorkerFactory
@@ -43,6 +44,8 @@ class SportApp : Application(), Configuration.Provider {
         container.androidNotificationAnnouncer.ensureChannels()
         container.notificationsCacheJanitor.start(applicationScope)
         container.inboxSyncCoordinator.start(applicationScope)
+        // HU042: cola cifrada de reportes de salud; se detiene al cerrar sesión y se reanuda para el mismo deportista.
+        container.healthReportsCoordinator.start(applicationScope)
         // HU038: canal de recordatorios, limpieza al terminar la sesión y servicio en primer plano de la sesión activa.
         container.androidReminderNotifier.ensureChannel()
         container.sessionRemindersJanitor.start(applicationScope)
@@ -63,7 +66,7 @@ class SportApp : Application(), Configuration.Provider {
         override fun onActivityDestroyed(activity: Activity) = Unit
     }
 
-    /** WorkManager crea los trabajos de HU032, HU034, HU004, HU039 y HU043 con las dependencias del contenedor manual. */
+    /** WorkManager crea los trabajos de HU032, HU034, HU004, HU039, HU042 y HU043 con las dependencias del contenedor manual. */
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(
@@ -72,6 +75,7 @@ class SportApp : Application(), Configuration.Provider {
                     addFactory(RevocationWorkerFactory { container.revocationQueue })
                     addFactory(MetricsSyncWorkerFactory { container.metricsSyncEngine })
                     addFactory(NotificationsSyncWorkerFactory { container.notificationsSyncEngine })
+                    addFactory(HealthReportsSyncWorkerFactory { container.healthReportsSyncEngine })
                     addFactory(FoodIntakeSyncWorkerFactory { container.foodIntakeSyncEngine })
                 }
             )

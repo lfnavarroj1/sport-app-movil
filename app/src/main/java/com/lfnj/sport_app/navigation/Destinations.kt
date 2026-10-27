@@ -58,6 +58,9 @@ object Destinations {
     /** HU039: preferencias de notificación, desde la bandeja. */
     const val NOTIFICATION_PREFERENCES = "notifications/preferencias"
 
+    /** HU042: «Mi salud» (`health`), opción base del deportista: reportar y ver los reportes del dispositivo. */
+    const val HEALTH = "health"
+
     /** HU043: «Mi alimentación» (`nutrition`), opción base del deportista: registrar consumos. */
     const val NUTRITION = "nutrition"
 
