@@ -82,7 +82,7 @@ class NavigationRegistryTest {
         val menu = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES))
 
         assertEquals(
-            listOf(Destinations.ATHLETE_HOME, Destinations.HEALTH, Destinations.NUTRITION, Destinations.NOTIFICATIONS, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.SUPPORT_SUGGESTIONS, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.SESSION_REMINDERS, Destinations.VIRTUAL_SESSIONS),
+            listOf(Destinations.ATHLETE_HOME, Destinations.HEALTH, Destinations.NUTRITION, Destinations.NOTIFICATIONS, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.SUPPORT_SUGGESTIONS, Destinations.NUTRITION_ROUTINES, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.SESSION_REMINDERS, Destinations.VIRTUAL_SESSIONS),
             menu.mapNotNull { it.route },
         )
     }
@@ -291,6 +291,30 @@ class NavigationRegistryTest {
                 .none { it.hu == "HU029" }
         )
         assertTrue(NavigationRegistry.athleteMenu(null).none { it.hu == "HU029" })
+    }
+
+    // ------------------------------------------------------------- HU030
+
+    @Test
+    fun `HU030 Rutinas de alimentación queda habilitada con la capacidad`() {
+        val entry = NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES)).single { it.hu == "HU030" }
+
+        assertEquals(Destinations.NUTRITION_ROUTINES, entry.route)
+        assertEquals("alimentacion/rutinas", entry.route)
+        assertEquals("nutrition.routines.suggest", entry.capability)
+        assertEquals(MenuGroup.NUTRITION, entry.group)
+        assertEquals(150, entry.order)
+        assertTrue(entry.enabled)
+    }
+
+    @Test
+    fun `HU030 sin capacidad, sin suscripcion activa o sin capacidades conocidas no aparece`() {
+        assertTrue(NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES - "nutrition.routines.suggest")).none { it.hu == "HU030" })
+        assertTrue(
+            NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES, SubscriptionStatus.entries.first { it != SubscriptionStatus.ACTIVE }))
+                .none { it.hu == "HU030" }
+        )
+        assertTrue(NavigationRegistry.athleteMenu(null).none { it.hu == "HU030" })
     }
 
     // ------------------------------------------------------------- HU040
