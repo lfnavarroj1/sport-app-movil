@@ -7,6 +7,18 @@ plugins {
 }
 
 /**
+ * HU042: versión vigente del consentimiento de datos de salud (`HEALTH_DATA_CONSENT_VERSION` del
+ * backend, ADR-034/ADR-037) que el móvil envía en `consent.version`. Se puede sobrescribir con
+ * `-P<propiedad>=<versión>`. Depuración: `local-dev`, el valor del overlay local del backend.
+ * Release: vacía si no se pasa; entonces «Mi salud» no captura reportes. Aprobado por el responsable (2026-10-26).
+ */
+fun healthDataConsentVersion(property: String, fallback: String): String {
+    val value = (project.findProperty(property) as String?)?.trim() ?: fallback
+    require(value.length <= 64 && value.none { it == '"' || it == '\\' }) { "$property no es una versión válida" }
+    return value
+}
+
+/**
  * URL base del BFF móvil por variante. Se puede sobrescribir con `-P<propiedad>=<url>` o en
  * `~/.gradle/gradle.properties`; nunca contiene secretos.
  * - Depuración: composición local de Kubernetes vista desde el emulador (`platform`, salida `bff_mobile_avd`).
@@ -80,7 +92,7 @@ android {
         }
 
         // Versión exacta del contrato consumido (backend `contracts/openapi/bff-mobile.openapi.json`).
-        buildConfigField("String", "BFF_MOBILE_CONTRACT_VERSION", "\"0.18.0\"")
+        buildConfigField("String", "BFF_MOBILE_CONTRACT_VERSION", "\"0.21.0\"")
         // Versión de plataforma (release-manifest.yaml) con la que se publicó este APK.
         buildConfigField("String", "SYSTEM_VERSION", "\"$systemVersion\"")
     }
@@ -93,6 +105,11 @@ android {
                 "BFF_MOBILE_BASE_URL",
                 "\"${bffMobileBaseUrl("sportapp.bffMobileBaseUrl.debug", "http://10.0.2.2:18081/")}\""
             )
+            buildConfigField(
+                "String",
+                "HEALTH_DATA_CONSENT_VERSION",
+                "\"${healthDataConsentVersion("sportapp.healthDataConsentVersion.debug", "local-dev")}\""
+            )
             enableUnitTestCoverage = true
         }
         release {
@@ -102,6 +119,11 @@ android {
                 "String",
                 "BFF_MOBILE_BASE_URL",
                 "\"${bffMobileBaseUrl("sportapp.bffMobileBaseUrl.release", "")}\""
+            )
+            buildConfigField(
+                "String",
+                "HEALTH_DATA_CONSENT_VERSION",
+                "\"${healthDataConsentVersion("sportapp.healthDataConsentVersion.release", "")}\""
             )
             optimization {
                 enable = true

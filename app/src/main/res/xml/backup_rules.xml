@@ -60,6 +60,10 @@
     <exclude domain="database" path="sportapp_notifications.db-shm" />
     <exclude domain="database" path="sportapp_notifications.db-wal" />
     <exclude domain="database" path="sportapp_notifications.db-journal" />
+    <exclude domain="database" path="sportapp_health_reports.db" />
+    <exclude domain="database" path="sportapp_health_reports.db-shm" />
+    <exclude domain="database" path="sportapp_health_reports.db-wal" />
+    <exclude domain="database" path="sportapp_health_reports.db-journal" />
     <exclude domain="sharedpref" path="sportapp_active_session.xml" />
     <exclude domain="database" path="sportapp_session_reminders.db" />
     <exclude domain="database" path="sportapp_session_reminders.db-shm" />

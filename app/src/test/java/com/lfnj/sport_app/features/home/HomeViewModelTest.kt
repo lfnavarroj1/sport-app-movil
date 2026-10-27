@@ -37,12 +37,12 @@ class HomeViewModelTest {
     fun `CA7 construye el menu con las capacidades del plan`() = runTest(mainDispatcherRule.dispatcher) {
         val vm = HomeViewModel(user, { AccessOutcome.Loaded(free) })
         assertTrue(vm.uiState.value.loadingAccess)
-        assertEquals(listOf("home", "notifications", "logout"), vm.uiState.value.ids())
+        assertEquals(listOf("home", "health", "notifications", "logout"), vm.uiState.value.ids())
 
         advanceUntilIdle()
 
         assertFalse(vm.uiState.value.loadingAccess)
-        assertEquals(13, vm.uiState.value.menu.size)
+        assertEquals(14, vm.uiState.value.menu.size)
     }
 
     @Test
@@ -51,13 +51,13 @@ class HomeViewModelTest {
         val vm = HomeViewModel(user, { answers.removeFirst() })
         advanceUntilIdle()
         assertEquals(AccessOutcome.NoConnection, vm.uiState.value.accessFailure)
-        assertEquals(listOf("home", "notifications", "logout"), vm.uiState.value.ids())
+        assertEquals(listOf("home", "health", "notifications", "logout"), vm.uiState.value.ids())
 
         vm.refresh()
         advanceUntilIdle()
 
         assertEquals(null, vm.uiState.value.accessFailure)
-        assertEquals(13, vm.uiState.value.menu.size)
+        assertEquals(14, vm.uiState.value.menu.size)
     }
 
     @Test
@@ -172,12 +172,12 @@ class HomeViewModelTest {
         val open = MutableStateFlow(false)
         val vm = HomeViewModel(user, { AccessOutcome.NoConnection }, openTrainingSession = open)
         advanceUntilIdle()
-        assertEquals(listOf("home", "notifications", "logout"), vm.uiState.value.ids())
+        assertEquals(listOf("home", "health", "notifications", "logout"), vm.uiState.value.ids())
 
         open.value = true
         advanceUntilIdle()
 
-        assertEquals(listOf("home", "notifications", "training.session.record", "logout"), vm.uiState.value.ids())
+        assertEquals(listOf("home", "health", "notifications", "training.session.record", "logout"), vm.uiState.value.ids())
         assertTrue(vm.uiState.value.openTrainingSession)
     }
 }
