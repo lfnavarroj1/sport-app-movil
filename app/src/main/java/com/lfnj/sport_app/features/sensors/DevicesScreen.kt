@@ -223,7 +223,7 @@ private fun DeviceRow(device: LinkedDevice, canRevoke: Boolean, onAskRevoke: (Li
 private fun RevokeSection(draft: RevokeDraft, onConfirm: () -> Unit, onCancel: () -> Unit) {
     Card(Modifier.fillMaxWidth().testTag("devices_revoke_section")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.devices_revoke_confirmation, draft.device.displayName))
+            Text(stringResource(R.string.devices_revoke_confirmation, draft.device.displayName), modifier = Modifier.testTag("devices_revoke_message"))
             draft.problem?.let { Notice(revokeProblemMessage(it), "devices_revoke_problem", MaterialTheme.colorScheme.error) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onConfirm, enabled = !draft.sending, modifier = Modifier.testTag("devices_revoke_confirm")) {
