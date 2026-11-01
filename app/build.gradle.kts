@@ -125,9 +125,11 @@ android {
                 "HEALTH_DATA_CONSENT_VERSION",
                 "\"${healthDataConsentVersion("sportapp.healthDataConsentVersion.release", "")}\""
             )
+            // Sin R8: la optimización parcial (packageScope androidx/kotlin/kotlinx) dejaba una clase
+            // de la app heredando de una interna de Kotlin inaccesible (IllegalAccessError en
+            // AppConfig.isBffConfigured) y la v0.1.0 se cerraba en Application.onCreate.
             optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
+                enable = false
             }
         }
     }
