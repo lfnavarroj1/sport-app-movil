@@ -50,6 +50,8 @@ internal data class AuthSession(
     val accessToken: String,
     val accessExpiresAtMillis: Long,
     val refreshToken: String,
+    /** Vencimiento del refresh token (`refresh_expires_in`); lo usa la cola de revocación de HU004. */
+    val refreshExpiresAtMillis: Long,
 ) {
     override fun toString(): String = "AuthSession(user=$user, accessExpiresAtMillis=$accessExpiresAtMillis)"
 }

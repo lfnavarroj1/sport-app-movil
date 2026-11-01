@@ -1,6 +1,10 @@
 package com.lfnj.sport_app.features.identity.login
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -103,5 +107,22 @@ class LoginScreenTest {
 
         composeRule.onNodeWithTag("login_notice").assertIsDisplayed()
         composeRule.onNodeWithText("no pudimos confirmar el cierre con el servidor", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun hu004Ca5CierreConfirmadoInformaLaSesionCerradaEnElDispositivo() {
+        show(LoginUiState(notice = LoginNotice.LOGGED_OUT))
+
+        composeRule.onNodeWithText("Cerraste sesión en este dispositivo.").assertIsDisplayed()
+        composeRule.onNodeWithTag("login_notice").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion))
+    }
+
+    @Test
+    fun hu004Ca6RevocacionPendienteSeInformaSinBloquearElAcceso() {
+        show(LoginUiState(notice = LoginNotice.LOGOUT_REMOTE_PENDING))
+
+        composeRule.onNodeWithText("quedó pendiente y se completará automáticamente", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("login_notice").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion))
+        composeRule.onNodeWithTag("login_submit").assertIsEnabled()
     }
 }

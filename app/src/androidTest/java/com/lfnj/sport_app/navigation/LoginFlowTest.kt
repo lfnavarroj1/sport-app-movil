@@ -22,8 +22,15 @@ import com.lfnj.sport_app.testing.TestAppContainer
 import com.lfnj.sport_app.ui.theme.SportappTheme
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
+import com.lfnj.sport_app.core.session.revocation.RevocationQueue
+import com.lfnj.sport_app.core.session.revocation.RevocationRun
+import kotlinx.coroutines.runBlocking
+import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
@@ -172,10 +179,12 @@ class LoginFlowTest {
 
     // ------------------------------------------------------------------ HU004
 
-    private fun loginAthleteAndOpenLogout(revoker: SessionRevoker) {
+    /** [revokeResponse] responde al cierre; se encola después del inicio de sesión y las capacidades. */
+    private fun loginAthleteAndOpenLogout(revokeResponse: MockResponse? = null, revoker: SessionRevoker? = null) {
         launch(revoker)
         server.enqueue(session("athlete"))
         server.enqueue(freeCapabilities)
+        revokeResponse?.let(server::enqueue)
         loginWith("ana@example.com")
         composeRule.waitUntilExactlyOneExists(hasText("Plan FREE activo."), 5_000)
         composeRule.onNodeWithTag("open_menu").performClick()
@@ -183,16 +192,15 @@ class LoginFlowTest {
         composeRule.onNodeWithTag("menu_logout").performClick()
     }
 
-    @Test
-    fun hu004Ca5CierreConfirmadoLimpiaLaSesionYLaPila() {
-        val revoked = mutableListOf<String>()
-        loginAthleteAndOpenLogout { token -> revoked += token; RevocationResult.CONFIRMED }
+    /** Las dos primeras solicitudes son el inicio de sesión y las capacidades; la tercera, el cierre. */
+    private fun takeRevokeRequest(): RecordedRequest {
+        repeat(2) { server.takeRequest(5, TimeUnit.SECONDS) }
+        return checkNotNull(server.takeRequest(5, TimeUnit.SECONDS)) { "No se envió la revocación" }
+    }
 
-        composeRule.waitUntilExactlyOneExists(hasTestTag("login_email"), 5_000)
-        composeRule.onNodeWithTag("login_notice").assertDoesNotExist()
+    private fun assertLoggedOutWithoutBackStack() {
         composeRule.onNodeWithTag("athlete_home").assertDoesNotExist()
         composeRule.runOnIdle {
-            assertEquals(listOf("refresh-token-sintetico-000000000001"), revoked)
             assertNull(store.value)
             assertNull("Atrás no debe regresar a pantallas protegidas", navController.previousBackStackEntry)
             assertEquals(Destinations.LOGIN, navController.currentDestination?.route?.substringBefore('?'))
@@ -200,14 +208,66 @@ class LoginFlowTest {
     }
 
     @Test
-    fun hu004Ca6CierreSinConfirmacionAvisaYNoConservaElToken() {
-        loginAthleteAndOpenLogout { RevocationResult.NOT_CONFIRMED }
+    fun hu004Ca1Ca5CierreConfirmadoRevocaLimpiaLaSesionYLaPila() {
+        loginAthleteAndOpenLogout(MockResponse().setResponseCode(204))
+
+        composeRule.waitUntilExactlyOneExists(hasTestTag("login_notice"), 5_000)
+        composeRule.onNodeWithText("Cerraste sesión en este dispositivo.").assertIsDisplayed()
+        assertLoggedOutWithoutBackStack()
+        val revoke = takeRevokeRequest()
+        assertEquals("/v1/sessions/revoke", revoke.path)
+        assertEquals("""{"refresh_token":"refresh-token-sintetico-000000000001"}""", revoke.body.readUtf8())
+        assertNull(revoke.getHeader("Authorization"))
+        runBlocking { assertFalse(checkNotNull(container).revocationQueue.hasPending()) }
+    }
+
+    @Test
+    fun hu004Ca6Ca7SinConfirmacionQuedaPendienteCifradaYSeSincronizaAlRecuperarLaRed() {
+        loginAthleteAndOpenLogout(MockResponse().setResponseCode(503))
+
+        composeRule.waitUntilExactlyOneExists(hasTestTag("login_notice"), 5_000)
+        composeRule.onNodeWithText("quedó pendiente", substring = true).assertIsDisplayed()
+        assertLoggedOutWithoutBackStack()
+        val container = checkNotNull(container)
+        val firstKey = takeRevokeRequest().getHeader("Idempotency-Key")
+        runBlocking { assertTrue(container.revocationQueue.hasPending()) }
+        assertEquals(1, container.revocationRecorder.scheduled)
+
+        // Recuperación de la red: el trabajo reenvía la misma revocación y elimina la entrada.
+        container.revocationClockOffsetMillis = RevocationQueue.INITIAL_BACKOFF_MILLIS
+        server.enqueue(MockResponse().setResponseCode(204))
+        runBlocking { assertEquals(RevocationRun.COMPLETED, container.revocationQueue.run()) }
+        assertEquals(firstKey, server.takeRequest(5, TimeUnit.SECONDS)?.getHeader("Idempotency-Key"))
+        runBlocking { assertFalse(container.revocationQueue.hasPending()) }
+    }
+
+    @Test
+    fun hu004Ca6ConRevocacionPendienteUnNuevoInicioDeSesionNoLaReutiliza() {
+        loginAthleteAndOpenLogout(MockResponse().setResponseCode(503))
+        composeRule.waitUntilExactlyOneExists(hasTestTag("login_notice"), 5_000)
+
+        server.enqueue(
+            MockResponse().setBody(
+                """{"token_type":"Bearer","access_token":"access-sintetico-2","expires_in":900,""" +
+                    """"refresh_token":"refresh-token-sintetico-000000000002","refresh_expires_in":604800,""" +
+                    """"user":{"user_id":"7d8f0b8e-3c2a-4b8f-9a51-0c1d2e3f4a5b","full_name":"Ana Deportista",""" +
+                    """"email":"ana@example.com","actor_type":"athlete"}}"""
+            )
+        )
+        server.enqueue(freeCapabilities)
+        loginWith("ana@example.com")
+
+        composeRule.waitUntilExactlyOneExists(hasText("Plan FREE activo."), 5_000)
+        composeRule.runOnIdle { assertEquals("refresh-token-sintetico-000000000002", store.value) }
+        runBlocking { assertTrue("La revocación anterior sigue pendiente y separada", checkNotNull(container).revocationQueue.hasPending()) }
+    }
+
+    @Test
+    fun hu004Ca6SinColaDisponibleElCierreLocalAvisaQueNoSeConfirmo() {
+        loginAthleteAndOpenLogout(revoker = { _, _ -> RevocationResult.NOT_CONFIRMED })
 
         composeRule.waitUntilExactlyOneExists(hasTestTag("login_notice"), 5_000)
         composeRule.onNodeWithText("no pudimos confirmar el cierre con el servidor", substring = true).assertIsDisplayed()
-        composeRule.runOnIdle {
-            assertNull(store.value)
-            assertNull(navController.previousBackStackEntry)
-        }
+        assertLoggedOutWithoutBackStack()
     }
 }

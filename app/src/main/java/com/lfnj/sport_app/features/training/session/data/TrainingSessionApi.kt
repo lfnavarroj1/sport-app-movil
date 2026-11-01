@@ -33,7 +33,7 @@ interface TrainingSessionApi {
 
     /** `200` con la sesión activa propia o `204` si no existe (consulta CQRS). */
     @GET("v1/training-sessions/active")
-    suspend fun active(@Header("Authorization") authorization: String): Response<TrainingSessionDto>
+    suspend fun active(@Header("Authorization") authorization: String): Response<ActiveTrainingSessionDto>
 }
 
 /** Cuerpo de `POST /v1/training-sessions`. `plan_id` se omite en una sesión libre. */
@@ -53,6 +53,23 @@ data class FinishTrainingSessionRequestDto(
     @SerialName("ended_at") val endedAt: String,
 ) {
     override fun toString(): String = "FinishTrainingSessionRequestDto(<oculto>)"
+}
+
+/**
+ * Sesión activa propia (`ActiveTrainingSessionResponse`): la vista de lectura no incluye fin,
+ * duración ni marcas de creación y actualización.
+ */
+@Serializable
+data class ActiveTrainingSessionDto(
+    @SerialName("session_id") val sessionId: String,
+    @SerialName("athlete_id") val athleteId: String,
+    @SerialName("plan_id") val planId: String? = null,
+    val sport: String,
+    @SerialName("started_at") val startedAt: String,
+    val status: String,
+    val version: Int,
+) {
+    override fun toString(): String = "ActiveTrainingSessionDto(status=$status, version=$version)"
 }
 
 /** Sesión confirmada por el backend (`ACTIVE` versión 1 o `FINISHED` versión 2). */

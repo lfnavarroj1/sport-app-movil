@@ -37,12 +37,12 @@ class HomeViewModelTest {
     fun `CA7 construye el menu con las capacidades del plan`() = runTest(mainDispatcherRule.dispatcher) {
         val vm = HomeViewModel(user, { AccessOutcome.Loaded(free) })
         assertTrue(vm.uiState.value.loadingAccess)
-        assertEquals(listOf("home", "logout"), vm.uiState.value.ids())
+        assertEquals(listOf("home", "health", "nutrition", "notifications", "logout"), vm.uiState.value.ids())
 
         advanceUntilIdle()
 
         assertFalse(vm.uiState.value.loadingAccess)
-        assertEquals(12, vm.uiState.value.menu.size)
+        assertEquals(15, vm.uiState.value.menu.size)
     }
 
     @Test
@@ -51,13 +51,13 @@ class HomeViewModelTest {
         val vm = HomeViewModel(user, { answers.removeFirst() })
         advanceUntilIdle()
         assertEquals(AccessOutcome.NoConnection, vm.uiState.value.accessFailure)
-        assertEquals(listOf("home", "logout"), vm.uiState.value.ids())
+        assertEquals(listOf("home", "health", "nutrition", "notifications", "logout"), vm.uiState.value.ids())
 
         vm.refresh()
         advanceUntilIdle()
 
         assertEquals(null, vm.uiState.value.accessFailure)
-        assertEquals(12, vm.uiState.value.menu.size)
+        assertEquals(15, vm.uiState.value.menu.size)
     }
 
     @Test
@@ -94,7 +94,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `HU004 CA5 el cierre confirmado vuelve al acceso sin aviso y retira la identidad`() = runTest(mainDispatcherRule.dispatcher) {
+    fun `HU004 CA5 el cierre confirmado vuelve al acceso informando la sesion cerrada y retira la identidad`() = runTest(mainDispatcherRule.dispatcher) {
         val vm = HomeViewModel(user, { AccessOutcome.Loaded(free) }, logoutAvailable = true) { LogoutOutcome.LoggedOut }
         advanceUntilIdle()
         assertEquals(MenuAction.LOGOUT, vm.uiState.value.menu.single { it.id == "logout" }.action)
@@ -103,10 +103,24 @@ class HomeViewModelTest {
         assertTrue(vm.uiState.value.loggingOut)
         advanceUntilIdle()
 
-        assertEquals(HomeExit(Destinations.LOGIN), vm.uiState.value.navigateTo)
+        assertEquals(HomeExit(Destinations.LOGIN, LoginNotice.LOGGED_OUT), vm.uiState.value.navigateTo)
         assertNull(vm.uiState.value.user)
         assertNull(vm.uiState.value.access)
         assertTrue(vm.uiState.value.menu.isEmpty())
+    }
+
+    @Test
+    fun `HU004 CA6 una revocacion pendiente lo informa en el acceso`() = runTest(mainDispatcherRule.dispatcher) {
+        val vm = HomeViewModel(user, { AccessOutcome.Loaded(free) }, logoutAvailable = true) {
+            LogoutOutcome.LoggedOutRemotePending
+        }
+        advanceUntilIdle()
+
+        vm.logout()
+        advanceUntilIdle()
+
+        assertEquals(HomeExit(Destinations.LOGIN, LoginNotice.LOGOUT_REMOTE_PENDING), vm.uiState.value.navigateTo)
+        assertNull(vm.uiState.value.user)
     }
 
     @Test
@@ -149,7 +163,7 @@ class HomeViewModelTest {
         access.complete(AccessOutcome.Loaded(free))
         advanceUntilIdle()
 
-        assertEquals(HomeExit(Destinations.LOGIN), vm.uiState.value.navigateTo)
+        assertEquals(HomeExit(Destinations.LOGIN, LoginNotice.LOGGED_OUT), vm.uiState.value.navigateTo)
         assertNull(vm.uiState.value.access)
     }
 
@@ -158,12 +172,12 @@ class HomeViewModelTest {
         val open = MutableStateFlow(false)
         val vm = HomeViewModel(user, { AccessOutcome.NoConnection }, openTrainingSession = open)
         advanceUntilIdle()
-        assertEquals(listOf("home", "logout"), vm.uiState.value.ids())
+        assertEquals(listOf("home", "health", "nutrition", "notifications", "logout"), vm.uiState.value.ids())
 
         open.value = true
         advanceUntilIdle()
 
-        assertEquals(listOf("home", "training.session.record", "logout"), vm.uiState.value.ids())
+        assertEquals(listOf("home", "health", "nutrition", "notifications", "training.session.record", "logout"), vm.uiState.value.ids())
         assertTrue(vm.uiState.value.openTrainingSession)
     }
 }

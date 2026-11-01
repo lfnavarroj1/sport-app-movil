@@ -37,6 +37,11 @@ object TrainingFixtures {
             """"created_at":"2026-10-12T12:30:01Z","updated_at":"2026-10-12T12:30:01Z"}"""
     }
 
+    /** `ActiveTrainingSessionResponse` de `GET /v1/training-sessions/active`: sin fin, duración ni marcas de tiempo. */
+    fun activeSessionBody(sessionId: String, sport: String = "running", startedAt: String = "2026-10-12T12:30:00Z"): String =
+        """{"session_id":"$sessionId","athlete_id":"$USER_ID","plan_id":null,"sport":"$sport",""" +
+            """"started_at":"$startedAt","status":"ACTIVE","version":1}"""
+
     fun validationError(vararg issues: String): String =
         """{"code":"validation_error","message":"mensaje","correlation_id":"8c1f2d3e-0000-4000-8000-000000000002",""" +
             """"details":[${issues.joinToString(",") { """{"field":"started_at","issue":"$it"}""" }}]}"""

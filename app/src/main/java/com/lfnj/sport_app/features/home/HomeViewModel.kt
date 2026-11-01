@@ -111,7 +111,8 @@ class HomeViewModel(
         _uiState.update { it.copy(loggingOut = true) }
         logoutJob = viewModelScope.launch {
             val notice = when (performLogout()) {
-                LogoutOutcome.LoggedOut -> null
+                LogoutOutcome.LoggedOut -> LoginNotice.LOGGED_OUT
+                LogoutOutcome.LoggedOutRemotePending -> LoginNotice.LOGOUT_REMOTE_PENDING
                 LogoutOutcome.LoggedOutRemoteUnconfirmed -> LoginNotice.LOGOUT_REMOTE_UNCONFIRMED
             }
             _uiState.update {

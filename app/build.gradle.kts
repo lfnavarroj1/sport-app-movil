@@ -7,10 +7,23 @@ plugins {
 }
 
 /**
+ * HU042: versión vigente del consentimiento de datos de salud (`HEALTH_DATA_CONSENT_VERSION` del
+ * backend, ADR-034/ADR-037) que el móvil envía en `consent.version`. Se puede sobrescribir con
+ * `-P<propiedad>=<versión>`. Depuración: `local-dev`, el valor del overlay local del backend.
+ * Release: vacía si no se pasa; entonces «Mi salud» no captura reportes. Aprobado por el responsable (2026-10-26).
+ */
+fun healthDataConsentVersion(property: String, fallback: String): String {
+    val value = (project.findProperty(property) as String?)?.trim() ?: fallback
+    require(value.length <= 64 && value.none { it == '"' || it == '\\' }) { "$property no es una versión válida" }
+    return value
+}
+
+/**
  * URL base del BFF móvil por variante. Se puede sobrescribir con `-P<propiedad>=<url>` o en
  * `~/.gradle/gradle.properties`; nunca contiene secretos.
  * - Depuración: composición local de Kubernetes vista desde el emulador (`platform`, salida `bff_mobile_avd`).
- * - Release: sin valor aprobado mientras producción GCP esté pendiente; la app muestra «configuración no disponible».
+ * - Release: URL de `bff-mobile` en Cloud Run, que pasa `scripts/sportapp-release-movil.ps1` de `platform` al
+ *   compilar el APK de producción; sin ella (CI) la app muestra «configuración no disponible».
  */
 fun bffMobileBaseUrl(property: String, fallback: String): String {
     val value = (project.findProperty(property) as String?)?.trim() ?: fallback
@@ -18,18 +31,58 @@ fun bffMobileBaseUrl(property: String, fallback: String): String {
     return value
 }
 
+/**
+ * Versión del APK. La fija `scripts/sportapp-release-movil.ps1` de `sport-app-platform` al compilar una
+ * release: `sportapp.versionName` es la versión del tag del móvil (sin la v), `sportapp.versionCode`
+ * se deriva de ella y `sportapp.systemVersion` es la versión de plataforma (sistema) a la que
+ * pertenece. Sin estas propiedades se usan los valores de desarrollo.
+ */
+fun sportappProperty(name: String): String? =
+    (project.findProperty(name) as String?)?.trim()?.takeIf { it.isNotEmpty() }
+
+val appVersionName = sportappProperty("sportapp.versionName") ?: "0.1.0"
+val appVersionCode = sportappProperty("sportapp.versionCode")?.toInt() ?: 1
+val systemVersion = sportappProperty("sportapp.systemVersion") ?: "dev"
+require(Regex("""^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$""").matches(appVersionName)) {
+    "sportapp.versionName debe ser SemVer X.Y.Z sin la v: $appVersionName"
+}
+require(appVersionCode > 0) { "sportapp.versionCode debe ser mayor que 0: $appVersionCode" }
+
+/**
+ * Firma de release con un almacén de claves fuera del repositorio. Solo se aplica cuando las cuatro
+ * variables de entorno están definidas (las define el script de release en la estación del
+ * operador); sin ellas, como en CI, el APK de release queda sin firmar.
+ */
+val releaseSigning = listOf(
+    "SPORTAPP_SIGNING_STORE_FILE",
+    "SPORTAPP_SIGNING_STORE_PASSWORD",
+    "SPORTAPP_SIGNING_KEY_ALIAS",
+    "SPORTAPP_SIGNING_KEY_PASSWORD",
+).associateWith { System.getenv(it)?.takeIf(String::isNotEmpty) }
+
 android {
     namespace = "com.lfnj.sport_app"
     compileSdk {
         version = release(37)
     }
 
+    signingConfigs {
+        if (releaseSigning.values.all { it != null }) {
+            create("release") {
+                storeFile = file(releaseSigning.getValue("SPORTAPP_SIGNING_STORE_FILE")!!)
+                storePassword = releaseSigning.getValue("SPORTAPP_SIGNING_STORE_PASSWORD")
+                keyAlias = releaseSigning.getValue("SPORTAPP_SIGNING_KEY_ALIAS")
+                keyPassword = releaseSigning.getValue("SPORTAPP_SIGNING_KEY_PASSWORD")
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "com.lfnj.sport_app"
         minSdk = 28
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // El E2E contra la composición local solo corre cuando se le pasan las cuentas sintéticas
@@ -39,7 +92,9 @@ android {
         }
 
         // Versión exacta del contrato consumido (backend `contracts/openapi/bff-mobile.openapi.json`).
-        buildConfigField("String", "BFF_MOBILE_CONTRACT_VERSION", "\"0.3.0\"")
+        buildConfigField("String", "BFF_MOBILE_CONTRACT_VERSION", "\"0.21.0\"")
+        // Versión de plataforma (release-manifest.yaml) con la que se publicó este APK.
+        buildConfigField("String", "SYSTEM_VERSION", "\"$systemVersion\"")
     }
 
     buildTypes {
@@ -50,14 +105,25 @@ android {
                 "BFF_MOBILE_BASE_URL",
                 "\"${bffMobileBaseUrl("sportapp.bffMobileBaseUrl.debug", "http://10.0.2.2:18081/")}\""
             )
+            buildConfigField(
+                "String",
+                "HEALTH_DATA_CONSENT_VERSION",
+                "\"${healthDataConsentVersion("sportapp.healthDataConsentVersion.debug", "local-dev")}\""
+            )
             enableUnitTestCoverage = true
         }
         release {
+            signingConfig = signingConfigs.findByName("release")
             buildConfigField("String", "APP_ENVIRONMENT", "\"production\"")
             buildConfigField(
                 "String",
                 "BFF_MOBILE_BASE_URL",
                 "\"${bffMobileBaseUrl("sportapp.bffMobileBaseUrl.release", "")}\""
+            )
+            buildConfigField(
+                "String",
+                "HEALTH_DATA_CONSENT_VERSION",
+                "\"${healthDataConsentVersion("sportapp.healthDataConsentVersion.release", "")}\""
             )
             optimization {
                 enable = true

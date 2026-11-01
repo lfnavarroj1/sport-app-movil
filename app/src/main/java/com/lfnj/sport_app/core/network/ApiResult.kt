@@ -11,7 +11,8 @@ sealed interface ApiResult<out T> {
 
     /**
      * Respuesta HTTP no exitosa con el `code` versionado del contrato, si vino en el cuerpo, y
-     * las causas `details[].issue` de una validación (sin valores enviados).
+     * las causas `details[].issue` de una validación (sin valores enviados). [fieldIssues] conserva
+     * además el campo de cada causa (`details[].field`), p. ej. para señalar la entrada rechazada.
      */
     data class HttpFailure(
         val status: Int,
@@ -19,7 +20,11 @@ sealed interface ApiResult<out T> {
         val correlationId: String?,
         val retryAfterSeconds: Long?,
         val issues: List<String> = emptyList(),
+        val fieldIssues: List<FieldIssue> = emptyList(),
     ) : Failure
+
+    /** Campo y causa estables de una validación; nunca contiene el valor enviado. */
+    data class FieldIssue(val field: String?, val issue: String)
 
     /** Sin red, servidor inalcanzable o conexión interrumpida. */
     data object NoConnection : Failure

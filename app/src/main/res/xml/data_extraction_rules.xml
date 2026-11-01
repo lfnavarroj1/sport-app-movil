@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Copia en la nube y transferencia entre dispositivos (Android 12+). La sesión cifrada (HU003 CA6)
-    y los registros de entrenamiento con su cola de sincronización (HU032, ADR-029 offline §5) se
-    excluyen de ambas.
+    Copia en la nube y transferencia entre dispositivos (Android 12+). La sesión cifrada (HU003 CA6),
+    los registros de entrenamiento con su cola de sincronización (HU032, ADR-029 offline §5), la
+    caché del calendario deportivo (HU035, ADR-031 offline §3) y la cola cifrada de revocación de
+    sesión (HU004, ADR-026), los indicadores de HU034 (ADR-030), la caché de entrenamientos sugeridos
+    (HU028, ADR-041 §5), la del tablero de entrenamientos (HU033, ADR-043 §5) y la de rutas sugeridas
+    (HU026, ADR-041 §5), la de sesiones virtuales (HU040, ADR-046 §8), la de acompañamiento y
+    logística sugeridos (HU029, ADR-041 §5), la bandeja de notificaciones (HU039, ADR-045), los
+    recordatorios durante la sesión con el puntero de la sesión activa (HU038, ADR-045) y el catálogo
+    de alimentos con los consumos (HU043, ADR-037) se excluyen de ambas.
 -->
 <data-extraction-rules>
     <cloud-backup>
@@ -11,6 +17,71 @@
         <exclude domain="database" path="sportapp_training.db-shm" />
         <exclude domain="database" path="sportapp_training.db-wal" />
         <exclude domain="database" path="sportapp_training.db-journal" />
+        <exclude domain="database" path="sportapp_calendar.db" />
+        <exclude domain="database" path="sportapp_calendar.db-shm" />
+        <exclude domain="database" path="sportapp_calendar.db-wal" />
+        <exclude domain="database" path="sportapp_calendar.db-journal" />
+        <exclude domain="database" path="sportapp_revocation.db" />
+        <exclude domain="database" path="sportapp_revocation.db-shm" />
+        <exclude domain="database" path="sportapp_revocation.db-wal" />
+        <exclude domain="database" path="sportapp_revocation.db-journal" />
+        <exclude domain="database" path="sportapp_training_metrics.db" />
+        <exclude domain="database" path="sportapp_training_metrics.db-shm" />
+        <exclude domain="database" path="sportapp_training_metrics.db-wal" />
+        <exclude domain="database" path="sportapp_training_metrics.db-journal" />
+        <exclude domain="database" path="sportapp_plan_suggestions.db" />
+        <exclude domain="database" path="sportapp_plan_suggestions.db-shm" />
+        <exclude domain="database" path="sportapp_plan_suggestions.db-wal" />
+        <exclude domain="database" path="sportapp_plan_suggestions.db-journal" />
+        <exclude domain="database" path="sportapp_training_dashboard.db" />
+        <exclude domain="database" path="sportapp_training_dashboard.db-shm" />
+        <exclude domain="database" path="sportapp_training_dashboard.db-wal" />
+        <exclude domain="database" path="sportapp_training_dashboard.db-journal" />
+        <exclude domain="database" path="sportapp_route_suggestions.db" />
+        <exclude domain="database" path="sportapp_route_suggestions.db-shm" />
+        <exclude domain="database" path="sportapp_route_suggestions.db-wal" />
+        <exclude domain="database" path="sportapp_route_suggestions.db-journal" />
+        <exclude domain="database" path="sportapp_virtual_sessions.db" />
+        <exclude domain="database" path="sportapp_virtual_sessions.db-shm" />
+        <exclude domain="database" path="sportapp_virtual_sessions.db-wal" />
+        <exclude domain="database" path="sportapp_virtual_sessions.db-journal" />
+        <exclude domain="database" path="sportapp_event_registrations.db" />
+        <exclude domain="database" path="sportapp_event_registrations.db-shm" />
+        <exclude domain="database" path="sportapp_event_registrations.db-wal" />
+        <exclude domain="database" path="sportapp_event_registrations.db-journal" />
+        <exclude domain="database" path="sportapp_event_suggestions.db" />
+        <exclude domain="database" path="sportapp_event_suggestions.db-shm" />
+        <exclude domain="database" path="sportapp_event_suggestions.db-wal" />
+        <exclude domain="database" path="sportapp_event_suggestions.db-journal" />
+        <exclude domain="database" path="sportapp_support_suggestions.db" />
+        <exclude domain="database" path="sportapp_support_suggestions.db-shm" />
+        <exclude domain="database" path="sportapp_support_suggestions.db-wal" />
+        <exclude domain="database" path="sportapp_support_suggestions.db-journal" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db-shm" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db-wal" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db-journal" />
+        <exclude domain="database" path="sportapp_notifications.db" />
+        <exclude domain="database" path="sportapp_notifications.db-shm" />
+        <exclude domain="database" path="sportapp_notifications.db-wal" />
+        <exclude domain="database" path="sportapp_notifications.db-journal" />
+        <exclude domain="database" path="sportapp_health_reports.db" />
+        <exclude domain="database" path="sportapp_health_reports.db-shm" />
+        <exclude domain="database" path="sportapp_health_reports.db-wal" />
+        <exclude domain="database" path="sportapp_health_reports.db-journal" />
+        <exclude domain="sharedpref" path="sportapp_active_session.xml" />
+        <exclude domain="database" path="sportapp_session_reminders.db" />
+        <exclude domain="database" path="sportapp_session_reminders.db-shm" />
+        <exclude domain="database" path="sportapp_session_reminders.db-wal" />
+        <exclude domain="database" path="sportapp_session_reminders.db-journal" />
+        <exclude domain="database" path="sportapp_food_intakes.db" />
+        <exclude domain="database" path="sportapp_food_intakes.db-shm" />
+        <exclude domain="database" path="sportapp_food_intakes.db-wal" />
+        <exclude domain="database" path="sportapp_food_intakes.db-journal" />
+        <exclude domain="database" path="sportapp_sensors.db" />
+        <exclude domain="database" path="sportapp_sensors.db-shm" />
+        <exclude domain="database" path="sportapp_sensors.db-wal" />
+        <exclude domain="database" path="sportapp_sensors.db-journal" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
@@ -18,5 +89,70 @@
         <exclude domain="database" path="sportapp_training.db-shm" />
         <exclude domain="database" path="sportapp_training.db-wal" />
         <exclude domain="database" path="sportapp_training.db-journal" />
+        <exclude domain="database" path="sportapp_calendar.db" />
+        <exclude domain="database" path="sportapp_calendar.db-shm" />
+        <exclude domain="database" path="sportapp_calendar.db-wal" />
+        <exclude domain="database" path="sportapp_calendar.db-journal" />
+        <exclude domain="database" path="sportapp_revocation.db" />
+        <exclude domain="database" path="sportapp_revocation.db-shm" />
+        <exclude domain="database" path="sportapp_revocation.db-wal" />
+        <exclude domain="database" path="sportapp_revocation.db-journal" />
+        <exclude domain="database" path="sportapp_training_metrics.db" />
+        <exclude domain="database" path="sportapp_training_metrics.db-shm" />
+        <exclude domain="database" path="sportapp_training_metrics.db-wal" />
+        <exclude domain="database" path="sportapp_training_metrics.db-journal" />
+        <exclude domain="database" path="sportapp_plan_suggestions.db" />
+        <exclude domain="database" path="sportapp_plan_suggestions.db-shm" />
+        <exclude domain="database" path="sportapp_plan_suggestions.db-wal" />
+        <exclude domain="database" path="sportapp_plan_suggestions.db-journal" />
+        <exclude domain="database" path="sportapp_training_dashboard.db" />
+        <exclude domain="database" path="sportapp_training_dashboard.db-shm" />
+        <exclude domain="database" path="sportapp_training_dashboard.db-wal" />
+        <exclude domain="database" path="sportapp_training_dashboard.db-journal" />
+        <exclude domain="database" path="sportapp_route_suggestions.db" />
+        <exclude domain="database" path="sportapp_route_suggestions.db-shm" />
+        <exclude domain="database" path="sportapp_route_suggestions.db-wal" />
+        <exclude domain="database" path="sportapp_route_suggestions.db-journal" />
+        <exclude domain="database" path="sportapp_virtual_sessions.db" />
+        <exclude domain="database" path="sportapp_virtual_sessions.db-shm" />
+        <exclude domain="database" path="sportapp_virtual_sessions.db-wal" />
+        <exclude domain="database" path="sportapp_virtual_sessions.db-journal" />
+        <exclude domain="database" path="sportapp_event_registrations.db" />
+        <exclude domain="database" path="sportapp_event_registrations.db-shm" />
+        <exclude domain="database" path="sportapp_event_registrations.db-wal" />
+        <exclude domain="database" path="sportapp_event_registrations.db-journal" />
+        <exclude domain="database" path="sportapp_event_suggestions.db" />
+        <exclude domain="database" path="sportapp_event_suggestions.db-shm" />
+        <exclude domain="database" path="sportapp_event_suggestions.db-wal" />
+        <exclude domain="database" path="sportapp_event_suggestions.db-journal" />
+        <exclude domain="database" path="sportapp_support_suggestions.db" />
+        <exclude domain="database" path="sportapp_support_suggestions.db-shm" />
+        <exclude domain="database" path="sportapp_support_suggestions.db-wal" />
+        <exclude domain="database" path="sportapp_support_suggestions.db-journal" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db-shm" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db-wal" />
+        <exclude domain="database" path="sportapp_nutrition_routines.db-journal" />
+        <exclude domain="database" path="sportapp_notifications.db" />
+        <exclude domain="database" path="sportapp_notifications.db-shm" />
+        <exclude domain="database" path="sportapp_notifications.db-wal" />
+        <exclude domain="database" path="sportapp_notifications.db-journal" />
+        <exclude domain="database" path="sportapp_health_reports.db" />
+        <exclude domain="database" path="sportapp_health_reports.db-shm" />
+        <exclude domain="database" path="sportapp_health_reports.db-wal" />
+        <exclude domain="database" path="sportapp_health_reports.db-journal" />
+        <exclude domain="sharedpref" path="sportapp_active_session.xml" />
+        <exclude domain="database" path="sportapp_session_reminders.db" />
+        <exclude domain="database" path="sportapp_session_reminders.db-shm" />
+        <exclude domain="database" path="sportapp_session_reminders.db-wal" />
+        <exclude domain="database" path="sportapp_session_reminders.db-journal" />
+        <exclude domain="database" path="sportapp_food_intakes.db" />
+        <exclude domain="database" path="sportapp_food_intakes.db-shm" />
+        <exclude domain="database" path="sportapp_food_intakes.db-wal" />
+        <exclude domain="database" path="sportapp_food_intakes.db-journal" />
+        <exclude domain="database" path="sportapp_sensors.db" />
+        <exclude domain="database" path="sportapp_sensors.db-shm" />
+        <exclude domain="database" path="sportapp_sensors.db-wal" />
+        <exclude domain="database" path="sportapp_sensors.db-journal" />
     </device-transfer>
 </data-extraction-rules>

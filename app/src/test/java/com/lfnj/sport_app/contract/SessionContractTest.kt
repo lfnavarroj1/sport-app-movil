@@ -11,10 +11,11 @@ import com.lfnj.sport_app.core.session.SubscriptionStatus
 import com.lfnj.sport_app.features.identity.login.LoginViewModel
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** HU003 en el cliente móvil frente a `bff-mobile` 0.3.0. */
+/** HU003 y HU004 en el cliente móvil frente a la copia exacta de `bff-mobile`. */
 class SessionContractTest {
     private val contract = OpenApiContract.load()
 
@@ -56,6 +57,21 @@ class SessionContractTest {
         assertTrue(contract.responseCodes("post", "/v1/sessions").containsAll(setOf("200", "401", "422", "429", "503", "504")))
         assertTrue(contract.responseCodes("post", "/v1/sessions/refresh").containsAll(setOf("200", "401", "422", "503", "504")))
         assertTrue(contract.responseCodes("get", "/v1/me/capabilities").containsAll(setOf("200", "401", "403", "503")))
+    }
+
+    @Test
+    fun `HU004 el cierre envia solo el refresh token con Idempotency-Key opcional y sin access token`() {
+        assertEquals("RefreshSessionRequest", contract.requestBodySchemaRef("post", "/v1/sessions/revoke"))
+        assertEquals(setOf("refresh_token"), contract.schemaProperties("RefreshSessionRequest"))
+        contract.assertModelMatches("RefreshSessionRequest", RefreshSessionRequestDto.serializer())
+        assertTrue("idempotency-key" in contract.parameters("post", "/v1/sessions/revoke", "header"))
+        assertTrue("authorization" !in contract.parameters("post", "/v1/sessions/revoke", "header"))
+    }
+
+    @Test
+    fun `HU004 la cola trata todas las respuestas documentadas del cierre`() {
+        // 204 confirma (también una sesión ya cerrada); 422 se descarta; 503/504 quedan en la cola.
+        assertEquals(setOf("204", "422", "503", "504"), contract.responseCodes("post", "/v1/sessions/revoke"))
     }
 
     @Test

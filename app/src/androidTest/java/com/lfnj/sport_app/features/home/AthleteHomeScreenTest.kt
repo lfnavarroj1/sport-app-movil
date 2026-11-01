@@ -1,6 +1,7 @@
 package com.lfnj.sport_app.features.home
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -29,7 +30,7 @@ class AthleteHomeScreenTest {
     private val user = SessionUser("u-1", "Ana Deportista", "ana@example.com", ActorType.ATHLETE)
     private val free = AccessSnapshot(
         ActorType.ATHLETE, SubscriptionStatus.ACTIVE, "FREE", emptySet(),
-        setOf("training.routes.suggest", "events.suggest", "calendar.sport.view"),
+        setOf("training.routes.suggest", "events.suggest", "integrations.strava.connect", "calendar.sport.view"),
     )
 
     private fun show(state: HomeUiState) = composeRule.setContent {
@@ -51,8 +52,19 @@ class AthleteHomeScreenTest {
         composeRule.onNodeWithText("Plan FREE activo.").assertIsDisplayed()
         composeRule.onNodeWithTag("open_menu").performClick()
         composeRule.onNodeWithTag("menu_home").assertIsDisplayed()
-        composeRule.onNodeWithTag("menu_training.routes.suggest").assertIsDisplayed().assertIsNotEnabled()
-        composeRule.onNodeWithTag("menu_events.suggest").assertIsDisplayed()
+        // HU043: «Mi alimentación» es opción base habilitada, sin capacidad de plan.
+        composeRule.onNodeWithTag("menu_nutrition").assertIsDisplayed().assertIsEnabled()
+        // HU039: opción base habilitada, sin capacidad de plan.
+        composeRule.onNodeWithTag("menu_notifications").assertIsDisplayed().assertIsEnabled()
+        // HU042: «Mi salud» es opción base habilitada, sin capacidad de plan.
+        composeRule.onNodeWithTag("menu_health").assertIsDisplayed().assertIsEnabled()
+        // HU026 ya tiene destino en el móvil: la opción queda habilitada.
+        composeRule.onNodeWithTag("menu_training.routes.suggest").assertIsDisplayed().assertIsEnabled()
+        // HU027 ya tiene destino en el móvil: la opción queda habilitada.
+        composeRule.onNodeWithTag("menu_events.suggest").assertIsDisplayed().assertIsEnabled()
+        // «Próximamente»: HU031 (Strava) aún no tiene destino móvil; cambiará cuando esa HU se implemente.
+        composeRule.onNodeWithTag("athlete_menu").performScrollToNode(hasTestTag("menu_integrations.strava.connect"))
+        composeRule.onNodeWithTag("menu_integrations.strava.connect").assertIsDisplayed().assertIsNotEnabled()
         composeRule.onNodeWithTag("athlete_menu").performScrollToNode(hasTestTag("menu_calendar.sport.view"))
         composeRule.onNodeWithTag("menu_calendar.sport.view").assertIsDisplayed()
         composeRule.onNodeWithTag("menu_training.session.record").assertDoesNotExist()
@@ -66,6 +78,12 @@ class AthleteHomeScreenTest {
         composeRule.onNodeWithText("Estamos activando tu plan.", substring = true).assertIsDisplayed()
         composeRule.onNodeWithTag("open_menu").performClick()
         composeRule.onNodeWithTag("menu_events.suggest").assertDoesNotExist()
+        // HU043: «Mi alimentación» también sigue disponible durante el aprovisionamiento.
+        composeRule.onNodeWithTag("menu_nutrition").assertIsDisplayed().assertIsEnabled()
+        // HU039: la bandeja es opción base y sigue disponible durante el aprovisionamiento.
+        composeRule.onNodeWithTag("menu_notifications").assertIsDisplayed().assertIsEnabled()
+        // HU042: «Mi salud» también es opción base.
+        composeRule.onNodeWithTag("menu_health").assertIsDisplayed().assertIsEnabled()
     }
 
     @Test

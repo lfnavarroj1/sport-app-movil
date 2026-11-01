@@ -2,7 +2,14 @@
 <!--
     Copia de seguridad automática (Android 11 y anteriores). La sesión cifrada no se respalda:
     su clave vive en Android Keystore y no viaja con la copia (HU003 CA6). Tampoco los registros
-    de entrenamiento y su cola de sincronización (HU032, ADR-029 offline §5).
+    de entrenamiento y su cola de sincronización (HU032, ADR-029 offline §5) ni la caché
+    del calendario deportivo (HU035, ADR-031 offline §3), ni la cola cifrada de revocación
+    de sesión (HU004, ADR-026) ni los indicadores de HU034 (ADR-030 offline §1) ni la caché de
+    entrenamientos sugeridos (HU028, ADR-041 §5) ni la del tablero de entrenamientos (HU033, ADR-043 §5)
+    ni la de rutas sugeridas (HU026, ADR-041 §5) ni la de sesiones virtuales (HU040, ADR-046 §8)
+    ni la de acompañamiento y logística sugeridos (HU029, ADR-041 §5) ni la bandeja de notificaciones (HU039, ADR-045)
+    ni los recordatorios durante la sesión y el puntero de la sesión activa (HU038, ADR-045)
+    ni el catálogo de alimentos y los consumos (HU043, ADR-037).
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
@@ -10,4 +17,69 @@
     <exclude domain="database" path="sportapp_training.db-shm" />
     <exclude domain="database" path="sportapp_training.db-wal" />
     <exclude domain="database" path="sportapp_training.db-journal" />
+    <exclude domain="database" path="sportapp_calendar.db" />
+    <exclude domain="database" path="sportapp_calendar.db-shm" />
+    <exclude domain="database" path="sportapp_calendar.db-wal" />
+    <exclude domain="database" path="sportapp_calendar.db-journal" />
+    <exclude domain="database" path="sportapp_revocation.db" />
+    <exclude domain="database" path="sportapp_revocation.db-shm" />
+    <exclude domain="database" path="sportapp_revocation.db-wal" />
+    <exclude domain="database" path="sportapp_revocation.db-journal" />
+    <exclude domain="database" path="sportapp_training_metrics.db" />
+    <exclude domain="database" path="sportapp_training_metrics.db-shm" />
+    <exclude domain="database" path="sportapp_training_metrics.db-wal" />
+    <exclude domain="database" path="sportapp_training_metrics.db-journal" />
+    <exclude domain="database" path="sportapp_plan_suggestions.db" />
+    <exclude domain="database" path="sportapp_plan_suggestions.db-shm" />
+    <exclude domain="database" path="sportapp_plan_suggestions.db-wal" />
+    <exclude domain="database" path="sportapp_plan_suggestions.db-journal" />
+    <exclude domain="database" path="sportapp_training_dashboard.db" />
+    <exclude domain="database" path="sportapp_training_dashboard.db-shm" />
+    <exclude domain="database" path="sportapp_training_dashboard.db-wal" />
+    <exclude domain="database" path="sportapp_training_dashboard.db-journal" />
+    <exclude domain="database" path="sportapp_route_suggestions.db" />
+    <exclude domain="database" path="sportapp_route_suggestions.db-shm" />
+    <exclude domain="database" path="sportapp_route_suggestions.db-wal" />
+    <exclude domain="database" path="sportapp_route_suggestions.db-journal" />
+    <exclude domain="database" path="sportapp_virtual_sessions.db" />
+    <exclude domain="database" path="sportapp_virtual_sessions.db-shm" />
+    <exclude domain="database" path="sportapp_virtual_sessions.db-wal" />
+    <exclude domain="database" path="sportapp_virtual_sessions.db-journal" />
+    <exclude domain="database" path="sportapp_event_registrations.db" />
+    <exclude domain="database" path="sportapp_event_registrations.db-shm" />
+    <exclude domain="database" path="sportapp_event_registrations.db-wal" />
+    <exclude domain="database" path="sportapp_event_registrations.db-journal" />
+    <exclude domain="database" path="sportapp_event_suggestions.db" />
+    <exclude domain="database" path="sportapp_event_suggestions.db-shm" />
+    <exclude domain="database" path="sportapp_event_suggestions.db-wal" />
+    <exclude domain="database" path="sportapp_event_suggestions.db-journal" />
+    <exclude domain="database" path="sportapp_support_suggestions.db" />
+    <exclude domain="database" path="sportapp_support_suggestions.db-shm" />
+    <exclude domain="database" path="sportapp_support_suggestions.db-wal" />
+    <exclude domain="database" path="sportapp_support_suggestions.db-journal" />
+    <exclude domain="database" path="sportapp_nutrition_routines.db" />
+    <exclude domain="database" path="sportapp_nutrition_routines.db-shm" />
+    <exclude domain="database" path="sportapp_nutrition_routines.db-wal" />
+    <exclude domain="database" path="sportapp_nutrition_routines.db-journal" />
+    <exclude domain="database" path="sportapp_notifications.db" />
+    <exclude domain="database" path="sportapp_notifications.db-shm" />
+    <exclude domain="database" path="sportapp_notifications.db-wal" />
+    <exclude domain="database" path="sportapp_notifications.db-journal" />
+    <exclude domain="database" path="sportapp_health_reports.db" />
+    <exclude domain="database" path="sportapp_health_reports.db-shm" />
+    <exclude domain="database" path="sportapp_health_reports.db-wal" />
+    <exclude domain="database" path="sportapp_health_reports.db-journal" />
+    <exclude domain="sharedpref" path="sportapp_active_session.xml" />
+    <exclude domain="database" path="sportapp_session_reminders.db" />
+    <exclude domain="database" path="sportapp_session_reminders.db-shm" />
+    <exclude domain="database" path="sportapp_session_reminders.db-wal" />
+    <exclude domain="database" path="sportapp_session_reminders.db-journal" />
+    <exclude domain="database" path="sportapp_food_intakes.db" />
+    <exclude domain="database" path="sportapp_food_intakes.db-shm" />
+    <exclude domain="database" path="sportapp_food_intakes.db-wal" />
+    <exclude domain="database" path="sportapp_food_intakes.db-journal" />
+    <exclude domain="database" path="sportapp_sensors.db" />
+    <exclude domain="database" path="sportapp_sensors.db-shm" />
+    <exclude domain="database" path="sportapp_sensors.db-wal" />
+    <exclude domain="database" path="sportapp_sensors.db-journal" />
 </full-backup-content>

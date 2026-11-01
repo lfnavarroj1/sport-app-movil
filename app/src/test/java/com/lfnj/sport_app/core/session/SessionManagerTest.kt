@@ -300,11 +300,11 @@ class SessionManagerTest {
     // ------------------------------------------------------------------ cierre de sesión (HU004)
 
     private class FakeRevoker(private vararg val results: RevocationResult) : SessionRevoker {
-        val revoked = mutableListOf<String>()
+        val revoked = mutableListOf<Pair<String, Long?>>()
         var onRevoke: () -> Unit = {}
-        override suspend fun revoke(refreshToken: String): RevocationResult {
+        override suspend fun revoke(refreshToken: String, expiresAtMillis: Long?): RevocationResult {
             onRevoke()
-            revoked += refreshToken
+            revoked += refreshToken to expiresAtMillis
             return results.getOrElse(revoked.size - 1) { results.last() }
         }
     }
@@ -329,11 +329,22 @@ class SessionManagerTest {
 
         assertEquals(LogoutOutcome.LoggedOut, manager.logout())
 
-        assertEquals(listOf(REFRESH_TOKEN), revoker.revoked)
+        assertEquals(listOf(REFRESH_TOKEN), revoker.revoked.map { it.first })
         assertNull(store.value)
         assertNull(manager.currentUser.value)
         assertEquals(RestoreOutcome.NoSession, manager.restore())
         assertTrue(manager.loadAccess() is AccessOutcome.SessionExpired)
+    }
+
+    @Test
+    fun `HU004 la cola recibe el vencimiento real del refresh token`() = runTest {
+        val revoker = FakeRevoker(RevocationResult.CONFIRMED)
+        val manager = managerWith(revoker).apply { loginAthlete() }
+
+        manager.logout()
+
+        // `refresh_expires_in` = 604800 s en la respuesta sintética del contrato.
+        assertEquals(now + 604_800_000L, revoker.revoked.single().second)
     }
 
     @Test
@@ -349,7 +360,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `HU004 CA2 y CA7 una sesion ya cerrada en el servidor es un cierre exitoso`() = runTest {
+    fun `HU004 CA2 una credencial ya vencida es un cierre exitoso`() = runTest {
         val manager = managerWith(FakeRevoker(RevocationResult.ALREADY_CLOSED)).apply { loginAthlete() }
 
         assertEquals(LogoutOutcome.LoggedOut, manager.logout())
@@ -357,7 +368,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `HU004 CA7 repetir el cierre no vuelve a enviar la credencial ni restaura la sesion`() = runTest {
+    fun `HU004 CA2 y CA7 repetir el cierre no vuelve a enviar la credencial ni restaura la sesion`() = runTest {
         val revoker = FakeRevoker(RevocationResult.CONFIRMED)
         val manager = managerWith(revoker).apply { loginAthlete() }
         manager.logout()
@@ -369,21 +380,30 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `HU004 CA6 sin confirmacion remota cierra localmente y no conserva el token`() = runTest {
-        val manager = managerWith(FakeRevoker(RevocationResult.NOT_CONFIRMED)).apply { loginAthlete() }
+    fun `HU004 CA6 sin confirmacion remota la revocacion queda pendiente y la sesion no se restaura`() = runTest {
+        val manager = managerWith(FakeRevoker(RevocationResult.PENDING)).apply { loginAthlete() }
         val writesBefore = store.writes
 
-        assertEquals(LogoutOutcome.LoggedOutRemoteUnconfirmed, manager.logout())
+        assertEquals(LogoutOutcome.LoggedOutRemotePending, manager.logout())
 
         assertNull(store.value)
-        assertEquals(writesBefore, store.writes)
+        assertEquals("El almacén de sesión no recibe la credencial pendiente", writesBefore, store.writes)
         assertNull(manager.currentUser.value)
         assertEquals(RestoreOutcome.NoSession, manager.restore())
     }
 
     @Test
-    fun `HU004 CA6 una falla inesperada del revocador equivale a no confirmado`() = runTest {
-        val manager = managerWith { throw java.io.IOException("sin red") }.apply { loginAthlete() }
+    fun `HU004 CA6 sin confirmacion ni cola el cierre local se informa como no confirmado`() = runTest {
+        val manager = managerWith(FakeRevoker(RevocationResult.NOT_CONFIRMED)).apply { loginAthlete() }
+
+        assertEquals(LogoutOutcome.LoggedOutRemoteUnconfirmed, manager.logout())
+        assertNull(store.value)
+        assertEquals(RestoreOutcome.NoSession, manager.restore())
+    }
+
+    @Test
+    fun `HU004 CA6 una falla inesperada de la cola equivale a no confirmado`() = runTest {
+        val manager = managerWith { _, _ -> throw java.io.IOException("sin red") }.apply { loginAthlete() }
 
         assertEquals(LogoutOutcome.LoggedOutRemoteUnconfirmed, manager.logout())
         assertNull(store.value)
@@ -396,7 +416,7 @@ class SessionManagerTest {
 
         assertEquals(LogoutOutcome.LoggedOut, managerWith(revoker).logout())
 
-        assertEquals(listOf(REFRESH_TOKEN), revoker.revoked)
+        assertEquals(listOf(REFRESH_TOKEN to null), revoker.revoked)
         assertNull(store.value)
     }
 
@@ -409,7 +429,20 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `HU004 sin operacion de cierre en el contrato no se ofrece el cierre`() = runTest {
+    fun `HU004 un nuevo inicio de sesion durante una revocacion pendiente no la reutiliza`() = runTest {
+        val revoker = FakeRevoker(RevocationResult.PENDING)
+        val manager = managerWith(revoker).apply { loginAthlete() }
+        manager.logout()
+
+        server.enqueue(ok(sessionBody(refreshToken = ROTATED_REFRESH_TOKEN)))
+        manager.login("ana@example.com", "Secreta-123")
+
+        assertEquals(ROTATED_REFRESH_TOKEN, store.value)
+        assertEquals(listOf(REFRESH_TOKEN), revoker.revoked.map { it.first })
+    }
+
+    @Test
+    fun `HU004 sin cola de revocacion no se ofrece el cierre`() = runTest {
         val manager = managerWith(null)
 
         assertEquals(false, manager.canLogout)
@@ -425,7 +458,7 @@ class SessionManagerTest {
             response.toString(),
             LoginRequestDto("ana@example.com", "Secreta-123").toString(),
             RefreshSessionRequestDto(REFRESH_TOKEN).toString(),
-            AuthSession(SessionUser("u", "Ana", "ana@example.com", ActorType.ATHLETE), ACCESS_TOKEN, 0, REFRESH_TOKEN).toString(),
+            AuthSession(SessionUser("u", "Ana", "ana@example.com", ActorType.ATHLETE), ACCESS_TOKEN, 0, REFRESH_TOKEN, 0).toString(),
         )
         texts.forEach { text ->
             listOf(ACCESS_TOKEN, REFRESH_TOKEN, "Secreta-123", "ana@example.com").forEach { secret ->

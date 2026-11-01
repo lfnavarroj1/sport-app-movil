@@ -3,6 +3,7 @@ package com.lfnj.sport_app.core.network
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import okhttp3.Headers
 import retrofit2.Response
 import java.io.IOException
 import java.io.InterruptedIOException
@@ -31,6 +32,13 @@ suspend fun <T : Any> apiCallAllowingNoContent(json: Json, block: suspend () -> 
             else -> ApiResult.InvalidResponse
         }
     }
+
+/**
+ * Igual que [apiCall], pero el éxito conserva los encabezados de la respuesta, p. ej. el `ETag`
+ * del catálogo de HU034. Un `304 Not Modified` llega como [ApiResult.HttpFailure] con estado `304`.
+ */
+suspend fun <T : Any> apiCallWithHeaders(json: Json, block: suspend () -> Response<T>): ApiResult<Pair<T, Headers>> =
+    execute(json, block) { response, body -> if (body != null) ApiResult.Success(body to response.headers()) else ApiResult.InvalidResponse }
 
 private suspend fun <T : Any, R> execute(
     json: Json,
@@ -62,5 +70,6 @@ private fun Response<*>.toHttpFailure(json: Json): ApiResult.HttpFailure {
         correlationId = error?.correlationId ?: headers()[CORRELATION_HEADER],
         retryAfterSeconds = headers()[RETRY_AFTER_HEADER]?.trim()?.toLongOrNull()?.takeIf { it >= 0 },
         issues = error?.details?.map { it.issue }.orEmpty(),
+        fieldIssues = error?.details?.map { ApiResult.FieldIssue(it.field, it.issue) }.orEmpty(),
     )
 }
