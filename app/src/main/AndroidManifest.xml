@@ -45,6 +45,31 @@
         </activity>
 
         <!--
+            HU031: retorno desde el consentimiento de Strava. El callback público de bff-mobile redirige a
+            sportapp://integrations/strava?result=LINKED|DENIED|INVALID_STATE|ERROR (ADR-042 §6); esta
+            actividad sin interfaz entrega el resultado y vuelve a la actividad única. El resultado es solo
+            una indicación: la app confirma el estado con el BFF.
+        -->
+        <activity
+            android:name=".features.integrations.system.StravaRedirectActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="integrations"
+                    android:path="/strava"
+                    android:scheme="sportapp" />
+            </intent-filter>
+        </activity>
+
+        <!--
             HU038: sesión de entrenamiento en curso (HU032) con su notificación persistente y el motor local
             de recordatorios; HU037 añade la lectura del monitor de frecuencia cardiaca BLE; reutilizable por
             HU036. specialUse: el tipo health exigiría permisos de sensores fuera del alcance. Una publicación

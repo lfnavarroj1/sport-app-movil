@@ -62,9 +62,9 @@ class AthleteHomeScreenTest {
         composeRule.onNodeWithTag("menu_training.routes.suggest").assertIsDisplayed().assertIsEnabled()
         // HU027 ya tiene destino en el móvil: la opción queda habilitada.
         composeRule.onNodeWithTag("menu_events.suggest").assertIsDisplayed().assertIsEnabled()
-        // «Próximamente»: HU031 (Strava) aún no tiene destino móvil; cambiará cuando esa HU se implemente.
+        // HU031 ya tiene destino en el móvil: la opción Strava (160) queda habilitada.
         composeRule.onNodeWithTag("athlete_menu").performScrollToNode(hasTestTag("menu_integrations.strava.connect"))
-        composeRule.onNodeWithTag("menu_integrations.strava.connect").assertIsDisplayed().assertIsNotEnabled()
+        composeRule.onNodeWithTag("menu_integrations.strava.connect").assertIsDisplayed().assertIsEnabled()
         composeRule.onNodeWithTag("athlete_menu").performScrollToNode(hasTestTag("menu_calendar.sport.view"))
         composeRule.onNodeWithTag("menu_calendar.sport.view").assertIsDisplayed()
         composeRule.onNodeWithTag("menu_training.session.record").assertDoesNotExist()

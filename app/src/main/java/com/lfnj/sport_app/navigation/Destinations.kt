@@ -70,6 +70,9 @@ object Destinations {
     /** HU037: dispositivos de medición (`/dispositivos`, opción 220 `devices.measurement.connect`). */
     const val DEVICES = "dispositivos"
 
+    /** HU031: integración con Strava (`/integraciones/strava`, opción 160 `integrations.strava.connect`). */
+    const val STRAVA = "integraciones/strava"
+
     /** HU043: «Mi alimentación» (`nutrition`), opción base del deportista: registrar consumos. */
     const val NUTRITION = "nutrition"
 

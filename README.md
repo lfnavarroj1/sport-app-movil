@@ -31,7 +31,7 @@ exporta el esquema a `app/schemas/`, base de las pruebas de migración.
 
 ```text
 app/src/main/java/com/lfnj/sport_app/
-├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041, HU029, HU030, HU038, HU037, HU043 y HU004
+├── SportApp.kt            Application: crea el AppContainer, configura WorkManager e inicia la coordinación de HU032, HU034, HU035, HU028, HU033, HU026, HU040, HU041, HU029, HU030, HU038, HU037, HU043, HU031 y HU004
 ├── MainActivity.kt        única Activity; aloja la navegación Compose y el banner global de recordatorios (HU038)
 ├── di/                    AppContainer (DI manual)
 ├── core/
@@ -50,6 +50,10 @@ app/src/main/java/com/lfnj/sport_app/
 │   │   ├── data/          API, repositorio, conectividad, limpieza al cerrar sesión y caché Room cifrada
 │   │   └── model/         detalle, inscripción confirmada, orden y antigüedad de la lista
 │   ├── home/              inicio del deportista con menú por capacidades (HU003)
+│   ├── integrations/      integración con Strava (HU031): pantalla, ViewModel y consentimiento,
+│   │   ├── data/          API, repositorio (estado cacheado y comandos solo en línea), limpieza y caché Room cifrada
+│   │   ├── model/         estados de vinculación y de corrida, error_code, resultado del enlace profundo y capacidad
+│   │   └── system/        Custom Tabs, actividad trampolín del enlace profundo y resultado pendiente
 │   ├── nutrition/intake/  «Mi alimentación» (HU043): pantalla, ViewModel y nombres del catálogo,
 │   │   ├── data/          API, repositorio y Room (catálogo y consumos cifrados)
 │   │   ├── model/         catálogo, unidades, comidas, validadores y estados de sincronización
@@ -359,6 +363,30 @@ app/src/main/java/com/lfnj/sport_app/
   (`SimulatedHeartRateSource`, aviso visible en pantalla); la evidencia con monitor o reloj físico la
   documenta el responsable.
 
+### Integración con Strava (HU031, ADR-042)
+
+- La opción `FREE` 160 «Strava» (capacidad `integrations.strava.connect`; sin ella no aparece y la guarda
+  devuelve al inicio) abre `integraciones/strava`. Consume solo `POST /v1/me/integrations/strava/authorization`,
+  `GET`/`DELETE /v1/me/integrations/strava` y `POST /v1/me/integrations/strava/syncs` de la copia 0.22.0;
+  nunca llama a Strava ni a Terceros y nunca recibe ni guarda `client_secret`, access o refresh token.
+- «Integrar con Strava» muestra primero el consentimiento (permisos `read,activity:read`, sincronización
+  manual, credenciales solo en el backend) y abre la URL oficial en Custom Tabs mediante los extras
+  públicos del protocolo, sin agregar `androidx.browser`; solo se abre una URL `https`. El callback de
+  `bff-mobile` vuelve por `sportapp://integrations/strava?result=LINKED|DENIED|INVALID_STATE|ERROR` a
+  `StravaRedirectActivity`, que entrega solo el resultado y regresa a la actividad única cerrando la
+  pestaña. El resultado es una indicación: el estado mostrado siempre lo confirma el `GET`.
+- Estado de vinculación (no vinculado, vinculando, vinculado, expirado, revocado) separado del de la
+  última corrida (sin sincronizar, en cola/sincronizando, sincronizado, fallida o limitada con su
+  `error_code`). «Sincronizar ahora» envía una `Idempotency-Key` que se repite en los reintentos sin
+  respuesta definitiva; con la corrida `QUEUED`/`RUNNING` el estado se vuelve a consultar cada 5 s, como
+  máximo 12 veces, solo con la pantalla abierta. «Desvincular» explica sus efectos (las actividades
+  importadas se conservan) y pide confirmación.
+- Sin cola offline (ADR-042 §13): sin red se informa y se ofrece reintentar. Solo se guarda el último
+  estado confirmado, cifrado (`sportapp_strava.db`, clave `sportapp.strava.v1`, excluida del respaldo,
+  sin el identificador del atleta), marcado `STALE` a las 24 h y eliminado al terminar la sesión.
+- Sin aplicación OAuth registrada en Strava ni `T-HU031-PLAT` no existe E2E real: las pruebas usan
+  MockWebServer, un navegador registrado y el enlace profundo simulado (contrato simulado, no E2E).
+
 ### Inscripción a un evento publicado (HU041, ADR-032)
 
 - No hay opción de menú: el detalle `eventos/detalle/{event_id}` se abre desde la tarjeta de un evento
@@ -544,6 +572,15 @@ encountered an unexpected problem"). No cambie ese valor; ya no hace falta `subs
   0.21.0. Room, Keystore, reinicio, esquema, respaldo, WorkManager, pantalla y recorrido se prueban en
   el dispositivo (`features/health/` y `navigation/HealthReportFlowTest`); el E2E es
   `e2e/Hu042IntegratedE2eTest`.
+- HU031: `StravaModelsTest` (enlace profundo, `STALE`, guarda), `StravaCodecTest` (sin tokens ni atleta),
+  `StravaRepositoryTest` (MockWebServer: estado `200`, autorización `201` con URL `https`, `202`, los dos
+  `409`, `422`, `DELETE` `204`, `403`, `503`/`504`, sin red, respuesta inválida y limpieza) y
+  `StravaViewModelTest` (vinculación, retorno, sincronización con clave estable, consulta acotada,
+  desvinculación y errores) en la JVM; `StravaContractTest` verifica las cuatro operaciones, esquemas,
+  enums y el enlace profundo del callback en la copia 0.22.0. En el dispositivo: Room y Keystore, reinicio,
+  esquema y respaldo (`StravaLocalStorageTest`), el filtro del enlace profundo (`StravaDeepLinkFilterTest`),
+  pantalla y `navigation/StravaFlowTest` (navegador registrado y enlace profundo simulado). Sin E2E real
+  hasta `T-HU031-PLAT` y la aplicación OAuth en Strava.
 - HU004: `RevocationQueueTest` cubre la cola con MockWebServer (204, 422, 503/504, sin red,
   vencimiento, clave estable) y `SessionContractTest`, `POST /v1/sessions/revoke`; Room, Keystore,
   la separación del almacén de sesión, el reinicio del proceso, el esquema, el respaldo y

@@ -25,6 +25,9 @@ import com.lfnj.sport_app.features.calendar.CalendarScreen
 import com.lfnj.sport_app.features.calendar.CalendarViewModel
 import com.lfnj.sport_app.features.calendar.model.CalendarAccess
 import com.lfnj.sport_app.features.calendar.model.CalendarOwner
+import com.lfnj.sport_app.features.integrations.StravaScreen
+import com.lfnj.sport_app.features.integrations.StravaViewModel
+import com.lfnj.sport_app.features.integrations.model.StravaAccess
 import com.lfnj.sport_app.features.events.EventDetailScreen
 import com.lfnj.sport_app.features.events.EventDetailViewModel
 import com.lfnj.sport_app.features.events.EventSuggestionsScreen
@@ -135,6 +138,21 @@ fun AppNavHost(
         container.notificationLaunch.consume()?.let { open ->
             container.markNotificationReadInBackground(NotificationsOwner.keyOf(user.userId), open.notificationId)
             navController.navigate(Destinations.eventDetail(open.eventId)) { launchSingleTop = true }
+        }
+    }
+    // HU031: el retorno desde Strava (enlace profundo) abre la pantalla de Strava cuando hay una sesión de
+    // deportista validada con la capacidad vigente; su ViewModel lo consume. Sin la capacidad se descarta.
+    // Mientras el plan no se haya cargado, el resultado espera.
+    val pendingStrava by container.stravaLinkLaunch.pending.collectAsStateWithLifecycle()
+    val access by sessionManager.access.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingStrava, access, currentEntry?.destination?.route) {
+        val route = currentEntry?.destination?.route ?: return@LaunchedEffect
+        val user = sessionManager.currentUser.value
+        if (pendingStrava == null || user == null || user.actorType != ActorType.ATHLETE || route in PRE_SESSION_ROUTES) return@LaunchedEffect
+        val plan = access ?: return@LaunchedEffect
+        when {
+            !StravaAccess.canUse(plan) -> container.stravaLinkLaunch.consume()
+            route != Destinations.STRAVA -> navController.navigate(Destinations.STRAVA) { launchSingleTop = true }
         }
     }
     NavHost(navController = navController, startDestination = Destinations.SESSION_START, modifier = modifier) {
@@ -938,6 +956,54 @@ fun AppNavHost(
                         onDiscard = viewModel::discardChanges,
                         onRetry = viewModel::retry,
                         onEnableSystemNotifications = { enableSystemNotifications(state.systemNotifications) },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.STRAVA) {
+            // HU031: misma guarda que athlete_home y, además, la capacidad integrations.strava.connect vigente.
+            val user = remember { sessionManager.currentUser.value }
+            val allowed = remember { StravaAccess.canUse(sessionManager.access.value) }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                !allowed -> LaunchedEffect(Unit) {
+                    navController.navigate(Destinations.ATHLETE_HOME) {
+                        popUpTo(Destinations.STRAVA) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+                else -> {
+                    val viewModel: StravaViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer { StravaViewModel(TrainingOwner.keyOf(user.userId), container.stravaRepository, container.stravaLinkLaunch) }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    val context = LocalContext.current
+                    // Al volver de la pestaña de Strava sin enlace profundo, la vinculación no se completó.
+                    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResumed() }
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    StravaScreen(
+                        state = state,
+                        onRequestLink = viewModel::requestLink,
+                        onOpenAuthorization = { url -> container.authorizationBrowser.open(context, url) },
+                        onAuthorizationOpened = viewModel::onAuthorizationOpened,
+                        onSync = viewModel::sync,
+                        onUnlink = viewModel::unlink,
+                        onRefresh = viewModel::refresh,
+                        onRetry = viewModel::retry,
+                        onDismissNotice = viewModel::dismissNotice,
                         onBack = { navController.popBackStack() },
                     )
                 }
