@@ -21,14 +21,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
-/** HU043 en el cliente móvil frente a la copia exacta de `bff-mobile` 0.21.0 (ADR-037). */
+/** HU043 en el cliente móvil frente a la copia exacta de `bff-mobile` 0.22.0 (ADR-037; HU031 solo agregó operaciones de Strava). */
 class FoodIntakeContractTest {
     private val contract = OpenApiContract.load()
     private val json = BffMobileClient.json
 
     @Test
     fun `las dos operaciones de ADR-037 existen con If-None-Match e Idempotency-Key`() {
-        assertEquals("0.21.0", contract.version)
+        assertEquals("0.22.0", contract.version)
         contract.assertApiMatches(FoodIntakeApi::class.java)
         assertTrue("if-none-match" in contract.parameters("get", "/v1/food-catalog", "header"))
         assertTrue("idempotency-key" in contract.parameters("post", "/v1/me/food-intakes", "header"))

@@ -29,7 +29,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.http.Header
 
-/** HU036 en el cliente móvil frente a la copia exacta de `bff-mobile` 0.21.0 (ADR-044). */
+/** HU036 en el cliente móvil frente a la copia exacta de `bff-mobile` 0.22.0 (ADR-044; HU031 solo agregó operaciones de Strava). */
 class MonitoringContractTest {
     private val contract = OpenApiContract.load()
     private val settings = "/v1/me/monitoring-settings"
@@ -55,8 +55,8 @@ class MonitoringContractTest {
             .mapValues { (_, response) -> response.jsonObject.getValue("description").jsonPrimitive.content }
 
     @Test
-    fun `el cliente consume la version 0_21_0`() {
-        assertEquals("0.21.0", contract.version)
+    fun `el cliente consume la version 0_22_0`() {
+        assertEquals("0.22.0", contract.version)
     }
 
     @Test
