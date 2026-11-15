@@ -20,6 +20,9 @@ object Destinations {
     /** HU034: indicadores FTP y VO₂max estimados (`/entrenamientos/metricas`). */
     const val TRAINING_METRICS = "entrenamientos/metricas"
 
+    /** HU036: monitoreo de la práctica en tiempo real (`/entrenamientos/monitoreo`, opción 210 `training.realtime.monitor`). */
+    const val REALTIME_MONITORING = "entrenamientos/monitoreo"
+
     /** HU035: calendario deportivo del deportista (`/calendario`). */
     const val CALENDAR = "calendario"
 

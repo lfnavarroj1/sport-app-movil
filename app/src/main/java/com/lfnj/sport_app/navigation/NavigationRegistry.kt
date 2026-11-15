@@ -16,6 +16,7 @@ import com.lfnj.sport_app.features.services.model.SERVICES_SUPPORT_SUGGEST_CAPAB
 import com.lfnj.sport_app.features.services.model.VIRTUAL_SESSIONS_CAPABILITY
 import com.lfnj.sport_app.features.training.dashboard.model.TRAINING_DASHBOARD_CAPABILITY
 import com.lfnj.sport_app.features.training.metrics.model.TRAINING_METRICS_CAPABILITY
+import com.lfnj.sport_app.features.training.monitoring.model.MONITORING_CAPABILITY
 import com.lfnj.sport_app.features.training.session.model.TRAINING_SESSION_CAPABILITY
 
 enum class MenuGroup(@param:StringRes val label: Int?) {
@@ -91,7 +92,7 @@ object NavigationRegistry {
         capability(TRAINING_DASHBOARD_CAPABILITY, R.string.menu_athlete_dashboard, MenuGroup.TRAINING, 180, "HU033", Destinations.TRAINING_DASHBOARD),
         capability(TRAINING_METRICS_CAPABILITY, R.string.menu_athlete_metrics, MenuGroup.TRAINING, 190, "HU034", Destinations.TRAINING_METRICS),
         capability(CALENDAR_CAPABILITY, R.string.menu_athlete_calendar, MenuGroup.CALENDAR, 200, "HU035", Destinations.CALENDAR),
-        capability("training.realtime.monitor", R.string.menu_athlete_realtime, MenuGroup.TRAINING, 210, "HU036"),
+        capability(MONITORING_CAPABILITY, R.string.menu_athlete_realtime, MenuGroup.TRAINING, 210, "HU036", Destinations.REALTIME_MONITORING),
         capability(DEVICES_CAPABILITY, R.string.menu_athlete_devices, MenuGroup.DEVICES, 220, "HU037", Destinations.DEVICES),
         capability(SESSION_REMINDERS_CAPABILITY, R.string.menu_athlete_reminders, MenuGroup.NUTRITION, 230, "HU038", Destinations.SESSION_REMINDERS),
         capability(VIRTUAL_SESSIONS_CAPABILITY, R.string.menu_athlete_virtual_sessions, MenuGroup.SERVICES, 250, "HU040", Destinations.VIRTUAL_SESSIONS),

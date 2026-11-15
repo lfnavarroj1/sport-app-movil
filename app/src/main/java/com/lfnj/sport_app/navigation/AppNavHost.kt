@@ -74,6 +74,9 @@ import com.lfnj.sport_app.features.recommendations.RouteSuggestionsViewModel
 import com.lfnj.sport_app.features.recommendations.model.RouteSuggestionsAccess
 import com.lfnj.sport_app.features.recommendations.model.RouteSuggestionsOwner
 import com.lfnj.sport_app.features.sensors.DevicesScreen
+import com.lfnj.sport_app.features.training.monitoring.MonitoringScreen
+import com.lfnj.sport_app.features.training.monitoring.MonitoringViewModel
+import com.lfnj.sport_app.features.training.monitoring.model.MonitoringAccess
 import com.lfnj.sport_app.features.sensors.DevicesViewModel
 import com.lfnj.sport_app.features.sensors.model.DevicesAccess
 import com.lfnj.sport_app.features.sensors.openBluetoothSettings
@@ -989,6 +992,64 @@ fun AppNavHost(
                         onConfirmRevoke = viewModel::confirmRevoke,
                         onCancelRevoke = viewModel::cancelRevoke,
                         onRetry = viewModel::refresh,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+        }
+
+        composable(Destinations.REALTIME_MONITORING) {
+            // HU036: misma guarda que athlete_home. Sin training.realtime.monitor la pantalla explica el
+            // plan requerido (CA5) en lugar de redirigir; el BFF responde 403 capability_required igualmente.
+            val user = remember { sessionManager.currentUser.value }
+            val allowed = remember { MonitoringAccess.canUse(sessionManager.access.value) }
+            when {
+                user == null -> LaunchedEffect(Unit) { navController.replaceAll(loginRoute()) }
+                user.actorType != ActorType.ATHLETE -> LaunchedEffect(Unit) {
+                    sessionManager.clearLocalSession()
+                    navController.replaceAll(Destinations.UNAUTHORIZED)
+                }
+                else -> {
+                    val viewModel: MonitoringViewModel = viewModel(
+                        factory = viewModelFactory {
+                            initializer {
+                                MonitoringViewModel(
+                                    owner = TrainingOwner.keyOf(user.userId),
+                                    canUse = allowed,
+                                    active = container.activeSessionTracker.active,
+                                    connectable = container.devicesRepository,
+                                    observeMonitor = container.monitorLink::observe,
+                                    simulatedSource = container.monitorLink.simulated,
+                                    ingestion = container.measurementUploader.status,
+                                    risk = container.riskMonitor.state,
+                                    connectivity = container.connectivityMonitor,
+                                    gateway = container.monitoringRepository,
+                                    stopper = container.practiceStopper,
+                                    notifier = container.monitoringNotifier,
+                                )
+                            }
+                        }
+                    )
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshNotifications() }
+                    val enableNotifications = rememberSystemNotificationsEnabler(onResult = viewModel::refreshNotifications)
+                    LaunchedEffect(state.sessionExpired) {
+                        if (state.sessionExpired) {
+                            viewModel.onSessionExpiredHandled()
+                            navController.replaceAll(loginRoute(LoginNotice.SESSION_EXPIRED))
+                        }
+                    }
+                    MonitoringScreen(
+                        state = state,
+                        onOpenSession = { navController.navigate(Destinations.TRAINING_SESSION) { launchSingleTop = true } },
+                        onOpenDevices = { navController.navigate(Destinations.DEVICES) { launchSingleTop = true } },
+                        onDraftChange = viewModel::onDraftChange,
+                        onSaveThreshold = viewModel::saveThreshold,
+                        onRetrySettings = viewModel::retrySettings,
+                        onAskStop = viewModel::askStop,
+                        onConfirmStop = viewModel::confirmStop,
+                        onCancelStop = viewModel::cancelStop,
+                        onEnableNotifications = { enableNotifications(state.notifications) },
                         onBack = { navController.popBackStack() },
                     )
                 }

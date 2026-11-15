@@ -7,6 +7,7 @@ import com.lfnj.sport_app.core.session.SessionManager
 import com.lfnj.sport_app.features.sensors.data.ConnectableDevice
 import com.lfnj.sport_app.features.sensors.data.ConnectableDevices
 import com.lfnj.sport_app.features.sensors.data.DevicesApi
+import com.lfnj.sport_app.features.sensors.data.EvaluationDto
 import com.lfnj.sport_app.features.sensors.data.MeasurementBatchRequestDto
 import com.lfnj.sport_app.features.sensors.data.MeasurementBatchResponseDto
 import com.lfnj.sport_app.features.sensors.data.MeasurementSampleDto
@@ -43,6 +44,18 @@ import java.time.temporal.ChronoUnit
 enum class FlushResult { NOTHING_PENDING, CONFIRMED, RETRY_NEXT_CYCLE, STOP }
 
 /**
+ * Destino de la evaluación de riesgo que devuelve cada lote confirmado (HU036, ADR-044 §8). HU037 no
+ * la interpreta: la entrega tal cual con el instante de recepción. Por defecto se descarta.
+ */
+fun interface EvaluationSink {
+    suspend fun onEvaluation(session: ActiveSession, evaluation: EvaluationDto, receivedAt: Instant)
+
+    companion object {
+        val NONE = EvaluationSink { _, _, _ -> }
+    }
+}
+
+/**
  * Envía las muestras pendientes de una sesión (CA3–CA6, ADR-044 §5–§6, §12). Cada ciclo toma las
  * ≤ 60 más antiguas y las envía en un lote; solo una respuesta `200` las resuelve (aceptadas,
  * duplicadas o rechazadas por muestra). Sin confirmación, el mismo lote se reenvía en el siguiente
@@ -56,6 +69,7 @@ class MeasurementUploader(
     private val sessionManager: SessionManager,
     private val json: Json,
     private val clock: Clock = Clock.systemUTC(),
+    private val evaluations: EvaluationSink = EvaluationSink.NONE,
 ) {
     private val _status = MutableStateFlow(IngestionStatus())
 
@@ -136,8 +150,16 @@ class MeasurementUploader(
         response: MeasurementBatchResponseDto,
     ): FlushResult {
         samples.remove(session.sessionId, device.deviceId, sent)
-        val report = BatchReport(clock.instant(), response.received, response.accepted, response.duplicates, response.rejected.size)
+        val receivedAt = clock.instant()
+        val report = BatchReport(receivedAt, response.received, response.accepted, response.duplicates, response.rejected.size)
         _status.value = IngestionStatus(IngestionState.SENDING, samples.count(session.owner, session.sessionId), report)
+        try {
+            evaluations.onEvaluation(session, response.evaluation, receivedAt)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Una falla al presentar la evaluación no detiene la ingestión; nunca se registran sus datos.
+        }
         return FlushResult.CONFIRMED
     }
 

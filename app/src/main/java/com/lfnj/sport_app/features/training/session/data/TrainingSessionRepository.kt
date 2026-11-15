@@ -12,6 +12,7 @@ import com.lfnj.sport_app.features.training.session.data.local.TrainingSessionDa
 import com.lfnj.sport_app.features.training.session.data.local.TrainingSessionEntity
 import com.lfnj.sport_app.features.training.session.data.local.TransactionRunner
 import com.lfnj.sport_app.features.training.session.model.LocalTrainingSession
+import com.lfnj.sport_app.features.training.session.model.SessionEndReason
 import com.lfnj.sport_app.features.training.session.model.SyncState
 import com.lfnj.sport_app.features.training.session.model.TrainingSessionDetails
 import com.lfnj.sport_app.features.training.session.model.TrainingSport
@@ -128,7 +129,13 @@ class TrainingSessionRepository(
         return result
     }
 
-    override suspend fun finish(owner: String, sessionId: String): FinishResult {
+    override suspend fun finish(owner: String, sessionId: String): FinishResult = finish(owner, sessionId, reason = null)
+
+    /**
+     * Finaliza con un motivo opcional (HU036: `RISK_STOP`). Usa la misma cola y transición única de
+     * HU032: una sesión ya finalizada devuelve [FinishResult.NOT_OPEN] y no genera otro comando.
+     */
+    suspend fun finish(owner: String, sessionId: String, reason: SessionEndReason?): FinishResult {
         val endedAt = clock.now().truncatedTo(ChronoUnit.SECONDS)
         val result = storage(FinishResult.STORAGE_FAILED) {
             transactions.run {
@@ -141,7 +148,7 @@ class TrainingSessionRepository(
                     val state = if (local.syncState == SyncState.SYNCED) SyncState.LOCAL else local.syncState
                     val details = checkNotNull(local.details).copy(endedAt = endedAt)
                     dao.updateSession(entity.copy(syncState = state.name, payload = codec.encodeDetails(details)))
-                    val body = FinishTrainingSessionRequestDto(endedAt.toWireInstant())
+                    val body = FinishTrainingSessionRequestDto(endedAt.toWireInstant(), reason?.wire)
                     dao.insertCommand(command(owner, sessionId, CommandType.FINISH, codec.encodeFinish(body)))
                     FinishResult.FINISHED
                 }

@@ -77,10 +77,11 @@ object SensorsFixtures {
         accepted: Int,
         duplicates: Int = 0,
         rejected: List<Pair<Int, String>> = emptyList(),
+        evaluation: String = """{"status":"OK","alerts":[]}""",
     ): String {
         val rejectedJson = rejected.joinToString(",", "[", "]") { (index, issue) -> """{"index":$index,"issue":"$issue"}""" }
         return """{"session_id":"$sessionId","device_id":"$deviceId","received":$received,"accepted":$accepted,""" +
-            """"duplicates":$duplicates,"rejected":$rejectedJson,"evaluation":{"status":"OK","alerts":[]}}"""
+            """"duplicates":$duplicates,"rejected":$rejectedJson,"evaluation":$evaluation}"""
     }
 
     fun linked(

@@ -6,6 +6,7 @@ import com.lfnj.sport_app.core.session.SessionManager
 import com.lfnj.sport_app.features.sensors.data.ConnectableDevice
 import com.lfnj.sport_app.features.sensors.data.DevicesApi
 import com.lfnj.sport_app.features.sensors.data.DevicesRepository
+import com.lfnj.sport_app.features.sensors.data.EvaluationDto
 import com.lfnj.sport_app.features.sensors.data.SensorSamples
 import com.lfnj.sport_app.features.sensors.data.local.SensorDeviceEntity
 import com.lfnj.sport_app.features.sensors.data.local.SensorsCodec
@@ -17,6 +18,7 @@ import com.lfnj.sport_app.features.training.session.foreground.ActiveSession
 import com.lfnj.sport_app.testing.FakeCipher
 import com.lfnj.sport_app.testing.FakeTokenStore
 import com.lfnj.sport_app.testing.InMemorySensorsDao
+import com.lfnj.sport_app.testing.MonitoringFixtures
 import com.lfnj.sport_app.testing.SensorsFixtures
 import com.lfnj.sport_app.testing.SessionFixtures
 import kotlinx.coroutines.flow.first
@@ -317,5 +319,58 @@ class MeasurementUploaderTest {
 
         assertEquals(0, pending())
         assertEquals(IngestionStatus(), uploader.status.value)
+    }
+
+    // ----------------------------------------------------------------- HU036: evaluación del lote
+
+    @Test
+    fun `HU036 la evaluacion del lote confirmado se entrega con la sesion y el instante de recepcion`() = runTest {
+        val received = mutableListOf<Triple<ActiveSession, EvaluationDto, Instant>>()
+        val withSink = MeasurementUploader(samples, devices, api, sessionManager, BffMobileClient.json, Clock.fixed(now, ZoneOffset.UTC)) { s, e, at ->
+            received += Triple(s, e, at)
+        }
+        login()
+        record(5)
+        respond(
+            SensorsFixtures.batchBody(
+                received = 5,
+                accepted = 5,
+                evaluation = MonitoringFixtures.evaluationJson("RISK", MonitoringFixtures.alertJson(1)),
+            )
+        )
+
+        assertEquals(FlushResult.CONFIRMED, withSink.flush(session, device))
+
+        val (forSession, evaluation, at) = received.single()
+        assertEquals(session, forSession)
+        assertEquals(now, at)
+        assertEquals("RISK", evaluation.status)
+        assertEquals(MonitoringFixtures.alertDto(1), evaluation.alerts.single())
+    }
+
+    @Test
+    fun `HU036 sin confirmacion no hay evaluacion remota que entregar`() = runTest {
+        var calls = 0
+        val withSink = MeasurementUploader(samples, devices, api, sessionManager, BffMobileClient.json, Clock.fixed(now, ZoneOffset.UTC)) { _, _, _ -> calls++ }
+        login()
+        record(3)
+        disconnect()
+
+        assertEquals(FlushResult.RETRY_NEXT_CYCLE, withSink.flush(session, device))
+        assertEquals(0, calls)
+    }
+
+    @Test
+    fun `HU036 una falla al presentar la evaluacion no interrumpe la ingestion`() = runTest {
+        val withSink = MeasurementUploader(samples, devices, api, sessionManager, BffMobileClient.json, Clock.fixed(now, ZoneOffset.UTC)) { _, _, _ ->
+            throw IllegalStateException("presentación no disponible")
+        }
+        login()
+        record(3)
+        respond(SensorsFixtures.batchBody(received = 3, accepted = 3))
+
+        assertEquals(FlushResult.CONFIRMED, withSink.flush(session, device))
+        assertEquals(0, pending())
+        assertEquals(IngestionState.SENDING, withSink.status.value.state)
     }
 }
