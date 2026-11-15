@@ -1,6 +1,8 @@
 package com.lfnj.sport_app.features.training.session.sync
 
+import com.lfnj.sport_app.features.training.session.data.FinishResult
 import com.lfnj.sport_app.features.training.session.data.StartResult
+import com.lfnj.sport_app.features.training.session.model.SessionEndReason
 import com.lfnj.sport_app.features.training.session.data.local.TrainingCommandEntity
 import com.lfnj.sport_app.features.training.session.model.SyncFailure
 import com.lfnj.sport_app.features.training.session.model.SyncState
@@ -73,6 +75,28 @@ class TrainingSyncEngineTest {
         val synced = h.session(id)
         assertEquals(SyncState.SYNCED, synced.syncState)
         assertEquals(2_700L, synced.details?.officialDurationSeconds)
+        assertTrue(h.dao.commands.isEmpty())
+    }
+
+    @Test
+    fun `HU036 CA4 detener la practica envia el fin con reason RISK_STOP una sola vez`() = runTest {
+        h.login()
+        val id = startLocally()
+        h.clock.advanceSeconds(600)
+        assertEquals(FinishResult.FINISHED, h.repository.finish(h.owner, id, SessionEndReason.RISK_STOP))
+        // Un segundo toque no genera otro comando: la transición es única.
+        assertEquals(FinishResult.NOT_OPEN, h.repository.finish(h.owner, id, SessionEndReason.RISK_STOP))
+        assertEquals(listOf("START", "FINISH"), h.dao.commands.map { it.type })
+
+        h.server.enqueue(ok(sessionBody(id), status = 201))
+        h.server.enqueue(ok(sessionBody(id, status = "FINISHED", endedAt = "2026-10-12T12:40:00Z", durationSeconds = 600)))
+        assertEquals(SyncRun.COMPLETED, h.engine.run(h.owner))
+
+        h.takeRequest()
+        val finish = h.takeRequest()
+        assertEquals("/v1/training-sessions/$id/finish", finish.path)
+        assertEquals("""{"ended_at":"2026-10-12T12:40:00Z","reason":"RISK_STOP"}""", finish.body.readUtf8())
+        assertEquals(SyncState.SYNCED, h.session(id).syncState)
         assertTrue(h.dao.commands.isEmpty())
     }
 

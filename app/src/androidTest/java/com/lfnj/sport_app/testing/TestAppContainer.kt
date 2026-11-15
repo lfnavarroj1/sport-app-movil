@@ -44,6 +44,8 @@ import com.lfnj.sport_app.features.sensors.data.DevicesApi
 import com.lfnj.sport_app.features.sensors.data.SensorSamples
 import com.lfnj.sport_app.features.sensors.data.local.SensorsCodec
 import com.lfnj.sport_app.features.sensors.data.local.SensorsDatabase
+import com.lfnj.sport_app.features.training.monitoring.RiskAlertNotifier
+import com.lfnj.sport_app.features.training.monitoring.model.RiskAlert
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.security.KeyStore
 
@@ -116,6 +118,17 @@ class RecordingReminderNotifier(var status: SystemNotificationsStatus = SystemNo
     }
 }
 
+/** HU036: alertas de riesgo registradas en lugar de publicarlas en el teléfono. */
+class RecordingRiskAlertNotifier(@Volatile var status: SystemNotificationsStatus = SystemNotificationsStatus.ENABLED) : RiskAlertNotifier {
+    val posted = java.util.Collections.synchronizedList(mutableListOf<RiskAlert>())
+    override fun status(): SystemNotificationsStatus = status
+    override fun notify(alert: RiskAlert): Boolean {
+        if (status != SystemNotificationsStatus.ENABLED) return false
+        posted += alert
+        return true
+    }
+}
+
 /** HU038: puntero de la sesión activa en memoria, para no tocar las preferencias de la aplicación instalada. */
 class InMemoryActiveSessionPointer : ActiveSessionPointer {
     @Volatile var value: Pair<String, String>? = null
@@ -129,7 +142,7 @@ class InMemoryActiveSessionPointer : ActiveSessionPointer {
 }
 
 /**
- * Contenedor real con bases de HU026, HU028, HU029, HU038, HU039, HU040, HU042, HU043, HU032, HU033, HU034, HU035, HU041, HU037 (con fuente BLE simulada marcada) y la cola de revocación de HU004 en memoria, claves de
+ * Contenedor real con bases de HU026, HU028, HU029, HU038, HU039, HU040, HU042, HU043, HU032, HU033, HU034, HU035, HU041, HU037 (con fuente BLE simulada marcada), HU036 (alertas registradas) y la cola de revocación de HU004 en memoria, claves de
  * Keystore de prueba y sincronización controlada por la prueba (sin WorkManager), para no tocar los
  * datos de la aplicación instalada.
  */
@@ -166,7 +179,7 @@ class TestAppContainer(
     override val sessionRevoker: SessionRevoker? get() = revoker ?: revocationQueue
     override val trainingDatabase: TrainingDatabase get() = database
     override val trainingSyncScheduler: TrainingSyncScheduler get() = scheduler
-    override val trainingCipher: TokenCipher = KeystoreTokenCipher(TEST_KEY_ALIAS)
+    public override val trainingCipher: TokenCipher = KeystoreTokenCipher(TEST_KEY_ALIAS)
 
     val metrics: TrainingMetricsDatabase = Room.inMemoryDatabaseBuilder(context, TrainingMetricsDatabase::class.java).build()
     val metricsScheduler = RecordingScheduler()
@@ -261,6 +274,10 @@ class TestAppContainer(
 
     /** Muestras cifradas de HU037 sobre la misma base y clave que usa el contenedor. */
     val sensorSamplesForTest: SensorSamples by lazy { SensorSamples(sensors.sensorsDao(), SensorsCodec(sensorsCipher, BffMobileClient.json)) }
+
+    // HU036: alertas de riesgo registradas en memoria (sin publicar notificaciones en el teléfono).
+    val recordingRiskAlertNotifier = RecordingRiskAlertNotifier()
+    override val riskAlertNotifier: RiskAlertNotifier get() = recordingRiskAlertNotifier
 
     /** Cliente `bff-mobile` de HU037 para que el E2E reenvíe un lote ya enviado (idempotencia natural). */
     val devicesApiForTest: DevicesApi? by lazy { bffApi(DevicesApi::class.java) }
