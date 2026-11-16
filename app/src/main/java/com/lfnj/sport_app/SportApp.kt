@@ -56,6 +56,8 @@ class SportApp : Application(), Configuration.Provider {
         container.sensorsJanitor.start(applicationScope)
         // HU043: cola cifrada de consumos; se detiene al cerrar sesión y se reanuda para el mismo deportista.
         container.foodIntakeCoordinator.start(applicationScope)
+        // HU031: estado cifrado de la vinculación con Strava, eliminado al terminar la sesión.
+        container.stravaCacheJanitor.start(applicationScope)
         registerActivityLifecycleCallbacks(ForegroundRetry { container.activeSessionTracker.onAppForeground() })
     }
 

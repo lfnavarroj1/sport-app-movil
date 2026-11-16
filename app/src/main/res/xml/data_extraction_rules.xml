@@ -8,7 +8,8 @@
     (HU026, ADR-041 §5), la de sesiones virtuales (HU040, ADR-046 §8), la de acompañamiento y
     logística sugeridos (HU029, ADR-041 §5), la bandeja de notificaciones (HU039, ADR-045), los
     recordatorios durante la sesión con el puntero de la sesión activa (HU038, ADR-045) y el catálogo
-    de alimentos con los consumos (HU043, ADR-037) se excluyen de ambas.
+    de alimentos con los consumos (HU043, ADR-037) y el estado de vinculación con Strava (HU031, ADR-042 §13)
+    se excluyen de ambas.
 -->
 <data-extraction-rules>
     <cloud-backup>
@@ -82,6 +83,10 @@
         <exclude domain="database" path="sportapp_sensors.db-shm" />
         <exclude domain="database" path="sportapp_sensors.db-wal" />
         <exclude domain="database" path="sportapp_sensors.db-journal" />
+        <exclude domain="database" path="sportapp_strava.db" />
+        <exclude domain="database" path="sportapp_strava.db-shm" />
+        <exclude domain="database" path="sportapp_strava.db-wal" />
+        <exclude domain="database" path="sportapp_strava.db-journal" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="sportapp_secure_session.xml" />
@@ -154,5 +159,9 @@
         <exclude domain="database" path="sportapp_sensors.db-shm" />
         <exclude domain="database" path="sportapp_sensors.db-wal" />
         <exclude domain="database" path="sportapp_sensors.db-journal" />
+        <exclude domain="database" path="sportapp_strava.db" />
+        <exclude domain="database" path="sportapp_strava.db-shm" />
+        <exclude domain="database" path="sportapp_strava.db-wal" />
+        <exclude domain="database" path="sportapp_strava.db-journal" />
     </device-transfer>
 </data-extraction-rules>

@@ -53,6 +53,14 @@ import com.lfnj.sport_app.features.services.data.local.SupportSuggestionsCodec
 import com.lfnj.sport_app.features.services.data.local.SupportSuggestionsDatabase
 import com.lfnj.sport_app.features.services.data.local.VirtualSessionsDatabase
 import com.lfnj.sport_app.features.status.HttpStatusRepository
+import com.lfnj.sport_app.features.integrations.data.StravaApi
+import com.lfnj.sport_app.features.integrations.data.StravaCacheJanitor
+import com.lfnj.sport_app.features.integrations.data.StravaRepository
+import com.lfnj.sport_app.features.integrations.data.local.StravaCodec
+import com.lfnj.sport_app.features.integrations.data.local.StravaDatabase
+import com.lfnj.sport_app.features.integrations.system.AuthorizationBrowser
+import com.lfnj.sport_app.features.integrations.system.CustomTabsAuthorizationBrowser
+import com.lfnj.sport_app.features.integrations.system.StravaLinkLaunch
 import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardApi
 import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardCacheJanitor
 import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardRepository
@@ -381,6 +389,31 @@ open class AppContainer(
     val trainingDashboardCacheJanitor: TrainingDashboardCacheJanitor by lazy {
         TrainingDashboardCacheJanitor(sessionManager.currentUser, trainingDashboardRepository)
     }
+
+    // ------------------------------------------------------------------ HU031 (ADR-042)
+
+    protected open val stravaDatabase: StravaDatabase by lazy { StravaDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de la caché del estado de Strava, distinta de la de la sesión y de las demás cachés. */
+    protected open val stravaCipher: TokenCipher by lazy { KeystoreTokenCipher(StravaCodec.KEY_ALIAS) }
+
+    open val stravaRepository: StravaRepository by lazy {
+        StravaRepository(
+            dao = stravaDatabase.stravaCacheDao(),
+            codec = StravaCodec(stravaCipher, BffMobileClient.json),
+            api = bffApi(StravaApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    val stravaCacheJanitor: StravaCacheJanitor by lazy { StravaCacheJanitor(sessionManager.currentUser, stravaRepository) }
+
+    /** Retorno pendiente desde el consentimiento de Strava (enlace profundo). */
+    val stravaLinkLaunch: StravaLinkLaunch by lazy { StravaLinkLaunch() }
+
+    /** Abre el consentimiento oficial de Strava en Custom Tabs; las pruebas lo sustituyen. */
+    open val authorizationBrowser: AuthorizationBrowser get() = CustomTabsAuthorizationBrowser
 
     // ------------------------------------------------------------------ HU040 (ADR-046)
 
