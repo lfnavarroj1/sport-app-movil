@@ -9,7 +9,7 @@ import java.net.URLDecoder
 import java.time.Duration
 import java.time.Instant
 
-/** Capacidad del plan FREE que habilita «Integrar con Strava» (`/integraciones/strava`, opción 160, ADR-042 §13). */
+/** Capacidad del plan FREE que habilita «Conectar con Strava» (`/integraciones/strava`, opción 160, ADR-042 §13). */
 const val STRAVA_CAPABILITY = "integrations.strava.connect"
 
 /** Guarda visual de la ruta; la autorización la repiten el BFF y Terceros (ADR-042 §14). */

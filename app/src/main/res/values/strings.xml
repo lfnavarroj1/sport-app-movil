@@ -1231,7 +1231,7 @@
     <string name="strava_error_invalid_response">Strava devolvió datos incompletos; algunas actividades no se importaron</string>
     <string name="strava_error_invalid_activity">algunas actividades no eran válidas y no se importaron</string>
     <string name="strava_error_integration_revoked">la vinculación fue revocada</string>
-    <string name="strava_action_link">Integrar con Strava</string>
+    <string name="strava_action_link">Conectar con Strava</string>
     <string name="strava_action_relink">Volver a vincular</string>
     <string name="strava_action_sync">Sincronizar ahora</string>
     <string name="strava_action_unlink">Desvincular</string>
