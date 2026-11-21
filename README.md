@@ -369,7 +369,7 @@ app/src/main/java/com/lfnj/sport_app/
   devuelve al inicio) abre `integraciones/strava`. Consume solo `POST /v1/me/integrations/strava/authorization`,
   `GET`/`DELETE /v1/me/integrations/strava` y `POST /v1/me/integrations/strava/syncs` de la copia 0.22.0;
   nunca llama a Strava ni a Terceros y nunca recibe ni guarda `client_secret`, access o refresh token.
-- «Integrar con Strava» muestra primero el consentimiento (permisos `read,activity:read`, sincronización
+- «Conectar con Strava» muestra primero el consentimiento (permisos `read,activity:read`, sincronización
   manual, credenciales solo en el backend) y abre la URL oficial en Custom Tabs mediante los extras
   públicos del protocolo, sin agregar `androidx.browser`; solo se abre una URL `https`. El callback de
   `bff-mobile` vuelve por `sportapp://integrations/strava?result=LINKED|DENIED|INVALID_STATE|ERROR` a
