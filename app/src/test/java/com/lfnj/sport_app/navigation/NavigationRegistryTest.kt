@@ -82,7 +82,7 @@ class NavigationRegistryTest {
         val menu = NavigationRegistry.athleteMenu(athlete(PREMIUM_CAPABILITIES))
 
         assertEquals(
-            listOf(Destinations.ATHLETE_HOME, Destinations.HEALTH, Destinations.NUTRITION, Destinations.NOTIFICATIONS, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.SUPPORT_SUGGESTIONS, Destinations.NUTRITION_ROUTINES, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.DEVICES, Destinations.SESSION_REMINDERS, Destinations.VIRTUAL_SESSIONS),
+            listOf(Destinations.ATHLETE_HOME, Destinations.HEALTH, Destinations.NUTRITION, Destinations.NOTIFICATIONS, Destinations.ROUTE_SUGGESTIONS, Destinations.EVENT_SUGGESTIONS, Destinations.PLAN_SUGGESTIONS, Destinations.SUPPORT_SUGGESTIONS, Destinations.NUTRITION_ROUTINES, Destinations.STRAVA, Destinations.TRAINING_SESSION, Destinations.TRAINING_DASHBOARD, Destinations.TRAINING_METRICS, Destinations.CALENDAR, Destinations.REALTIME_MONITORING, Destinations.DEVICES, Destinations.SESSION_REMINDERS, Destinations.VIRTUAL_SESSIONS),
             menu.mapNotNull { it.route },
         )
     }
@@ -165,6 +165,29 @@ class NavigationRegistryTest {
         assertTrue(
             NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES, SubscriptionStatus.entries.first { it != SubscriptionStatus.ACTIVE }))
                 .none { it.hu == "HU033" }
+        )
+    }
+
+    // ------------------------------------------------------------- HU036
+
+    @Test
+    fun `HU036 Monitoreo en tiempo real queda habilitado con la capacidad (opcion 210)`() {
+        val entry = NavigationRegistry.athleteMenu(athlete(listOf("training.realtime.monitor"))).single { it.hu == "HU036" }
+
+        assertEquals(Destinations.REALTIME_MONITORING, entry.route)
+        assertEquals("entrenamientos/monitoreo", entry.route)
+        assertEquals("training.realtime.monitor", entry.capability)
+        assertEquals(MenuGroup.TRAINING, entry.group)
+        assertEquals(210, entry.order)
+        assertTrue(entry.enabled)
+    }
+
+    @Test
+    fun `HU036 sin capacidad o sin suscripcion activa no aparece (CA5)`() {
+        assertTrue(NavigationRegistry.athleteMenu(athlete(FREE_CAPABILITIES)).none { it.hu == "HU036" })
+        assertTrue(
+            NavigationRegistry.athleteMenu(athlete(listOf("training.realtime.monitor"), SubscriptionStatus.entries.first { it != SubscriptionStatus.ACTIVE }))
+                .none { it.hu == "HU036" }
         )
     }
 

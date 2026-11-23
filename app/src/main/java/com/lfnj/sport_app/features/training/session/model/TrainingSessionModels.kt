@@ -8,6 +8,12 @@ import java.time.Instant
 /** Capacidad del plan que exige iniciar una sesión (HU032); finalizar la propia no la exige. */
 const val TRAINING_SESSION_CAPABILITY = "training.session.record"
 
+/** Motivo opcional de la finalización (`SessionEndReason`, HU036 y ADR-044 §10). */
+enum class SessionEndReason(val wire: String) {
+    /** El deportista detuvo la práctica desde el monitoreo en tiempo real. */
+    RISK_STOP("RISK_STOP"),
+}
+
 /** Catálogo de deportes de HU010 que acepta `sport` al iniciar una sesión (ADR-029 §2). */
 enum class TrainingSport(val wire: String, @param:StringRes val label: Int) {
     RUNNING("running", R.string.sport_running),

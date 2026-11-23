@@ -7,6 +7,7 @@ import com.lfnj.sport_app.core.session.ActorType
 import com.lfnj.sport_app.core.session.SubscriptionStatus
 import com.lfnj.sport_app.features.calendar.model.CALENDAR_CAPABILITY
 import com.lfnj.sport_app.features.events.model.EVENTS_SUGGEST_CAPABILITY
+import com.lfnj.sport_app.features.integrations.model.STRAVA_CAPABILITY
 import com.lfnj.sport_app.features.nutrition.reminders.model.SESSION_REMINDERS_CAPABILITY
 import com.lfnj.sport_app.features.nutrition.routines.model.NUTRITION_ROUTINES_SUGGEST_CAPABILITY
 import com.lfnj.sport_app.features.recommendations.model.TRAINING_PLANS_SUGGEST_CAPABILITY
@@ -16,6 +17,7 @@ import com.lfnj.sport_app.features.services.model.SERVICES_SUPPORT_SUGGEST_CAPAB
 import com.lfnj.sport_app.features.services.model.VIRTUAL_SESSIONS_CAPABILITY
 import com.lfnj.sport_app.features.training.dashboard.model.TRAINING_DASHBOARD_CAPABILITY
 import com.lfnj.sport_app.features.training.metrics.model.TRAINING_METRICS_CAPABILITY
+import com.lfnj.sport_app.features.training.monitoring.model.MONITORING_CAPABILITY
 import com.lfnj.sport_app.features.training.session.model.TRAINING_SESSION_CAPABILITY
 
 enum class MenuGroup(@param:StringRes val label: Int?) {
@@ -86,12 +88,12 @@ object NavigationRegistry {
         capability(TRAINING_PLANS_SUGGEST_CAPABILITY, R.string.menu_athlete_training_suggestions, MenuGroup.TRAINING, 130, "HU028", Destinations.PLAN_SUGGESTIONS),
         capability(SERVICES_SUPPORT_SUGGEST_CAPABILITY, R.string.menu_athlete_support, MenuGroup.SERVICES, 140, "HU029", Destinations.SUPPORT_SUGGESTIONS),
         capability(NUTRITION_ROUTINES_SUGGEST_CAPABILITY, R.string.menu_athlete_nutrition_routines, MenuGroup.NUTRITION, 150, "HU030", Destinations.NUTRITION_ROUTINES),
-        capability("integrations.strava.connect", R.string.menu_athlete_strava, MenuGroup.INTEGRATIONS, 160, "HU031"),
+        capability(STRAVA_CAPABILITY, R.string.menu_athlete_strava, MenuGroup.INTEGRATIONS, 160, "HU031", Destinations.STRAVA),
         capability(TRAINING_SESSION_CAPABILITY, R.string.menu_athlete_session, MenuGroup.TRAINING, 170, "HU032", Destinations.TRAINING_SESSION),
         capability(TRAINING_DASHBOARD_CAPABILITY, R.string.menu_athlete_dashboard, MenuGroup.TRAINING, 180, "HU033", Destinations.TRAINING_DASHBOARD),
         capability(TRAINING_METRICS_CAPABILITY, R.string.menu_athlete_metrics, MenuGroup.TRAINING, 190, "HU034", Destinations.TRAINING_METRICS),
         capability(CALENDAR_CAPABILITY, R.string.menu_athlete_calendar, MenuGroup.CALENDAR, 200, "HU035", Destinations.CALENDAR),
-        capability("training.realtime.monitor", R.string.menu_athlete_realtime, MenuGroup.TRAINING, 210, "HU036"),
+        capability(MONITORING_CAPABILITY, R.string.menu_athlete_realtime, MenuGroup.TRAINING, 210, "HU036", Destinations.REALTIME_MONITORING),
         capability(DEVICES_CAPABILITY, R.string.menu_athlete_devices, MenuGroup.DEVICES, 220, "HU037", Destinations.DEVICES),
         capability(SESSION_REMINDERS_CAPABILITY, R.string.menu_athlete_reminders, MenuGroup.NUTRITION, 230, "HU038", Destinations.SESSION_REMINDERS),
         capability(VIRTUAL_SESSIONS_CAPABILITY, R.string.menu_athlete_virtual_sessions, MenuGroup.SERVICES, 250, "HU040", Destinations.VIRTUAL_SESSIONS),

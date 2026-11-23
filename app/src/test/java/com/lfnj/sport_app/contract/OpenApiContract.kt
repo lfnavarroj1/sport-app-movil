@@ -9,8 +9,10 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import java.lang.reflect.Method
 
 /**
@@ -98,6 +100,8 @@ class OpenApiContract private constructor(private val document: JsonObject) {
     private fun operationOf(method: Method): Pair<String, String>? {
         method.getAnnotation(GET::class.java)?.let { return "get" to "/" + it.value }
         method.getAnnotation(POST::class.java)?.let { return "post" to "/" + it.value }
+        method.getAnnotation(PUT::class.java)?.let { return "put" to "/" + it.value }
+        method.getAnnotation(DELETE::class.java)?.let { return "delete" to "/" + it.value }
         return null
     }
 

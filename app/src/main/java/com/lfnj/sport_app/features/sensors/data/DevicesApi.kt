@@ -105,9 +105,27 @@ data class MeasurementBatchRequestDto(
 @Serializable
 data class RejectedSampleDto(val index: Int, val issue: String)
 
-/** HU036: evaluación del mismo ciclo; HU037 no la presenta (alertas y riesgo pertenecen a HU036). */
+/**
+ * HU036: alerta nueva del lote (`RiskAlertResponse`). `alert_id` es estable ante reenvíos del mismo
+ * lote; `message` es el texto fijo aprobado con el aviso no diagnóstico (ADR-044 §9).
+ */
 @Serializable
-data class EvaluationDto(val status: String, val alerts: List<kotlinx.serialization.json.JsonObject>)
+data class RiskAlertDto(
+    @SerialName("alert_id") val alertId: String,
+    val rule: String,
+    val severity: String,
+    val message: String,
+    val instruction: String,
+    @SerialName("detected_at") val detectedAt: String,
+) {
+    override fun toString(): String = "RiskAlertDto(rule=$rule, severity=$severity)"
+}
+
+/** HU036: evaluación del mismo ciclo (`EvaluationResponse`); HU037 no la presenta, la entrega a HU036. */
+@Serializable
+data class EvaluationDto(val status: String, val alerts: List<RiskAlertDto>) {
+    override fun toString(): String = "EvaluationDto(status=$status, alerts=${alerts.size})"
+}
 
 @Serializable
 data class MeasurementBatchResponseDto(

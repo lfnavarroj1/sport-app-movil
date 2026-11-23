@@ -53,6 +53,14 @@ import com.lfnj.sport_app.features.services.data.local.SupportSuggestionsCodec
 import com.lfnj.sport_app.features.services.data.local.SupportSuggestionsDatabase
 import com.lfnj.sport_app.features.services.data.local.VirtualSessionsDatabase
 import com.lfnj.sport_app.features.status.HttpStatusRepository
+import com.lfnj.sport_app.features.integrations.data.StravaApi
+import com.lfnj.sport_app.features.integrations.data.StravaCacheJanitor
+import com.lfnj.sport_app.features.integrations.data.StravaRepository
+import com.lfnj.sport_app.features.integrations.data.local.StravaCodec
+import com.lfnj.sport_app.features.integrations.data.local.StravaDatabase
+import com.lfnj.sport_app.features.integrations.system.AuthorizationBrowser
+import com.lfnj.sport_app.features.integrations.system.CustomTabsAuthorizationBrowser
+import com.lfnj.sport_app.features.integrations.system.StravaLinkLaunch
 import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardApi
 import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardCacheJanitor
 import com.lfnj.sport_app.features.training.dashboard.data.TrainingDashboardRepository
@@ -138,6 +146,14 @@ import com.lfnj.sport_app.features.sensors.data.local.SensorsCodec
 import com.lfnj.sport_app.features.sensors.data.local.SensorsDatabase
 import com.lfnj.sport_app.features.sensors.sync.MeasurementStreamTask
 import com.lfnj.sport_app.features.sensors.sync.MeasurementUploader
+import com.lfnj.sport_app.features.training.monitoring.PracticeStopper
+import com.lfnj.sport_app.features.training.monitoring.RiskAlertNotifier
+import com.lfnj.sport_app.features.training.monitoring.RiskMonitor
+import com.lfnj.sport_app.features.training.monitoring.data.MonitoringApi
+import com.lfnj.sport_app.features.training.monitoring.data.MonitoringGateway
+import com.lfnj.sport_app.features.training.monitoring.data.MonitoringRepository
+import com.lfnj.sport_app.features.training.monitoring.system.AndroidRiskAlertNotifier
+import com.lfnj.sport_app.features.training.session.model.SessionEndReason
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -373,6 +389,31 @@ open class AppContainer(
     val trainingDashboardCacheJanitor: TrainingDashboardCacheJanitor by lazy {
         TrainingDashboardCacheJanitor(sessionManager.currentUser, trainingDashboardRepository)
     }
+
+    // ------------------------------------------------------------------ HU031 (ADR-042)
+
+    protected open val stravaDatabase: StravaDatabase by lazy { StravaDatabase.create(appContext) }
+
+    /** Clave AES-GCM propia de la caché del estado de Strava, distinta de la de la sesión y de las demás cachés. */
+    protected open val stravaCipher: TokenCipher by lazy { KeystoreTokenCipher(StravaCodec.KEY_ALIAS) }
+
+    open val stravaRepository: StravaRepository by lazy {
+        StravaRepository(
+            dao = stravaDatabase.stravaCacheDao(),
+            codec = StravaCodec(stravaCipher, BffMobileClient.json),
+            api = bffApi(StravaApi::class.java),
+            sessionManager = sessionManager,
+            json = BffMobileClient.json,
+        )
+    }
+
+    val stravaCacheJanitor: StravaCacheJanitor by lazy { StravaCacheJanitor(sessionManager.currentUser, stravaRepository) }
+
+    /** Retorno pendiente desde el consentimiento de Strava (enlace profundo). */
+    val stravaLinkLaunch: StravaLinkLaunch by lazy { StravaLinkLaunch() }
+
+    /** Abre el consentimiento oficial de Strava en Custom Tabs; las pruebas lo sustituyen. */
+    open val authorizationBrowser: AuthorizationBrowser get() = CustomTabsAuthorizationBrowser
 
     // ------------------------------------------------------------------ HU040 (ADR-046)
 
@@ -615,7 +656,7 @@ open class AppContainer(
         ActiveSessionTracker(sessionManager.currentUser, activeSessionSource, activeSessionPointer, activeSessionLauncher)
     }
 
-    /** Tareas que acompañan la sesión activa en el servicio en primer plano: recordatorios (HU038) y mediciones (HU037). */
+    /** Tareas que acompañan la sesión activa en el servicio en primer plano: recordatorios (HU038) y mediciones con su evaluación (HU037/HU036). */
     open val activeSessionTasks: List<ActiveSessionTask> get() = listOf(sessionReminderEngine, measurementStreamTask)
 
     // ------------------------------------------------------------------ HU037 (ADR-044)
@@ -648,7 +689,7 @@ open class AppContainer(
     private val sensorSamples by lazy { SensorSamples(sensorsDatabase.sensorsDao(), sensorsCodec) }
 
     val measurementUploader: MeasurementUploader by lazy {
-        MeasurementUploader(sensorSamples, devicesRepository, devicesApi, sessionManager, BffMobileClient.json)
+        MeasurementUploader(sensorSamples, devicesRepository, devicesApi, sessionManager, BffMobileClient.json, evaluations = riskMonitor)
     }
 
     /** Lectura de `0x2A37` y lotes cada 5 s mientras la sesión de HU032 está activa. */
@@ -658,6 +699,28 @@ open class AppContainer(
 
     /** Borra vinculaciones y muestras al terminar la sesión o cambiar de deportista. */
     val sensorsJanitor: SensorsJanitor by lazy { SensorsJanitor(sessionManager.currentUser, devicesRepository) }
+
+    // ------------------------------------------------------------------ HU036 (ADR-044)
+
+    /** Alertas de riesgo en el canal `monitoring_alerts` con importancia alta. */
+    val androidRiskAlertNotifier: AndroidRiskAlertNotifier by lazy { AndroidRiskAlertNotifier(appContext) }
+
+    protected open val riskAlertNotifier: RiskAlertNotifier get() = androidRiskAlertNotifier
+
+    /** Evaluación y alertas de la sesión en curso, alimentadas por cada lote confirmado de HU037. */
+    val riskMonitor: RiskMonitor by lazy { RiskMonitor(riskAlertNotifier) }
+
+    open val monitoringRepository: MonitoringGateway by lazy {
+        MonitoringRepository(bffApi(MonitoringApi::class.java), sessionManager, BffMobileClient.json)
+    }
+
+    /** «Detener la práctica»: el fin de HU032 con `reason = RISK_STOP`, por su cola y transición única. */
+    val practiceStopper: PracticeStopper get() = PracticeStopper { owner, sessionId ->
+        trainingSessionRepository.finish(owner, sessionId, SessionEndReason.RISK_STOP)
+    }
+
+    /** Notificador de alertas visible para la pantalla (estado del permiso y del canal). */
+    val monitoringNotifier: RiskAlertNotifier get() = riskAlertNotifier
 
     // ------------------------------------------------------------------ HU043 (ADR-037)
 

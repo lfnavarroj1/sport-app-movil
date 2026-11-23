@@ -47,10 +47,14 @@ data class StartTrainingSessionRequestDto(
     override fun toString(): String = "StartTrainingSessionRequestDto(<oculto>)"
 }
 
-/** Cuerpo de `POST /v1/training-sessions/{session_id}/finish`. */
+/**
+ * Cuerpo de `POST /v1/training-sessions/{session_id}/finish`. `reason` es opcional (HU036,
+ * ADR-044 §10): `RISK_STOP` al detener la práctica desde el monitoreo; sin valor no se envía.
+ */
 @Serializable
 data class FinishTrainingSessionRequestDto(
     @SerialName("ended_at") val endedAt: String,
+    val reason: String? = null,
 ) {
     override fun toString(): String = "FinishTrainingSessionRequestDto(<oculto>)"
 }
@@ -86,6 +90,8 @@ data class TrainingSessionDto(
     val version: Int,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String,
+    /** Motivo de la finalización (HU036); `null` si no se indicó. */
+    @SerialName("end_reason") val endReason: String? = null,
 ) {
     override fun toString(): String = "TrainingSessionDto(status=$status, version=$version)"
 

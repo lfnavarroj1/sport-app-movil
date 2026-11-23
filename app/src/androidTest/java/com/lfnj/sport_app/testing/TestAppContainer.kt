@@ -18,6 +18,8 @@ import com.lfnj.sport_app.features.events.data.ConnectivityMonitor
 import com.lfnj.sport_app.features.events.data.local.EventRegistrationsDatabase
 import com.lfnj.sport_app.features.events.data.local.EventSuggestionsDatabase
 import com.lfnj.sport_app.features.health.data.local.HealthReportsDatabase
+import com.lfnj.sport_app.features.integrations.data.local.StravaDatabase
+import com.lfnj.sport_app.features.integrations.system.AuthorizationBrowser
 import com.lfnj.sport_app.features.recommendations.data.local.PlanSuggestionsDatabase
 import com.lfnj.sport_app.features.recommendations.data.local.RouteSuggestionsDatabase
 import com.lfnj.sport_app.features.nutrition.routines.data.local.NutritionRoutinesDatabase
@@ -44,6 +46,8 @@ import com.lfnj.sport_app.features.sensors.data.DevicesApi
 import com.lfnj.sport_app.features.sensors.data.SensorSamples
 import com.lfnj.sport_app.features.sensors.data.local.SensorsCodec
 import com.lfnj.sport_app.features.sensors.data.local.SensorsDatabase
+import com.lfnj.sport_app.features.training.monitoring.RiskAlertNotifier
+import com.lfnj.sport_app.features.training.monitoring.model.RiskAlert
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.security.KeyStore
 
@@ -116,6 +120,26 @@ class RecordingReminderNotifier(var status: SystemNotificationsStatus = SystemNo
     }
 }
 
+/** HU036: alertas de riesgo registradas en lugar de publicarlas en el teléfono. */
+class RecordingRiskAlertNotifier(@Volatile var status: SystemNotificationsStatus = SystemNotificationsStatus.ENABLED) : RiskAlertNotifier {
+    val posted = java.util.Collections.synchronizedList(mutableListOf<RiskAlert>())
+    override fun status(): SystemNotificationsStatus = status
+    override fun notify(alert: RiskAlert): Boolean {
+        if (status != SystemNotificationsStatus.ENABLED) return false
+        posted += alert
+        return true
+    }
+}
+
+/** HU031: registra las URL de autorización en lugar de abrir el navegador; [opens] decide si «hay navegador». */
+class RecordingAuthorizationBrowser(@Volatile var opens: Boolean = true) : AuthorizationBrowser {
+    val opened = java.util.Collections.synchronizedList(mutableListOf<String>())
+    override fun open(context: Context, url: String): Boolean {
+        if (opens) opened += url
+        return opens
+    }
+}
+
 /** HU038: puntero de la sesión activa en memoria, para no tocar las preferencias de la aplicación instalada. */
 class InMemoryActiveSessionPointer : ActiveSessionPointer {
     @Volatile var value: Pair<String, String>? = null
@@ -129,7 +153,7 @@ class InMemoryActiveSessionPointer : ActiveSessionPointer {
 }
 
 /**
- * Contenedor real con bases de HU026, HU028, HU029, HU038, HU039, HU040, HU042, HU043, HU032, HU033, HU034, HU035, HU041, HU037 (con fuente BLE simulada marcada) y la cola de revocación de HU004 en memoria, claves de
+ * Contenedor real con bases de HU026, HU028, HU029, HU038, HU039, HU040, HU042, HU043, HU032, HU033, HU034, HU035, HU041, HU037 (con fuente BLE simulada marcada), HU036 (alertas registradas), HU031 (navegador registrado) y la cola de revocación de HU004 en memoria, claves de
  * Keystore de prueba y sincronización controlada por la prueba (sin WorkManager), para no tocar los
  * datos de la aplicación instalada.
  */
@@ -166,7 +190,7 @@ class TestAppContainer(
     override val sessionRevoker: SessionRevoker? get() = revoker ?: revocationQueue
     override val trainingDatabase: TrainingDatabase get() = database
     override val trainingSyncScheduler: TrainingSyncScheduler get() = scheduler
-    override val trainingCipher: TokenCipher = KeystoreTokenCipher(TEST_KEY_ALIAS)
+    public override val trainingCipher: TokenCipher = KeystoreTokenCipher(TEST_KEY_ALIAS)
 
     val metrics: TrainingMetricsDatabase = Room.inMemoryDatabaseBuilder(context, TrainingMetricsDatabase::class.java).build()
     val metricsScheduler = RecordingScheduler()
@@ -262,6 +286,17 @@ class TestAppContainer(
     /** Muestras cifradas de HU037 sobre la misma base y clave que usa el contenedor. */
     val sensorSamplesForTest: SensorSamples by lazy { SensorSamples(sensors.sensorsDao(), SensorsCodec(sensorsCipher, BffMobileClient.json)) }
 
+    // HU036: alertas de riesgo registradas en memoria (sin publicar notificaciones en el teléfono).
+    val recordingRiskAlertNotifier = RecordingRiskAlertNotifier()
+    override val riskAlertNotifier: RiskAlertNotifier get() = recordingRiskAlertNotifier
+
+    // HU031: estado de Strava en memoria con su clave de prueba y el navegador registrado en lugar de abrir Custom Tabs.
+    val strava: StravaDatabase = Room.inMemoryDatabaseBuilder(context, StravaDatabase::class.java).build()
+    override val stravaDatabase: StravaDatabase get() = strava
+    override val stravaCipher: TokenCipher = KeystoreTokenCipher(STRAVA_TEST_KEY_ALIAS)
+    val browser = RecordingAuthorizationBrowser()
+    override val authorizationBrowser: AuthorizationBrowser get() = browser
+
     /** Cliente `bff-mobile` de HU037 para que el E2E reenvíe un lote ya enviado (idempotencia natural). */
     val devicesApiForTest: DevicesApi? by lazy { bffApi(DevicesApi::class.java) }
 
@@ -283,6 +318,7 @@ class TestAppContainer(
         sessionReminders.close()
         foodIntakes.close()
         sensors.close()
+        strava.close()
         deleteTestKey()
         deleteTestKey(CALENDAR_TEST_KEY_ALIAS)
         deleteTestKey(REVOCATION_TEST_KEY_ALIAS)
@@ -300,6 +336,7 @@ class TestAppContainer(
         deleteTestKey(SESSION_REMINDERS_TEST_KEY_ALIAS)
         deleteTestKey(FOOD_INTAKES_TEST_KEY_ALIAS)
         deleteTestKey(SENSORS_TEST_KEY_ALIAS)
+        deleteTestKey(STRAVA_TEST_KEY_ALIAS)
     }
 
     companion object {
@@ -320,6 +357,7 @@ class TestAppContainer(
         const val SESSION_REMINDERS_TEST_KEY_ALIAS = "sportapp.session_reminders.test"
         const val FOOD_INTAKES_TEST_KEY_ALIAS = "sportapp.food-intakes.test"
         const val SENSORS_TEST_KEY_ALIAS = "sportapp.sensors.test"
+        const val STRAVA_TEST_KEY_ALIAS = "sportapp.strava.test"
 
         fun deleteTestKey(alias: String = TEST_KEY_ALIAS) = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias)
     }
